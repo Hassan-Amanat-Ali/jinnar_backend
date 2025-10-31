@@ -1,0 +1,548 @@
+// controllers/jobRequestController.js
+import Order from '../models/Order.js';
+import Gig from '../models/Gig.js';
+import User from '../models/User.js';
+import flw from '../config/flutterwave.js';
+import { sendNotification } from './notificationController.js';
+
+// ───────────────────────────────────────
+// 1. CREATE JOB REQUEST (Buyer)
+// ───────────────────────────────────────
+
+export const createJobRequest = async (req, res) => {
+  try {
+    const { id: buyerId } = req.user;
+    const { gigId, date, timeSlot, jobDescription, image, lat, lng, emergency } = req.body;
+
+    if (!gigId || !date || !timeSlot || !jobDescription || !lat || !lng) {
+      return res.status(400).json({ error: "gigId, date, timeSlot, description, lat, lng are required" });
+    }
+
+    const gig = await Gig.findById(gigId);
+    if (!gig) return res.status(404).json({ error: "Gig not found" });
+    if (gig.sellerId.toString() === buyerId)
+      return res.status(400).json({ error: "You cannot create a job request for your own gig" });
+
+    const newJob = await Order.create({
+      gigId,
+      sellerId: gig.sellerId,
+      buyerId,
+      date,
+      timeSlot,
+      jobDescription,
+      image: image || null,
+      location: { lat, lng },
+      emergency: emergency || false,
+    });
+
+    // 👇 Notify seller about new job request
+    await sendNotification(
+      gig.sellerId,
+      'booking',
+      `You have a new job request for "${gig.title}"`,
+      newJob._id,
+      'Order'
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Job request created successfully",
+      data: newJob,
+    });
+  } catch (error) {
+    console.error("Error creating job request:", error);
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+};
+
+
+
+// ───────────────────────────────────────
+// 2.  JOB REQUESTS (Buyer)
+// ───────────────────────────────────────
+export const getAllJobRequests = async (req, res) => {
+  try {
+    const { id: sellerId } = req.user;
+
+    const jobs = await Order.find({
+      sellerId: sellerId,
+    })
+      .populate('buyerId', 'name profileImage')
+      .sort({ createdAt: -1 });
+
+    res.json({ jobs });
+  } catch (error) {
+    console.error('Error fetching job requests:', error);
+    res.status(500).json({ error: 'Failed to fetch job requests: ' + error.message });
+  }
+};
+
+export const getPendingJobRequests = async (req, res) => {
+  try {
+    const { id: sellerId } = req.user;
+
+    const jobs = await Order.find({
+      sellerId: sellerId,
+      status: 'pending'
+    })
+      .populate('buyerId', 'name profileImage')
+      .sort({ createdAt: -1 });
+
+    res.json({ jobs });
+  } catch (error) {
+    console.error('Error fetching job requests:', error);
+    res.status(500).json({ error: 'Failed to fetch job requests: ' + error.message });
+  }
+};
+
+export const getCompletedJobRequests = async (req, res) => {
+  try {
+    const { id: sellerId } = req.user;
+
+    const jobs = await Order.find({
+      sellerId: sellerId,
+      status: 'completed'
+    })
+      .populate('buyerId', 'name profileImage')
+      .sort({ createdAt: -1 });
+
+    res.json({ jobs });
+  } catch (error) {
+    console.error('Error fetching job requests:', error);
+    res.status(500).json({ error: 'Failed to fetch job requests: ' + error.message });
+  }
+};
+
+export const getOngoingJobRequests = async (req, res) => {
+  try {
+    const { id: sellerId } = req.user;
+
+    const jobs = await Order.find({
+      sellerId: sellerId,
+      status: 'accepted'
+    })
+      .populate('buyerId', 'name profileImage')
+      .sort({ createdAt: -1 });
+
+    res.json({ jobs });
+  } catch (error) {
+    console.error('Error fetching job requests:', error);
+    res.status(500).json({ error: 'Failed to fetch job requests: ' + error.message });
+  }
+};
+
+export const getDeclinedJobRequests = async (req, res) => {
+  try {
+    const { id: sellerId } = req.user;
+
+    const jobs = await Order.find({
+      sellerId: sellerId,
+      status: 'rejected'
+    })
+      .populate('buyerId', 'name profileImage')
+      .sort({ createdAt: -1 });
+
+    res.json({ jobs });
+  } catch (error) {
+    console.error('Error fetching job requests:', error);
+    res.status(500).json({ error: 'Failed to fetch job requests: ' + error.message });
+  }
+};
+
+export const getCancelledJobRequests = async (req, res) => {
+  try {
+    const { id: sellerId } = req.user;
+
+    const jobs = await Order.find({
+      sellerId: sellerId,
+      status: 'cancelled'
+    })
+      .populate('buyerId', 'name profileImage')
+      .sort({ createdAt: -1 });
+
+    res.json({ jobs });
+  } catch (error) {
+    console.error('Error fetching job requests:', error);
+    res.status(500).json({ error: 'Failed to fetch job requests: ' + error.message });
+  }
+};
+
+
+
+// ───────────────────────────────────────
+// 3. GET AVAILABLE JOBS (Seller)
+// ───────────────────────────────────────
+export const getAvailableJobs = async (req, res) => {
+  try {
+    const { id } = req.user;
+    const jobs = await Order.find({
+      status: 'open',
+      buyerId: { $ne: id },
+      declinedBy: { $ne: id }
+    })
+      .populate('buyerId', 'name profileImage')
+      .sort({ createdAt: -1 })
+      .limit(20);
+    res.json({ jobs });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch jobs' + error});
+  }
+};
+
+// ───────────────────────────────────────
+// 4. ACCEPT JOB (Seller)
+// ───────────────────────────────────────
+export const acceptJob = async (req, res) => {
+  try {
+    const { id: sellerId, name } = req.user;
+    const {id} = req.body;
+    const job = await Order.findById(id);
+    if (!job || job.status !== 'pending') return res.status(400).json({ error: 'Job not available' });
+
+    job.status = 'accepted';
+    job.acceptedBy = sellerId;
+    job.acceptedAt = new Date();
+    await job.save();
+
+    // 👇 Notify buyer that seller accepted the job
+    await sendNotification(
+      job.buyerId,
+      'booking',
+      `${name || 'Seller'} accepted your job request.`,
+      job._id,
+      'Order'
+    );
+
+    res.json({ message: 'Job accepted' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to accept ' + error });
+  }
+};
+
+// ───────────────────────────────────────
+// 5. DECLINE JOB (Seller)
+// ───────────────────────────────────────
+export const declineJob = async (req, res) => {
+  try {
+    const { id: sellerId } = req.user;
+    const { id } = req.body; // order id
+
+    const job = await Order.findById(id);
+    if (!job) return res.status(404).json({ error: 'Order not found' });
+    if (job.status !== 'pending')
+      return res.status(400).json({ error: 'Only pending jobs can be declined' });
+
+    // Ensure only the seller who received the request can decline
+    if (job.sellerId.toString() !== sellerId)
+      return res.status(403).json({ error: 'You are not authorized to decline this job' });
+
+    job.status = 'rejected';
+    await job.save();
+
+    // Send notification to buyer
+    await sendNotification(
+      job.buyerId,
+      'booking',
+      `Your job request was declined by the seller.`,
+      job._id,
+      'Order'
+    );
+
+    res.json({ message: 'Job declined successfully' });
+  } catch (error) {
+    console.error('Decline error:', error);
+    res.status(500).json({ error: 'Failed to decline job: ' + error.message });
+  }
+};
+
+
+export const cancelOrder = async (req, res) => {
+  try {
+    const { id: buyerId } = req.user; // ✅ from bearer token
+    const { orderId } = req.body; // order ID passed in body
+
+    // ✅ Check required field
+    if (!orderId) {
+      return res.status(400).json({ error: "orderId is required" });
+    }
+
+    // ✅ Fetch the order
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    // ✅ Ensure this user is the buyer
+    if (order.buyerId.toString() !== buyerId) {
+      return res.status(403).json({ error: "You can only cancel your own order" });
+    }
+
+    // ✅ Allow cancel only if open/pending
+    if (!["open", "pending"].includes(order.status)) {
+      return res.status(400).json({ error: "Order cannot be canceled at this stage" });
+    }
+
+    // ✅ Update order
+    order.status = "cancelled";
+    order.canceledAt = new Date();
+    await order.save();
+
+    // ✅ Notify seller (if any)
+    if (order.sellerId) {
+      await sendNotification(
+        order.sellerId,
+        "booking",
+        `A job request was canceled by the buyer.`,
+        order._id,
+        "Order"
+      );
+    }
+
+    res.json({
+      success: true,
+      message: "Order canceled successfully",
+      order,
+    });
+  } catch (error) {
+    console.error("Error canceling order:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to cancel order",
+      details: error.message,
+    });
+  }
+};
+
+// ───────────────────────────────────────
+// 6. SEND MESSAGE (Buyer/Seller)
+// ───────────────────────────────────────
+export const sendMessage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { content, attachments } = req.body;
+    const { id: senderId } = req.user;
+
+    const job = await Order.findById(id);
+    if (!job) return res.status(404).json({ error: 'Job not found' });
+
+    const isParticipant = job.buyerId.toString() === senderId || 
+                         (job.acceptedBy && job.acceptedBy.toString() === senderId);
+    if (!isParticipant) return res.status(403).json({ error: 'Not authorized' });
+
+    job.messages.push({
+      senderId,
+      content,
+      attachments
+    });
+    await job.save();
+
+    res.json({ message: 'Message sent' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to send' + error});
+  }
+};
+
+// ───────────────────────────────────────
+// 7. MARK MESSAGES READ
+// ───────────────────────────────────────
+export const markMessagesRead = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { id: userId } = req.user;
+
+    const job = await Order.findById(id);
+    if (!job) return res.status(404).json({ error: 'Not found' });
+
+    job.messages.forEach(msg => {
+      if (msg.senderId.toString() !== userId && !msg.read) {
+        msg.read = true;
+      }
+    });
+    await job.save();
+
+    res.json({ message: 'Messages marked read' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed' + error});
+  }
+};
+
+// ───────────────────────────────────────
+// 8. UPLOAD DELIVERABLE (Seller)
+// ───────────────────────────────────────
+export const uploadDeliverable = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { url, publicId, description } = req.body;
+    const { id: sellerId, name } = req.user;
+
+    const job = await Order.findById(id);
+    if (!job || job.acceptedBy.toString() !== sellerId)
+      return res.status(403).json({ error: 'Not your job' });
+    if (job.status !== 'accepted')
+      return res.status(400).json({ error: 'Job not accepted' });
+
+    job.deliverables.push({
+      url,
+      publicId,
+      description,
+      uploadedBy: sellerId,
+    });
+    job.status = 'completed';
+    await job.save();
+
+    // 👇 Notify buyer that work is delivered
+    await sendNotification(
+      job.buyerId,
+      'booking',
+      `${name || 'Seller'} has submitted the deliverables for your job.`,
+      job._id,
+      'Order'
+    );
+
+    res.json({ message: 'Work delivered. Awaiting payment.' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to deliver ' + error });
+  }
+};
+
+// ───────────────────────────────────────
+// 9. PAY & REVIEW (Buyer)
+// ───────────────────────────────────────
+export const rateAndReviewOrder = async (req, res) => {
+  try {
+    const { id: buyerId } = req.user; // from token
+    const { orderId, rating, review } = req.body;
+
+    // 1️⃣ Validate input
+    if (!orderId || rating == null) {
+      return res.status(400).json({ error: 'orderId and rating are required' });
+    }
+
+    if (rating < 0 || rating > 5) {
+      return res.status(400).json({ error: 'Rating must be between 0 and 5' });
+    }
+
+    // 2️⃣ Find order
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+
+    // 3️⃣ Verify ownership
+    if (order.buyerId.toString() !== buyerId) {
+      return res.status(403).json({ error: 'You are not authorized to review this order' });
+    }
+
+    // 4️⃣ Only completed orders can be reviewed
+    if (order.status !== 'completed') {
+      return res.status(400).json({ error: 'You can only rate a completed order' });
+    }
+
+    // 5️⃣ Prevent duplicate review
+    if (order.rating !== null) {
+      return res.status(400).json({ error: 'You have already rated this order' });
+    }
+
+    // 6️⃣ Save rating and review
+    order.rating = rating;
+    order.review = review || null;
+    await order.save();
+
+    // 7️⃣ Update seller’s average rating
+    const seller = await User.findById(order.sellerId);
+    if (seller) {
+      const completedOrders = await Order.find({
+        sellerId: seller._id,
+        status: 'completed',
+        rating: { $ne: null },
+      });
+
+      const avg =
+        completedOrders.reduce((sum, o) => sum + o.rating, 0) /
+        (completedOrders.length || 1);
+
+      seller.rating.average = parseFloat(avg.toFixed(2));
+      seller.rating.count = completedOrders.length;
+      await seller.save();
+
+      // 8️⃣ Notify seller
+      await sendNotification(
+        seller._id,
+        'rating',
+        `You received a new rating of ${rating}★ from a buyer.`,
+        order._id,
+        'Order'
+      );
+    }
+
+    res.json({
+      message: 'Review submitted successfully',
+      order,
+    });
+  } catch (error) {
+    console.error('Error rating order:', error);
+    res.status(500).json({ error: 'Failed to rate order: ' + error.message });
+  }
+};
+
+// ───────────────────────────────────────
+// 10. GET MY ORDERS (Buyer + Seller)
+// ───────────────────────────────────────
+export const getMyOrders = async (req, res) => {
+  try {
+    const { id, role } = req.user;
+
+    let filter = {};
+    if (role === 'buyer') {
+      filter = { buyerId: id };
+    } else if (role === 'seller') {
+      filter = { sellerId: id };
+    }
+
+    const jobs = await Order.find(filter)
+      .populate('buyerId', 'name profileImage')
+      .populate('sellerId', 'name profileImage')
+      .sort({ createdAt: -1 });
+
+    res.json({ orders: jobs });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch orders' + error});
+  }
+};
+
+//11. Complete Order (Buyer)
+export const completeOrder = async (req, res) => {
+  try {
+    const { id: buyerId } = req.user;
+    const { id } = req.body; // order id
+
+    const order = await Order.findById(id);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    console.log("Order Id : ", order._id)
+    console.log("current uId : ", buyerId)
+    console.log("order buyer id : ", order.buyerId.toString())
+    // Check buyer ownership
+    if (order.buyerId.toString() !== buyerId)
+      return res.status(403).json({ error: 'You are not authorized to complete this order' });
+
+    // Only allow completing accepted orders
+    if (order.status !== 'accepted')
+      return res.status(400).json({ error: 'Only ongoing orders can be completed' });
+
+    order.status = 'completed';
+    order.completedAt = new Date();
+    await order.save();
+
+    // Notify seller
+    await sendNotification(
+      order.sellerId,
+      'booking',
+      `The buyer has marked your order as completed.`,
+      order._id,
+      'Order'
+    );
+
+    res.json({ message: 'Order marked as completed successfully', order });
+  } catch (error) {
+    console.error('Error completing order:', error);
+    res.status(500).json({ error: 'Failed to complete order: ' + error.message });
+  }
+};

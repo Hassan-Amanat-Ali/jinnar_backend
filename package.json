@@ -1,0 +1,34 @@
+{
+  "name": "backend-server-express-app",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "lint": "eslint src/**/*.js",
+    "format": "prettier --write src/**/*.js",
+    "validate-swagger": "node -e \"require('swagger-parser').validate('./src/config/swagger.yaml').then(() => console.log('Valid Swagger')).catch(err => console.error(err))\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Node.js Express server application for Jinnar Service Provider Application",
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "body-parser": "^2.2.0",
+    "crypto": "^1.0.1",
+    "express-rate-limit": "^8.1.0",
+    "express-validator": "^7.2.1",
+    "fluent-ffmpeg": "^2.1.3",
+    "flutterwave-node-v3": "^1.3.0",
+    "helmet": "^8.1.0",
+    "morgan": "^1.10.1",
+    "multer": "^2.0.2",
+    "nodemon": "^3.1.10",
+    "sharp": "^0.34.4",
+    "twilio": "^5.9.0",
+    "yamljs": "^0.3.0"
+  }
+}

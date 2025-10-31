@@ -1,0 +1,364 @@
+openapi: 3.0.3
+info:
+  title: My Express API
+  description: A professional Express.js backend with mobile number authentication
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+paths:
+  /auth/register:
+    post:
+      summary: Register a user with mobile number
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mobileNumber:
+                  type: string
+                  example: "+1234567890"
+                  description: Mobile number in E.164 format
+              required:
+                - mobileNumber
+      responses:
+        '201':
+          description: Verification code sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Verification code sent to mobile number
+        '400':
+          description: Invalid input or mobile number already registered
+  /auth/verify:
+    post:
+      summary: Verify mobile number with code
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mobileNumber:
+                  type: string
+                  example: "+1234567890"
+                code:
+                  type: string
+                  example: "123456"
+              required:
+                - mobileNumber
+                - code
+      responses:
+        '200':
+          description: Mobile number verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Mobile number verified
+                  token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5c...
+        '400':
+          description: Invalid or expired code
+        '404':
+          description: User not found
+  /auth/ussd:
+    post:
+      summary: USSD registration fallback
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sessionId:
+                  type: string
+                  example: "123456789"
+                phoneNumber:
+                  type: string
+                  example: "+1234567890"
+                text:
+                  type: string
+                  example: ""
+              required:
+                - sessionId
+                - phoneNumber
+                - text
+      responses:
+        '200':
+          description: USSD response
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: CON Welcome to MyApp\n1. Register
+
+  /auth/signin:
+    post:
+      summary: Sign-in (request code)
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mobileNumber:
+                  type: string
+                  example: "+1234567890"
+      responses:
+        '200':
+          description: Sign-in code sent
+
+  /auth/verify-signin:
+    post:
+      summary: Verify sign-in code
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mobileNumber:
+                  type: string
+                code:
+                  type: string
+      responses:
+        '200':
+          description: Signed in, returns JWT
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+
+  /gigs:
+    get:
+      summary: List public gigs
+      tags:
+        - Gigs
+      responses:
+        '200':
+          description: Array of gigs
+
+  /gigs/create:
+    post:
+      summary: Create a gig (seller)
+      tags:
+        - Gigs
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Gig created
+
+  /gigs/my-gigs:
+    get:
+      summary: Get seller's gigs
+      tags:
+        - Gigs
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Seller's gigs
+
+  /user/update:
+    post:
+      summary: Update current user profile
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: User updated
+
+  /user/upload-files:
+    post:
+      summary: Upload portfolio images, videos, certificates
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                portfolioImages:
+                  type: array
+                  items:
+                    type: string
+                videos:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Files uploaded
+
+  /payment/topup:
+    post:
+      summary: Initiate a payment top-up
+      tags:
+        - Payments
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+                paymentMethod:
+                  type: string
+      responses:
+        '200':
+          description: Payment initiated
+
+  /payment/wallet:
+    get:
+      summary: Get wallet balance and recent transactions
+      tags:
+        - Payments
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Wallet details
+
+  /orders/create:
+    post:
+      summary: Create a job request (order)
+      tags:
+        - Orders
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                gigId:
+                  type: string
+                price:
+                  type: number
+      responses:
+        '201':
+          description: Order created
+
+  /orders/my-requests:
+    get:
+      summary: Get user's job requests
+      tags:
+        - Orders
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Array of job requests
+
+  /images/upload:
+    post:
+      summary: Upload an image
+      tags:
+        - Images
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+      responses:
+        '200':
+          description: Image uploaded
+
+  /notifications:
+    get:
+      summary: Get user notifications
+      tags:
+        - Notifications
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Notifications list
+
+  /conversations:
+    post:
+      summary: Start a conversation
+      tags:
+        - Conversations
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                participantId:
+                  type: string
+      responses:
+        '201':
+          description: Conversation started
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas: {}
