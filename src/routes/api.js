@@ -8,6 +8,7 @@ import conversationRoutes from './conversation.js'
 import notificationRoutes from './notification.js'
 import jobRequestRoutes from './order.js'
 import walletRoutes from './wallet.js'
+import uploadRoutes from './uploadRoutes.js'
 
 
 const router = express.Router();
@@ -21,6 +22,7 @@ router.use('/conversations' , conversationRoutes)
 router.use('/notifications' , notificationRoutes)
 router.use('/orders', jobRequestRoutes)
 router.use('/wallet' , walletRoutes)
+router.use('/upload', uploadRoutes)
 
 
 

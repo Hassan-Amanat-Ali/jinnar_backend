@@ -2,8 +2,7 @@ import express from 'express';
 import { registerUser, verifyCode, signIn, verifySignIn,  } from '../controllers/authController.js';
 // import { ussdHandler } from '../controllers/ussdController.js';
 import { body, validationResult } from 'express-validator';
-import { protect } from '../middleware/auth.js';
-import { uploadFiles } from '../middleware/upload.js';
+
 const router = express.Router();
 
 router.post(

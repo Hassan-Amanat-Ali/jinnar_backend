@@ -1,5 +1,7 @@
 import User from '../models/User.js';
 import Gig from '../models/Gig.js';
+import cloudinary from 'cloudinary';
+
 
 export const updateUser = async (req, res, next) => {
   try {
@@ -400,74 +402,64 @@ export const updateUser = async (req, res, next) => {
   }
 };
 
-export const uploadUserFiles = async (req, res, next) => {
+
+// Configure Cloudinary (should be in a config file)
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+export const updateUserProfile = async (req, res) => {
   try {
-    const { id, role } = req.user; // From JWT middleware
-    
-    console.log('Upload request files:', req.files);
-    
-    // Find user
+    const { id } = req.user;
+    const { profilePicture, otherImages, portfolioImages, videos, certificates, gigImages } = req.body;
+
     const user = await User.findById(id);
-    if (!user) {
-      console.log('User not found:', id);
-      return res.status(404).json({ error: 'User not found' });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user.isVerified) return res.status(403).json({ error: 'User not verified' });
+
+    // Update profile picture (all users)
+    if (profilePicture) {
+      user.profilePicture = profilePicture;
     }
-    
-    // Check if user is verified
-    if (!user.isVerified) {
-      console.log('User not verified:', id);
-      return res.status(403).json({ error: 'User not verified' });
+
+    // Update other images (all users)
+    if (otherImages && Array.isArray(otherImages)) {
+      user.otherImages = [...(user.otherImages || []), ...otherImages];
     }
-    
-    // Only sellers can upload portfolioImages, videos, certificates
-    if (user.role !== 'seller') {
-      console.log('Buyer attempted to upload seller files:', id);
-      return res.status(403).json({ error: 'Only sellers can upload portfolio images, videos, and certificates' });
+
+    // Update seller-specific fields
+    if (user.role === 'seller') {
+      if (portfolioImages && Array.isArray(portfolioImages)) {
+        user.portfolio.images = [...(user.portfolio?.images || []), ...portfolioImages];
+      }
+      if (videos && Array.isArray(videos)) {
+        user.portfolio.videos = [...(user.portfolio?.videos || []), ...videos];
+      }
+      if (certificates && Array.isArray(certificates)) {
+        user.portfolio.certificates = [...(user.portfolio?.certificates || []), ...certificates];
+      }
+      if (gigImages && Array.isArray(gigImages)) {
+        user.portfolio.gigImages = [...(user.portfolio?.gigImages || []), ...gigImages];
+      }
+    } else if (portfolioImages || videos || certificates || gigImages) {
+      return res.status(403).json({ error: 'Only sellers can update portfolio fields' });
     }
-    
-    const uploadedFiles = {
-      portfolioImages: [],
-      videos: [],
-      certificates: []
-    };
-    
-    // Process portfolioImages
-    if (req.files && req.files.portfolioImages) {
-      console.log('Processing portfolioImages:', req.files.portfolioImages);
-      uploadedFiles.portfolioImages = req.files.portfolioImages.map(file => ({
-        url: `/uploads/images/${file.filename}`,
-        publicId: file.filename
-      }));
-    }
-    
-    // Process videos
-    if (req.files && req.files.videos) {
-      console.log('Processing videos:', req.files.videos);
-      uploadedFiles.videos = req.files.videos.map(file => ({
-        url: `/uploads/videos/${file.filename}`,
-        publicId: file.filename
-      }));
-    }
-    
-    // Process certificates
-    if (req.files && req.files.certificates) {
-      console.log('Processing certificates:', req.files.certificates);
-      uploadedFiles.certificates = req.files.certificates.map(file => ({
-        url: `/uploads/certificates/${file.filename}`,
-        publicId: file.filename
-      }));
-    }
-    
-    console.log('Uploaded files response:', uploadedFiles);
-    
+
+    await user.save();
+
     return res.status(200).json({
-      message: 'Files uploaded successfully',
-      files: uploadedFiles,
-      userId: id
+      message: 'Profile updated successfully',
+      user: {
+        id: user._id,
+        profilePicture: user.profilePicture,
+        otherImages: user.otherImages,
+        portfolio: user.portfolio
+      }
     });
-    
   } catch (error) {
-    console.error('Upload Files Error:', error.message, error.stack);
+    console.error('Update User Profile Error:', error.message, error.stack);
     return res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 };
