@@ -8,6 +8,7 @@ import morgan from 'morgan';
 import YAML from 'yamljs';
 import swaggerUi from 'swagger-ui-express';
 import apiRoutes from './routes/api.js';
+import cors from 'cors';   // ✅ ADD THIS
 
 
 
@@ -20,6 +21,7 @@ const limiter = rateLimit({
 });
 
 connectDb();
+app.use(cors());
 
 app.use(express.json());
 // for parsing application/xwww-form-urlencoded
