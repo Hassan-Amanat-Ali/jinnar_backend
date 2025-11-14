@@ -112,6 +112,7 @@ export const verifyCode = async (req, res, next) => {
     user.verificationCode = null;
     user.verificationCodeExpires = null;
     await user.save();
+user.fcmTokens = user.fcmTokens.filter(t => t.createdAt > Date.now() - 180*24*60*60*1000);
 
     // Generate JWT
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -215,6 +216,7 @@ export const verifySignIn = async (req, res, next) => {
         user.lastLogin = new Date();
 
     await user.save();
+user.fcmTokens = user.fcmTokens.filter(t => t.createdAt > Date.now() - 180*24*60*60*1000);
 
     // Generate JWT
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });

@@ -1,17 +1,13 @@
-// import express from 'express';
-// import { initializeTopup, payForOrder, withdrawFunds, getWallet,createPayment } from '../controllers/paymentController.js';
-// import { protect } from '../middleware/auth.js';
-// import webhookRouter from './webhook.js';
+import express from "express";
+import { paymentController } from "../controllers/paymentController.js";
 
-// const router = express.Router();
+const router = express.Router();
 
-// router.post('/topup', protect, initializeTopup);
-// router.post('/pay-order', protect, payForOrder);
-// router.post('/withdraw', protect, withdrawFunds);
-// router.get('/wallet', protect, getWallet);
-// router.post('/create-payment',createPayment , webhookRouter);
+router.get("/providers", paymentController.getProviders);
+router.post("/predict-correspondent", paymentController.predictCorrespondent);
+router.post("/deposit", paymentController.deposit);
+router.post("/payout", paymentController.payout);
+router.get("/status/:transactionId/:type", paymentController.checkStatus);
+router.post("/refund", paymentController.refund);
 
-// // Webhook
-// router.use('/webhook', webhookRouter);
-
-// export default router;
+export default router;

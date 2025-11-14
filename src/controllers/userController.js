@@ -514,6 +514,33 @@ export const getPublicProfile = async (req, res) => {
   }
 };
 
+export const updateFcmToken = async (req, res) => {
+  try {
+    const { token, deviceInfo } = req.body;
+    const userId = req.user.id; // from JWT middleware
+
+    if (!token) {
+      return res.status(400).json({ message: 'FCM token is required' });
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Remove any previous token entries that match this token
+    user.fcmTokens = user.fcmTokens.filter(t => t.token !== token);
+
+    // Add the token at the end (latest)
+    user.fcmTokens.push({ token, deviceInfo });
+
+    await user.save();
+
+    res.json({ message: 'FCM token updated successfully' });
+  } catch (err) {
+    console.error('Error updating FCM token:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
 // controllers/userController.js
 
 // GET MY PROFILE (Full Data for Profile Page)

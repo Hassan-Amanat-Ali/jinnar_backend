@@ -1,0 +1,78 @@
+{"level":"error","message":"Deposit creation failed: Request failed with status code 401","timestamp":"2025-11-11T16:10:57.433Z"}
+{"level":"error","message":"Deposit failed: Request failed with status code 401","timestamp":"2025-11-11T16:10:57.435Z"}
+{"level":"error","message":"Deposit creation failed: Request failed with status code 401","timestamp":"2025-11-11T16:12:41.640Z"}
+{"level":"error","message":"Deposit failed: Request failed with status code 401","timestamp":"2025-11-11T16:12:41.643Z"}
+{"level":"error","message":"Deposit creation failed: Request failed with status code 401","timestamp":"2025-11-11T16:13:54.664Z"}
+{"level":"error","message":"Deposit failed: Request failed with status code 401","timestamp":"2025-11-11T16:13:54.666Z"}
+{"level":"error","message":"Deposit creation failed: Request failed with status code 401","timestamp":"2025-11-11T16:14:15.558Z"}
+{"level":"error","message":"Deposit failed: Request failed with status code 401","timestamp":"2025-11-11T16:14:15.561Z"}
+{"level":"error","message":"Deposit creation failed: Request failed with status code 401","timestamp":"2025-11-11T16:16:38.627Z"}
+{"level":"error","message":"Deposit failed: Request failed with status code 401","timestamp":"2025-11-11T16:16:38.628Z"}
+{"level":"error","message":"Deposit creation failed: Request failed with status code 401","timestamp":"2025-11-11T16:21:59.750Z"}
+{"level":"error","message":"Deposit failed: Request failed with status code 401","timestamp":"2025-11-11T16:21:59.751Z"}
+{"level":"error","message":"Deposit creation failed: Request failed with status code 401","timestamp":"2025-11-11T16:23:13.348Z"}
+{"level":"error","message":"Deposit failed: Request failed with status code 401","timestamp":"2025-11-11T16:23:13.350Z"}
+{"level":"error","message":"Deposit creation failed: Request failed with status code 401","timestamp":"2025-11-11T16:25:09.022Z"}
+{"level":"error","message":"Deposit failed: Request failed with status code 401","timestamp":"2025-11-11T16:25:09.024Z"}
+{"level":"error","message":"Deposit creation failed: Request failed with status code 401","timestamp":"2025-11-11T16:25:46.359Z"}
+{"level":"error","message":"Deposit failed: Request failed with status code 401","timestamp":"2025-11-11T16:25:46.361Z"}
+{"level":"error","message":"Deposit creation failed: Request failed with status code 401","timestamp":"2025-11-11T16:25:49.108Z"}
+{"level":"error","message":"Deposit failed: Request failed with status code 401","timestamp":"2025-11-11T16:25:49.109Z"}
+{"level":"info","message":"Deposit created successfully: 485ed7e8-87a1-4921-878c-f46ac97684b1","timestamp":"2025-11-11T17:39:37.359Z"}
+{"level":"info","message":"Deposit processed successfully for order: ORD-102","timestamp":"2025-11-11T17:39:37.362Z"}
+{"level":"info","message":"Deposit created successfully: 87ab52c9-a6f6-4143-889a-d1b29059742e","timestamp":"2025-11-11T17:53:40.356Z"}
+{"level":"info","message":"Deposit processed successfully for order: ORD-102","timestamp":"2025-11-11T17:53:40.356Z"}
+{"level":"info","message":"Deposit created successfully: af599ab8-436f-4f57-9580-98d494705144","timestamp":"2025-11-11T17:53:53.609Z"}
+{"level":"info","message":"Deposit processed successfully for order: ORD-102","timestamp":"2025-11-11T17:53:53.610Z"}
+{"level":"info","message":"Deposit created successfully: a664498e-242e-41b6-bf86-4509b47b89da","timestamp":"2025-11-11T17:54:13.902Z"}
+{"level":"info","message":"Deposit processed successfully for order: ORD-102","timestamp":"2025-11-11T17:54:13.903Z"}
+{"level":"info","message":"Deposit created successfully: 94274dfc-a95f-48ff-b713-83dd5fd239cd","timestamp":"2025-11-11T17:55:41.259Z"}
+{"level":"info","message":"Deposit processed successfully for order: ORD-102","timestamp":"2025-11-11T17:55:41.261Z"}
+{"level":"info","message":"Deposit created successfully: a285c48b-4944-4840-a75a-add5490d4fba","timestamp":"2025-11-11T17:56:06.086Z"}
+{"level":"info","message":"Deposit processed successfully for order: ORD102","timestamp":"2025-11-11T17:56:06.087Z"}
+{"level":"error","message":"Predicting Correspondent Failed: PawaPayController.predictCorrespondent is not a function","timestamp":"2025-11-11T18:08:28.128Z"}
+{"level":"error","message":"Predicting Correspondent Failed: PawaPayController.predictCorrespondent is not a function","timestamp":"2025-11-11T18:08:31.742Z"}
+{"level":"error","message":"Predicting Correspondent Failed: PawaPayController.predictCorrespondent is not a function","timestamp":"2025-11-11T18:08:39.021Z"}
+{"level":"error","message":"Predicting Correspondent Failed: PawaPayController.predictCorrespondent is not a function","timestamp":"2025-11-11T18:08:47.000Z"}
+{"level":"error","message":"Predicting Correspondent Failed: PawaPayController.predictCorrespondent is not a function","timestamp":"2025-11-11T18:08:56.072Z"}
+{"level":"error","message":"Predicting Correspondent Failed: PawaPayController.predictCorrespondent is not a function","timestamp":"2025-11-11T18:09:08.620Z"}
+{"level":"error","message":"Predicting Correspondent Failed: PawaPayController.predictCorrespondent is not a function","timestamp":"2025-11-11T18:10:17.689Z"}
+{"level":"error","message":"Predicting Correspondent Failed: logger.logger is not a function","timestamp":"2025-11-11T18:11:45.888Z"}
+{"level":"error","message":"Predicting Correspondent Failed: Cannot create property 'Symbol(level)' on string 'Predicting Correspondent Failed: Invalid phone number format'","timestamp":"2025-11-11T18:12:05.230Z"}
+{"level":"error","message":"Predicting Correspondent Failed: Cannot create property 'Symbol(level)' on string 'Predicting Correspondent Failed: Invalid phone number format'","timestamp":"2025-11-11T18:14:09.170Z"}
+{"level":"error","message":"Predicting Correspondent Failed: Cannot create property 'Symbol(level)' on string 'Predicting Correspondent Failed:undefined Invalid phone number format'","timestamp":"2025-11-11T18:15:42.066Z"}
+{"level":"error","message":"Predicting Correspondent Failed: Cannot create property 'Symbol(level)' on string 'Predicting Correspondent Failed:255683456019 Request failed with status code 500'","timestamp":"2025-11-11T18:16:24.368Z"}
+{"level":"error","message":"Predicting Correspondent Failed: Cannot create property 'Symbol(level)' on string 'Predicting Correspondent Failed:255683456019 Request failed with status code 500'","timestamp":"2025-11-11T18:20:15.112Z"}
+{"level":"error","message":"Predicting Correspondent Failed: Cannot create property 'Symbol(level)' on string 'Predicting Correspondent Failed:255683456019 timeout of 30000ms exceeded'","timestamp":"2025-11-11T19:44:24.589Z"}
+{"level":"error","message":"Predicting Correspondent Failed: Cannot create property 'Symbol(level)' on string 'Predicting Correspondent Failed:260763456789 Request failed with status code 500'","timestamp":"2025-11-11T19:56:17.253Z"}
+{"level":"error","message":"Predicting Correspondent Failed: Cannot create property 'Symbol(level)' on string 'Predicting Correspondent Failed:undefined Invalid phone number format'","timestamp":"2025-11-11T19:56:25.765Z"}
+{"error":"Request failed with status code 500","level":"error","message":"Predicting Correspondent Failed","phoneNumber":"260763456789","timestamp":"2025-11-11T20:33:59.239Z"}
+{"level":"error","message":"Payout creation failed: Request failed with status code 400","timestamp":"2025-11-11T21:15:15.565Z"}
+{"level":"info","message":"Payout processed successfully for withdrawId: a5c32849-cc76-4e23-b2a8-d303e77a60ec","timestamp":"2025-11-11T21:15:15.567Z"}
+{"level":"error","message":"Payout creation failed: Request failed with status code 400","timestamp":"2025-11-11T21:16:09.106Z"}
+{"level":"info","message":"Payout processed successfully for withdrawId: 723e4973-2a4d-477e-aed5-1d8315e6edb7","timestamp":"2025-11-11T21:16:09.109Z"}
+{"level":"error","message":"Payout creation failed: Request failed with status code 400","timestamp":"2025-11-11T21:16:55.537Z"}
+{"level":"info","message":"Payout processed successfully for withdrawId: 5ff30d97-4b4c-46bc-9367-c8f42c289e4a","timestamp":"2025-11-11T21:16:55.540Z"}
+{"level":"error","message":"Payout creation failed: Request failed with status code 400","timestamp":"2025-11-11T21:18:14.653Z"}
+{"level":"error","message":"Payout failed: Error: Request failed with status code 400","timestamp":"2025-11-11T21:18:14.655Z"}
+{"level":"error","message":"Payout creation failed: HTTP error! Status: 500, Details: {\"failureReason\":{\"failureCode\":\"UNKNOWN_ERROR\",\"failureMessage\":\"Unable to process request due to an unknown problem.\"}}","timestamp":"2025-11-11T21:21:07.616Z"}
+{"level":"info","message":"Payout processed successfully for withdrawId: aae86cdb-1fd2-4320-84f4-254f2a2ae516","timestamp":"2025-11-11T21:21:07.618Z"}
+{"level":"info","message":"Payout created successfully: f4b3d232-361b-443d-b113-a78384a88630","timestamp":"2025-11-11T21:26:52.726Z"}
+{"level":"error","message":"Deposit creation failed: HTTP error! Status: 400, Details: {\"errorId\":\"eadc3f36-4574-4d84-be45-3391dce3ca1d\",\"errorCode\":1,\"errorMessage\":\"Invalid input: Missing required creator property 'payer' (index 5)\\n at [Source: (org.springframework.util.StreamUtils$NonClosingInputStream); line: 1, column: 417] (through reference chain: api.rest.deposit.dto.in.DepositCreationRequestDto[\\\"payer\\\"])\"}","timestamp":"2025-11-11T21:26:53.295Z"}
+{"level":"info","message":"Transaction status checked: f4b3d232-361b-443d-b113-a78384a88630","timestamp":"2025-11-11T21:26:53.517Z"}
+{"level":"info","message":"Payout created successfully: 56719f27-6235-4fe7-928b-800fef17e7e7","timestamp":"2025-11-11T21:30:47.003Z"}
+{"level":"info","message":"Deposit created successfully: f047339e-14d3-4133-874e-b8280001f78b","timestamp":"2025-11-11T21:30:47.610Z"}
+{"level":"info","message":"Transaction status checked: 56719f27-6235-4fe7-928b-800fef17e7e7","timestamp":"2025-11-11T21:30:47.826Z"}
+{"level":"info","message":"Refund created successfully: c77dc337-f6da-4098-8b74-e42b80000137","timestamp":"2025-11-11T21:30:48.072Z"}
+{"level":"info","message":"Payout created successfully: a9dc33ed-92b9-42fe-85e8-c057d6cf9989","timestamp":"2025-11-11T21:32:38.665Z"}
+{"level":"info","message":"Payout processed successfully for withdrawId: 43d17686-f118-4fb7-b59c-518abe6ffb79","timestamp":"2025-11-11T21:32:38.668Z"}
+{"level":"info","message":"Transaction status checked: a9dc33ed-92b9-42fe-85e8-c057d6cf9989","timestamp":"2025-11-11T21:38:21.877Z"}
+{"level":"info","message":"Status checked for transaction: a9dc33ed-92b9-42fe-85e8-c057d6cf9989","timestamp":"2025-11-11T21:38:21.878Z"}
+{"level":"info","message":"Transaction status checked: a9dc33ed-92b9-42fe-85e8-c057d6cf9989","timestamp":"2025-11-11T21:38:29.542Z"}
+{"level":"info","message":"Status checked for transaction: a9dc33ed-92b9-42fe-85e8-c057d6cf9989","timestamp":"2025-11-11T21:38:29.543Z"}
+{"level":"info","message":"Deposit created successfully: 4c5146b4-8e20-452f-9cb8-d8266a55e6b3","timestamp":"2025-11-12T15:02:48.412Z"}
+{"level":"info","message":"Deposit processed successfully for order: ORD102","timestamp":"2025-11-12T15:02:48.414Z"}
+{"level":"info","message":"Transaction status checked: 4c5146b4-8e20-452f-9cb8-d8266a55e6b3","timestamp":"2025-11-12T15:03:19.791Z"}
+{"level":"info","message":"Status checked for transaction: 4c5146b4-8e20-452f-9cb8-d8266a55e6b3","timestamp":"2025-11-12T15:03:19.792Z"}
+{"level":"info","message":"Payout created successfully: 5d822290-19f7-44d6-9572-31ecc51866f2","timestamp":"2025-11-12T15:03:42.692Z"}
+{"level":"info","message":"Payout processed successfully for withdrawId: 44e48ada-df5b-45a6-b688-2f2e228a165c","timestamp":"2025-11-12T15:03:42.693Z"}

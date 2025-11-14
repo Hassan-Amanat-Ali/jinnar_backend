@@ -1,0 +1,44 @@
+{"level":"error","message":"Deposit creation failed: Request failed with status code 401","timestamp":"2025-11-11T16:10:57.433Z"}
+{"level":"error","message":"Deposit failed: Request failed with status code 401","timestamp":"2025-11-11T16:10:57.435Z"}
+{"level":"error","message":"Deposit creation failed: Request failed with status code 401","timestamp":"2025-11-11T16:12:41.640Z"}
+{"level":"error","message":"Deposit failed: Request failed with status code 401","timestamp":"2025-11-11T16:12:41.643Z"}
+{"level":"error","message":"Deposit creation failed: Request failed with status code 401","timestamp":"2025-11-11T16:13:54.664Z"}
+{"level":"error","message":"Deposit failed: Request failed with status code 401","timestamp":"2025-11-11T16:13:54.666Z"}
+{"level":"error","message":"Deposit creation failed: Request failed with status code 401","timestamp":"2025-11-11T16:14:15.558Z"}
+{"level":"error","message":"Deposit failed: Request failed with status code 401","timestamp":"2025-11-11T16:14:15.561Z"}
+{"level":"error","message":"Deposit creation failed: Request failed with status code 401","timestamp":"2025-11-11T16:16:38.627Z"}
+{"level":"error","message":"Deposit failed: Request failed with status code 401","timestamp":"2025-11-11T16:16:38.628Z"}
+{"level":"error","message":"Deposit creation failed: Request failed with status code 401","timestamp":"2025-11-11T16:21:59.750Z"}
+{"level":"error","message":"Deposit failed: Request failed with status code 401","timestamp":"2025-11-11T16:21:59.751Z"}
+{"level":"error","message":"Deposit creation failed: Request failed with status code 401","timestamp":"2025-11-11T16:23:13.348Z"}
+{"level":"error","message":"Deposit failed: Request failed with status code 401","timestamp":"2025-11-11T16:23:13.350Z"}
+{"level":"error","message":"Deposit creation failed: Request failed with status code 401","timestamp":"2025-11-11T16:25:09.022Z"}
+{"level":"error","message":"Deposit failed: Request failed with status code 401","timestamp":"2025-11-11T16:25:09.024Z"}
+{"level":"error","message":"Deposit creation failed: Request failed with status code 401","timestamp":"2025-11-11T16:25:46.359Z"}
+{"level":"error","message":"Deposit failed: Request failed with status code 401","timestamp":"2025-11-11T16:25:46.361Z"}
+{"level":"error","message":"Deposit creation failed: Request failed with status code 401","timestamp":"2025-11-11T16:25:49.108Z"}
+{"level":"error","message":"Deposit failed: Request failed with status code 401","timestamp":"2025-11-11T16:25:49.109Z"}
+{"level":"error","message":"Predicting Correspondent Failed: PawaPayController.predictCorrespondent is not a function","timestamp":"2025-11-11T18:08:28.128Z"}
+{"level":"error","message":"Predicting Correspondent Failed: PawaPayController.predictCorrespondent is not a function","timestamp":"2025-11-11T18:08:31.742Z"}
+{"level":"error","message":"Predicting Correspondent Failed: PawaPayController.predictCorrespondent is not a function","timestamp":"2025-11-11T18:08:39.021Z"}
+{"level":"error","message":"Predicting Correspondent Failed: PawaPayController.predictCorrespondent is not a function","timestamp":"2025-11-11T18:08:47.000Z"}
+{"level":"error","message":"Predicting Correspondent Failed: PawaPayController.predictCorrespondent is not a function","timestamp":"2025-11-11T18:08:56.072Z"}
+{"level":"error","message":"Predicting Correspondent Failed: PawaPayController.predictCorrespondent is not a function","timestamp":"2025-11-11T18:09:08.620Z"}
+{"level":"error","message":"Predicting Correspondent Failed: PawaPayController.predictCorrespondent is not a function","timestamp":"2025-11-11T18:10:17.689Z"}
+{"level":"error","message":"Predicting Correspondent Failed: logger.logger is not a function","timestamp":"2025-11-11T18:11:45.888Z"}
+{"level":"error","message":"Predicting Correspondent Failed: Cannot create property 'Symbol(level)' on string 'Predicting Correspondent Failed: Invalid phone number format'","timestamp":"2025-11-11T18:12:05.230Z"}
+{"level":"error","message":"Predicting Correspondent Failed: Cannot create property 'Symbol(level)' on string 'Predicting Correspondent Failed: Invalid phone number format'","timestamp":"2025-11-11T18:14:09.170Z"}
+{"level":"error","message":"Predicting Correspondent Failed: Cannot create property 'Symbol(level)' on string 'Predicting Correspondent Failed:undefined Invalid phone number format'","timestamp":"2025-11-11T18:15:42.066Z"}
+{"level":"error","message":"Predicting Correspondent Failed: Cannot create property 'Symbol(level)' on string 'Predicting Correspondent Failed:255683456019 Request failed with status code 500'","timestamp":"2025-11-11T18:16:24.368Z"}
+{"level":"error","message":"Predicting Correspondent Failed: Cannot create property 'Symbol(level)' on string 'Predicting Correspondent Failed:255683456019 Request failed with status code 500'","timestamp":"2025-11-11T18:20:15.112Z"}
+{"level":"error","message":"Predicting Correspondent Failed: Cannot create property 'Symbol(level)' on string 'Predicting Correspondent Failed:255683456019 timeout of 30000ms exceeded'","timestamp":"2025-11-11T19:44:24.589Z"}
+{"level":"error","message":"Predicting Correspondent Failed: Cannot create property 'Symbol(level)' on string 'Predicting Correspondent Failed:260763456789 Request failed with status code 500'","timestamp":"2025-11-11T19:56:17.253Z"}
+{"level":"error","message":"Predicting Correspondent Failed: Cannot create property 'Symbol(level)' on string 'Predicting Correspondent Failed:undefined Invalid phone number format'","timestamp":"2025-11-11T19:56:25.765Z"}
+{"error":"Request failed with status code 500","level":"error","message":"Predicting Correspondent Failed","phoneNumber":"260763456789","timestamp":"2025-11-11T20:33:59.239Z"}
+{"level":"error","message":"Payout creation failed: Request failed with status code 400","timestamp":"2025-11-11T21:15:15.565Z"}
+{"level":"error","message":"Payout creation failed: Request failed with status code 400","timestamp":"2025-11-11T21:16:09.106Z"}
+{"level":"error","message":"Payout creation failed: Request failed with status code 400","timestamp":"2025-11-11T21:16:55.537Z"}
+{"level":"error","message":"Payout creation failed: Request failed with status code 400","timestamp":"2025-11-11T21:18:14.653Z"}
+{"level":"error","message":"Payout failed: Error: Request failed with status code 400","timestamp":"2025-11-11T21:18:14.655Z"}
+{"level":"error","message":"Payout creation failed: HTTP error! Status: 500, Details: {\"failureReason\":{\"failureCode\":\"UNKNOWN_ERROR\",\"failureMessage\":\"Unable to process request due to an unknown problem.\"}}","timestamp":"2025-11-11T21:21:07.616Z"}
+{"level":"error","message":"Deposit creation failed: HTTP error! Status: 400, Details: {\"errorId\":\"eadc3f36-4574-4d84-be45-3391dce3ca1d\",\"errorCode\":1,\"errorMessage\":\"Invalid input: Missing required creator property 'payer' (index 5)\\n at [Source: (org.springframework.util.StreamUtils$NonClosingInputStream); line: 1, column: 417] (through reference chain: api.rest.deposit.dto.in.DepositCreationRequestDto[\\\"payer\\\"])\"}","timestamp":"2025-11-11T21:26:53.295Z"}

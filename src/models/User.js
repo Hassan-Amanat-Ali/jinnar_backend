@@ -1,12 +1,26 @@
 import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema({
+  // Add this near top-level fields in your userSchema:
+fcmTokens: [
+  {
+    token: { type: String, required: true },
+    deviceInfo: { type: String, default: null }, // optional - phone model, etc.
+    createdAt: { type: Date, default: Date.now },
+  },
+],
+profilePicture: {
+  url: { type: String, default: null },
+  publicId: { type: String, default: null },
+},
+
   name: { 
     type: String, 
     required: false, 
     trim: true,
     maxlength: [100, 'Name cannot exceed 100 characters']
   },
+
   mobileNumber: {
     type: String,
     required: [true, 'Mobile number is required'],
@@ -153,8 +167,7 @@ userSchema.index({ mobileNumber: 1 });
 userSchema.index({ 'wallet.transactions.createdAt': -1 });
 userSchema.index({ 'wallet.transactions.paymentMethod': 1 });
 userSchema.index({ 'availability.day': 1 });
-userSchema.index({ 'selectedAreas': '2dsphere' });
-userSchema.index({ 'preferredAreas': '2dsphere' });
+
 userSchema.index({ 'notifications.createdAt': -1 }); 
 // For efficient notification retrieval
 

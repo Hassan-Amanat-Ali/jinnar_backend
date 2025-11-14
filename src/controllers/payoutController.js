@@ -1,4 +1,4 @@
-import PawaPayService from "../services/pawapayService.js";
+import PawaPayController from "../services/pawapayService.js";
 import { getSupportedProviders } from "../services/correspondentService.js";
 import { validateDepositRequest, validatePayoutRequest, validateRefundRequest } from "../utils/validators.js";
 import logger from "../utils/logger.js";
@@ -15,23 +15,6 @@ export const paymentController = {
     }
   },
 
-  // POST /api/payment/predict-correspondent
-  async predictCorrespondent(req, res) {
-    try {
-        const {msisdn} = req.body ;
-console.log("this is req body " , req.body)
-    const response = await PawaPayService.predictCorrespondent(msisdn);
-
-    res.status(200).json(response);
-    
-    } catch (error) {
-        console.log("Predicting Correspondent Failed:"  , error.message);
-        res.status(500).json({ error: "Failed to predict correspondent" });
-    }
-
-},
-
-
   // POST /api/payments/deposit
   async deposit(req, res) {
     const { provider, amount, phoneNumber, orderId, country, currency } = req.body;
@@ -42,7 +25,7 @@ console.log("this is req body " , req.body)
         return res.status(400).json({ error: validationError });
       }
 
-      const result = await PawaPayService.createDeposit({
+      const result = await PawaPayController.createDeposit({
         provider,
         amount,
         phoneNumber,
@@ -63,15 +46,15 @@ console.log("this is req body " , req.body)
 
   // POST /api/payments/payout
   async payout(req, res) {
-    const { provider, amount, phoneNumber,  country, currency } = req.body;
-const withdrawId = crypto.randomUUID();
+    const { provider, amount, phoneNumber, withdrawId, country, currency } = req.body;
+
     try {
       const validationError = validatePayoutRequest(req.body);
       if (validationError) {
         return res.status(400).json({ error: validationError });
       }
 
-      const result = await PawaPayService.createPayout({
+      const result = await PawaPayController.createPayout({
         provider,
         amount,
         phoneNumber,
@@ -99,7 +82,7 @@ const withdrawId = crypto.randomUUID();
         return res.status(400).json({ error: "Invalid transaction type" });
       }
 
-      const result = await PawaPayService.checkTransactionStatus(transactionId, type);
+      const result = await PawaPayController.checkTransactionStatus(transactionId, type);
 
       logger.info(`Status checked for transaction: ${transactionId}`);
       res.status(200).json(result);
@@ -121,7 +104,7 @@ const withdrawId = crypto.randomUUID();
         return res.status(400).json({ error: validationError });
       }
 
-      const result = await PawaPayService.createRefund(depositId, amount, reason);
+      const result = await PawaPayController.createRefund(depositId, amount, reason);
 
       logger.info(`Refund processed successfully for deposit: ${depositId}`);
       res.status(201).json(result);
@@ -133,4 +116,3 @@ const withdrawId = crypto.randomUUID();
     }
   },
 };
-

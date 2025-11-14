@@ -5,7 +5,11 @@ Tigo Pesa
 Debit/Credit Card 
 Bank Transfer.
 
-Cloudinarhy for file storage
 FCM push Notification
 Filters
 Pagination
+
+
+=====
+User account created joined date is not coming up when fetching profile GetMyProfile
+Profile Picture is not nbeing saved in DB.

@@ -1,5 +1,4 @@
 import multer from 'multer';
-import path from 'path';
 
 // Configure storage
 const storage = multer.diskStorage({
@@ -29,7 +28,7 @@ const upload = multer({
 }).array('images', 3); // Allow up to 3 images per request
 
 // Image upload controller
-export const uploadImages = async (req, res, next) => {
+export const uploadImages = async (req, res) => {
   try {
     upload(req, res, (err) => {
       if (err instanceof multer.MulterError) {

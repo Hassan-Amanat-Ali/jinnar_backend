@@ -1,18 +1,29 @@
 import Notification from '../models/Notification.js';
+import { sendPushNotification } from '../services/pushNotificationService.js';
+import User from '../models/User.js'; // assuming you store fcmToken in user model
 
-/**
- * Create a new notification
- * (Used internally when you want to send a notification to another user)
- */
 export const sendNotification = async (recipientId, type, content, relatedId = null, relatedModel = null) => {
   try {
-    await Notification.create({
+    // 1️⃣ Save notification in DB
+    const notification = await Notification.create({
       recipientId,
       type,
       content,
       relatedId,
       relatedModel,
     });
+
+    // 2️⃣ Get recipient’s FCM token
+    const user = await User.findById(recipientId);
+    if (user?.fcmToken) {
+      // 3️⃣ Send push notification
+      await sendPushNotification(user.fcmToken, 'New Notification', content, {
+        type,
+        relatedId,
+        relatedModel,
+      });
+    }
+
   } catch (error) {
     console.error('Error sending notification:', error);
   }

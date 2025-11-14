@@ -2,7 +2,6 @@
 import Order from '../models/Order.js';
 import Gig from '../models/Gig.js';
 import User from '../models/User.js';
-import flw from '../config/flutterwave.js';
 import { sendNotification } from './notificationController.js';
 
 // ───────────────────────────────────────
