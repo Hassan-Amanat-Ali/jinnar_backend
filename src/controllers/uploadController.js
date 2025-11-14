@@ -22,26 +22,33 @@ const uploadToCloudinary = async (file, userId, folder, resourceType = 'auto') =
 
   // Upload Profile Picture (single file, all users)
   export const uploadProfilePicture = async (req, res) => {
-    try {
-      console.log('Req user : ', req.user);
-      const { id } = req.user;
-      const user = await User.findById(id);
-      if (!user) return res.status(404).json({ error: 'User not found' });
-      if (!user.isVerified) return res.status(403).json({ error: 'User not verified' });
+  try {
+    const { id } = req.user;
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user.isVerified) return res.status(403).json({ error: 'User not verified' });
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-      if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const result = await uploadToCloudinary(req.file, id, 'profile_pictures', 'image');
 
-      const result = await uploadToCloudinary(req.file, id, 'profile_pictures', 'image');
-      return res.status(200).json({
-        message: 'Profile picture uploaded successfully',
-        file: result,
-        userId: id,
-      });
-    } catch (error) {
-      console.error('Upload Profile Picture Error:', error.message, error.stack);
-      return res.status(500).json({ error: 'Internal Server Error', details: error.message });
-    }
-  };
+    // Save URL and publicId to user document
+    user.profilePicture =  result.url;
+    console.log(result);
+
+    await user.save(); // Save the user document
+
+    return res.status(200).json({
+      message: 'Profile picture uploaded successfully',
+      file: result,
+      userId: id,
+    });
+
+  } catch (error) {
+    console.error('Upload Profile Picture Error:', error.message, error.stack);
+    return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+  }
+};
+
 
 // Upload Other Images (multiple, all users)
 export const uploadOtherImages = async (req, res) => {

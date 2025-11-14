@@ -586,7 +586,8 @@ export const getMyProfile = async (req, res) => {
         recentTransactions: user.wallet?.transactions?.slice(0, 10) || []
       },
       gigs: gigs || [],
-      notifications: user.notifications?.slice(0, 5) || []
+      notifications: user.notifications?.slice(0, 5) || [],
+      createdAt : user.createdAt,
     };
 
     res.json({ profile });

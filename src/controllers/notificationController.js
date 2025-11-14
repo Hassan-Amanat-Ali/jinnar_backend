@@ -1,5 +1,5 @@
 import Notification from '../models/Notification.js';
-import { sendPushNotification } from '../services/pushNotificationService.js';
+import { sendPushNotification  } from '../services/pushNotificationService.js';
 import User from '../models/User.js'; // assuming you store fcmToken in user model
 
 export const sendNotification = async (recipientId, type, content, relatedId = null, relatedModel = null) => {
@@ -16,6 +16,7 @@ export const sendNotification = async (recipientId, type, content, relatedId = n
     // 2️⃣ Get recipient’s FCM token
     const user = await User.findById(recipientId);
     if (user?.fcmToken) {
+      
       // 3️⃣ Send push notification
       await sendPushNotification(user.fcmToken, 'New Notification', content, {
         type,

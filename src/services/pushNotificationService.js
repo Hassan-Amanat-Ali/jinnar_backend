@@ -1,4 +1,6 @@
 // services/pushService.js
+import admin from "./firebase.js";
+
 import axios from 'axios';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -34,5 +36,26 @@ export const sendPushNotification = async (token, title, body, data = {}) => {
     console.log('✅ Push notification sent:', title);
   } catch (error) {
     console.error('❌ Error sending FCM push:', error.response?.data || error.message);
+  }
+};
+
+
+export const sendTestNotification = async (fcmToken) => {
+  try {
+    const message = {
+      token: fcmToken,
+      notification: {
+        title: "Test Notification",
+        body: "Your FCM token is working!",
+      },
+      data: {
+        exampleKey: "exampleValue", // optional custom data
+      },
+    };
+
+    const response = await admin.messaging().send(message);
+    console.log("Successfully sent message:", response);
+  } catch (error) {
+    console.error("Error sending message:", error);
   }
 };
