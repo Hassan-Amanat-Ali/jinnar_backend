@@ -3,6 +3,7 @@ import Gig from "../models/Gig.js";
 import cloudinary from "cloudinary";
 import asyncHandler from "express-async-handler";
 import { calculateDistance  } from "../utils/helpers.js";
+import Order from "../models/Order.js";
 
 
 /**
@@ -15,12 +16,12 @@ export const findWorkers = asyncHandler(async (req, res) => {
     skills,
     lat,
     lng,
-    radius = 10,
+    radius = 10, // in miles
     sortBy = 'rating.average',
     sortOrder = 'desc',
     page = 1,
     limit = 10,
-    debug = false, // optional debug flag
+    debug = false,
   } = req.query;
 
   // -------------------------
@@ -40,7 +41,6 @@ export const findWorkers = asyncHandler(async (req, res) => {
   if (isNaN(parsedLat) || isNaN(parsedLng)) {
     return res.status(400).json({ success: false, message: 'Invalid latitude or longitude' });
   }
-
   if (isNaN(parsedRadius) || parsedRadius <= 0) {
     return res.status(400).json({ success: false, message: 'Radius must be a positive number' });
   }
@@ -51,116 +51,94 @@ export const findWorkers = asyncHandler(async (req, res) => {
   const skillsArray = Array.isArray(skills)
     ? skills
     : skills.split(',').map(s => s.trim().toLowerCase());
-
   const skillsRegexArray = skillsArray.map(skill => new RegExp(`^${skill}$`, 'i'));
 
-  const userQuery = {
-    role: 'seller',
-    skills: { $in: skillsRegexArray },
-  };
-
-  if (isDebug) console.log('MongoDB Query:', JSON.stringify(userQuery, null, 2));
+  if (isDebug) console.log('Skills Regex Array:', skillsRegexArray);
 
   // -------------------------
-  // 3️⃣ Fetch sellers from DB
+  // 3️⃣ Convert radius to meters
+  // -------------------------
+  const parsedRadiusInMeters = parsedRadius * 1609.34; // miles → meters
+
+  // -------------------------
+  // 4️⃣ Fetch sellers using $geoNear
   // -------------------------
   let sellers;
   try {
-    sellers = await User.find(userQuery)
-      .select(
-        'name profilePicture skills languages yearsOfExperience rating selectedAreas bio portfolioImages'
-      )
-      .lean();
+    sellers = await User.aggregate([
+      {
+        $geoNear: {
+          near: { type: 'Point', coordinates: [parsedLng, parsedLat] },
+          distanceField: 'distance',  // distance in meters
+          spherical: true,
+          maxDistance: parsedRadiusInMeters,
+          query: {
+            role: 'seller',
+            skills: { $in: skillsRegexArray },
+          },
+        },
+      },
+      {
+        $project: {
+          name: 1,
+          profilePicture: 1,
+          skills: 1,
+          languages: 1,
+          yearsOfExperience: 1,
+          rating: 1,
+          selectedAreas: 1,
+          preferredAreas: 1,
+          bio: 1,
+          portfolioImages: 1,
+          distance: 1, // distance in meters
+        },
+      },
+      { $sort: { [sortBy]: sortOrder === 'desc' ? -1 : 1 } },
+      { $skip: (parsedPage - 1) * parsedLimit },
+      { $limit: parsedLimit },
+    ]);
   } catch (err) {
-    console.error('Error fetching users:', err);
+    console.error('Error fetching sellers with geo query:', err);
     return res.status(500).json({ success: false, message: 'Failed to fetch workers' });
   }
 
-  if (isDebug) console.log(`Found ${sellers.length} sellers from DB`);
+  if (isDebug) console.log(`Found ${sellers.length} sellers`);
 
   // -------------------------
-  // 4️⃣ Filter by distance
+  // 5️⃣ Convert distance to miles (optional)
   // -------------------------
-  const sellersWithDistance = sellers
-    .map(seller => {
-      if (!Array.isArray(seller.selectedAreas) || seller.selectedAreas.length === 0) {
-        if (isDebug) console.log(`Seller ${seller._id} skipped: no selectedAreas`);
-        return null;
-      }
-
-      // Find closest area to the search point
-      const closestArea = seller.selectedAreas.reduce(
-        (closest, area) => {
-          const areaLat = parseFloat(area.lat);
-          const areaLng = parseFloat(area.lng);
-
-          if (isNaN(areaLat) || isNaN(areaLng)) {
-            if (isDebug) console.log(`Seller ${seller._id} invalid coordinates: lat=${area.lat}, lng=${area.lng}`);
-            return closest;
-          }
-
-          const distance = calculateDistance(parsedLat, parsedLng, areaLat, areaLng);
-
-          if (isDebug) console.log(`Seller ${seller._id}: distance to area (${areaLat},${areaLng}) = ${distance.toFixed(3)} miles`);
-
-          return distance < closest.distance ? { distance, area } : closest;
-        },
-        { distance: Infinity, area: null }
-      );
-
-      if (closestArea.distance === Infinity) {
-        if (isDebug) console.log(`Seller ${seller._id} skipped: no valid areas`);
-        return null;
-      }
-
-      const withinRadius = closestArea.distance <= parsedRadius;
-      if (isDebug) console.log(`Seller ${seller._id} within radius (${parsedRadius} miles): ${withinRadius}`);
-
-      if (!withinRadius) return null;
-
-      return {
-        ...seller,
-        distance: closestArea.distance,
-      };
-    })
-    .filter(Boolean);
-
-  if (isDebug) console.log(`Filtered sellers count: ${sellersWithDistance.length}`);
-
-  // -------------------------
-  // 5️⃣ Sort sellers
-  // -------------------------
-  sellersWithDistance.sort((a, b) => {
-    const getNestedValue = (obj, path) =>
-      path.split('.').reduce((o, key) => (o && o[key] != null ? o[key] : 0), obj);
-
-    const aValue = getNestedValue(a, sortBy);
-    const bValue = getNestedValue(b, sortBy);
-
-    return sortOrder === 'desc' ? bValue - aValue : aValue - bValue;
+  sellers.forEach(s => {
+    if (s.distance != null) s.distance = +(s.distance / 1609.34).toFixed(2); // meters → miles
   });
 
   // -------------------------
-  // 6️⃣ Pagination
+  // 6️⃣ Get total count
   // -------------------------
-  const total = sellersWithDistance.length;
-  const startIndex = (parsedPage - 1) * parsedLimit;
-  const paginatedSellers = sellersWithDistance.slice(startIndex, startIndex + parsedLimit);
+  const totalResults = await User.countDocuments({
+    role: 'seller',
+    skills: { $in: skillsRegexArray },
+    $or: [
+      { 'selectedAreas.coordinates': { $exists: true } },
+      { 'preferredAreas.coordinates': { $exists: true } }
+    ]
+  });
 
   // -------------------------
   // 7️⃣ Response
   // -------------------------
   res.json({
     success: true,
-    data: paginatedSellers,
+    data: sellers,
     pagination: {
       currentPage: parsedPage,
-      totalPages: Math.ceil(total / parsedLimit),
-      totalResults: total,
+      totalPages: Math.ceil(totalResults / parsedLimit),
+      totalResults,
       limit: parsedLimit,
     },
   });
 });
+
+
 
 
 export const updateUser = async (req, res) => {
@@ -842,22 +820,29 @@ export const getPublicProfile = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Fetch user
     const user = await User.findById(id).select(`
         name role bio profileImage 
         skills languages yearsOfExperience 
         selectedAreas portfolioImages videos certificates
-        rating wallet.balance
+        rating wallet.balance availability createdAt
       `);
 
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // FETCH GIGS SEPARATELY
+    // Fetch active gigs
     const gigs = await Gig.find({
       sellerId: id,
       status: "active",
     }).select("title description images pricing status createdAt");
+
+    // Count completed orders
+    const completedOrdersCount = await Order.countDocuments({
+      sellerId: id,
+      status: "completed",
+    });
 
     const publicProfile = {
       _id: user._id,
@@ -875,6 +860,8 @@ export const getPublicProfile = async (req, res) => {
       rating: user.rating || { average: 0, count: 0 },
       activeGigs: gigs || [],
       memberSince: user.createdAt,
+      availability: user.availability || [],
+      ordersCompleted: completedOrdersCount || 0,
     };
 
     res.json({ profile: publicProfile });
