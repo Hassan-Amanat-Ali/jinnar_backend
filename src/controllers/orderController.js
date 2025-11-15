@@ -548,3 +548,39 @@ export const completeOrder = async (req, res) => {
     res.status(500).json({ error: 'Failed to complete order: ' + error.message });
   }
 };
+
+
+export const getOrderById = async (req, res) => {
+  try {
+    const { id: userId, role } = req.user; 
+    const { id } = req.params; // orderId
+
+    // Validate ID format
+    if (!id || id.length !== 24) {
+      return res.status(400).json({ error: "Invalid Order ID" });
+    }
+
+    // Fetch order with populated buyer and seller
+    const order = await Order.findById(id)
+      .populate('buyerId', 'name profileImage')
+      .populate('sellerId', 'name profileImage')
+      .populate('gigId', 'title price skills images');
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    // Permission check (buyer or seller can view)
+    if (
+      order.buyerId?._id.toString() !== userId &&
+      order.sellerId?._id.toString() !== userId
+    ) {
+      return res.status(403).json({ error: "Unauthorized to view this order" });
+    }
+
+    res.json({ order });
+
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch order: " + error });
+  }
+};

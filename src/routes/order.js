@@ -1,5 +1,5 @@
 import express from 'express';
-import {
+import {getOrderById,
   createJobRequest, getPendingJobRequests, getAvailableJobs,
   acceptJob, declineJob, sendMessage, markMessagesRead,getMyOrders,getOngoingJobRequests,completeOrder,
   uploadDeliverable, rateAndReviewOrder , cancelOrder,getDeclinedJobRequests ,getCancelledJobRequests, getCompletedJobRequests
@@ -14,6 +14,8 @@ router.get('/active-jobs', protect , getOngoingJobRequests);
 router.get('/new', protect, getPendingJobRequests);
 router.get('/completed' , protect ,getCompletedJobRequests )
 router.get('/cancelled' , protect , getCancelledJobRequests)
+router.get('/:id', protect, getOrderById);
+
 // Buyer
 router.post('/create', protect, createJobRequest);
 router.patch('/cancel', protect, cancelOrder);
