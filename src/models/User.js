@@ -1,5 +1,19 @@
 import mongoose from 'mongoose';
 
+const pointSchema = new mongoose.Schema({
+  type: {
+    type: String,
+    enum: ['Point'],
+    required: true,
+    default: 'Point'
+  },
+  coordinates: {
+    type: [Number], // [lng, lat]
+    required: true
+  }
+}, { _id: false }); // Important: prevent _id in array items
+
+
 const userSchema = new mongoose.Schema({
   // Add this near top-level fields in your userSchema:
 fcmTokens: [
@@ -18,6 +32,10 @@ profilePicture: {
     required: false, 
     trim: true,
     maxlength: [100, 'Name cannot exceed 100 characters']
+  },
+  email:{
+    type : String,unique: true , lowercase : true, trime : true,
+    match: [/\S+@\S+\.\S+/, 'Invalid email address']
   },
 
   mobileNumber: {
@@ -60,33 +78,8 @@ profilePicture: {
     type: Number, 
     min: 0 
   },
-  selectedAreas: [{ // For sellers: areas where they offer services
-    lat: { 
-      type: Number, 
-      required: [true, 'Latitude is required'],
-      min: -90,
-      max: 90
-    },
-    lng: { 
-      type: Number, 
-      required: [true, 'Longitude is required'],
-      min: -180,
-      max: 180
-    }
-  }],
-  preferredAreas: [{ // For buyers: preferred areas for finding gigs
-    lat: { 
-      type: Number, 
-      min: -90,
-      max: 90
-    },
-    lng: { 
-      type: Number, 
-      min: -180,
-      max: 180
-    }
-  }],
-// Add to your existing User schema
+  selectedAreas: [pointSchema],   // seller-specific
+  preferredAreas: [pointSchema],  // buyer-specificto your existing User schema
 
 notifications: [
   {
@@ -166,7 +159,8 @@ userSchema.index({ mobileNumber: 1 });
 userSchema.index({ 'wallet.transactions.createdAt': -1 });
 userSchema.index({ 'wallet.transactions.paymentMethod': 1 });
 userSchema.index({ 'availability.day': 1 });
-
+userSchema.index({ 'selectedAreas': '2dsphere' });
+// userSchema.index({ 'preferredAreas': '2dsphere' });
 userSchema.index({ 'notifications.createdAt': -1 }); 
 // For efficient notification retrieval
 

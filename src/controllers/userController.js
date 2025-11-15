@@ -1,13 +1,175 @@
 import User from "../models/User.js";
 import Gig from "../models/Gig.js";
 import cloudinary from "cloudinary";
+import asyncHandler from "express-async-handler";
+import { calculateDistance  } from "../utils/helpers.js";
 
-export const updateUser = async (req, res, next) => {
+
+/**
+ * GET /api/workers/find
+ * Find workers/sellers based on skills, location, radius, and optional sorting/pagination.
+ * Optional debug logging: add `?debug=true` to see detailed logs.
+ */
+export const findWorkers = asyncHandler(async (req, res) => {
+  const {
+    skills,
+    lat,
+    lng,
+    radius = 10,
+    sortBy = 'rating.average',
+    sortOrder = 'desc',
+    page = 1,
+    limit = 10,
+    debug = false, // optional debug flag
+  } = req.query;
+
+  // -------------------------
+  // 1️⃣ Validate required fields
+  // -------------------------
+  if (!skills || !lat || !lng) {
+    return res.status(400).json({ success: false, message: 'Skills, latitude, and longitude are required' });
+  }
+
+  const parsedLat = parseFloat(lat);
+  const parsedLng = parseFloat(lng);
+  const parsedRadius = parseFloat(radius);
+  const parsedPage = parseInt(page, 10);
+  const parsedLimit = parseInt(limit, 10);
+  const isDebug = debug === 'true';
+
+  if (isNaN(parsedLat) || isNaN(parsedLng)) {
+    return res.status(400).json({ success: false, message: 'Invalid latitude or longitude' });
+  }
+
+  if (isNaN(parsedRadius) || parsedRadius <= 0) {
+    return res.status(400).json({ success: false, message: 'Radius must be a positive number' });
+  }
+
+  // -------------------------
+  // 2️⃣ Prepare skill matching
+  // -------------------------
+  const skillsArray = Array.isArray(skills)
+    ? skills
+    : skills.split(',').map(s => s.trim().toLowerCase());
+
+  const skillsRegexArray = skillsArray.map(skill => new RegExp(`^${skill}$`, 'i'));
+
+  const userQuery = {
+    role: 'seller',
+    skills: { $in: skillsRegexArray },
+  };
+
+  if (isDebug) console.log('MongoDB Query:', JSON.stringify(userQuery, null, 2));
+
+  // -------------------------
+  // 3️⃣ Fetch sellers from DB
+  // -------------------------
+  let sellers;
+  try {
+    sellers = await User.find(userQuery)
+      .select(
+        'name profilePicture skills languages yearsOfExperience rating selectedAreas bio portfolioImages'
+      )
+      .lean();
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch workers' });
+  }
+
+  if (isDebug) console.log(`Found ${sellers.length} sellers from DB`);
+
+  // -------------------------
+  // 4️⃣ Filter by distance
+  // -------------------------
+  const sellersWithDistance = sellers
+    .map(seller => {
+      if (!Array.isArray(seller.selectedAreas) || seller.selectedAreas.length === 0) {
+        if (isDebug) console.log(`Seller ${seller._id} skipped: no selectedAreas`);
+        return null;
+      }
+
+      // Find closest area to the search point
+      const closestArea = seller.selectedAreas.reduce(
+        (closest, area) => {
+          const areaLat = parseFloat(area.lat);
+          const areaLng = parseFloat(area.lng);
+
+          if (isNaN(areaLat) || isNaN(areaLng)) {
+            if (isDebug) console.log(`Seller ${seller._id} invalid coordinates: lat=${area.lat}, lng=${area.lng}`);
+            return closest;
+          }
+
+          const distance = calculateDistance(parsedLat, parsedLng, areaLat, areaLng);
+
+          if (isDebug) console.log(`Seller ${seller._id}: distance to area (${areaLat},${areaLng}) = ${distance.toFixed(3)} miles`);
+
+          return distance < closest.distance ? { distance, area } : closest;
+        },
+        { distance: Infinity, area: null }
+      );
+
+      if (closestArea.distance === Infinity) {
+        if (isDebug) console.log(`Seller ${seller._id} skipped: no valid areas`);
+        return null;
+      }
+
+      const withinRadius = closestArea.distance <= parsedRadius;
+      if (isDebug) console.log(`Seller ${seller._id} within radius (${parsedRadius} miles): ${withinRadius}`);
+
+      if (!withinRadius) return null;
+
+      return {
+        ...seller,
+        distance: closestArea.distance,
+      };
+    })
+    .filter(Boolean);
+
+  if (isDebug) console.log(`Filtered sellers count: ${sellersWithDistance.length}`);
+
+  // -------------------------
+  // 5️⃣ Sort sellers
+  // -------------------------
+  sellersWithDistance.sort((a, b) => {
+    const getNestedValue = (obj, path) =>
+      path.split('.').reduce((o, key) => (o && o[key] != null ? o[key] : 0), obj);
+
+    const aValue = getNestedValue(a, sortBy);
+    const bValue = getNestedValue(b, sortBy);
+
+    return sortOrder === 'desc' ? bValue - aValue : aValue - bValue;
+  });
+
+  // -------------------------
+  // 6️⃣ Pagination
+  // -------------------------
+  const total = sellersWithDistance.length;
+  const startIndex = (parsedPage - 1) * parsedLimit;
+  const paginatedSellers = sellersWithDistance.slice(startIndex, startIndex + parsedLimit);
+
+  // -------------------------
+  // 7️⃣ Response
+  // -------------------------
+  res.json({
+    success: true,
+    data: paginatedSellers,
+    pagination: {
+      currentPage: parsedPage,
+      totalPages: Math.ceil(total / parsedLimit),
+      totalResults: total,
+      limit: parsedLimit,
+    },
+  });
+});
+
+
+export const updateUser = async (req, res) => {
   try {
     const { id } = req.user; // From JWT middleware
     const {
       name,
       bio,
+      email,
       skills,
       languages,
       yearsOfExperience,
@@ -53,17 +215,17 @@ export const updateUser = async (req, res, next) => {
         parsedVideos = JSON.parse(videos);
       if (typeof certificates === "string" && certificates)
         parsedCertificates = JSON.parse(certificates);
-      console.log("Parsed fields:", {
-        parsedSkills,
-        parsedLanguages,
-        parsedSelectedAreas,
-        parsedPreferredAreas,
-        parsedGigs,
-        parsedAvailability,
-        parsedPortfolioImages,
-        parsedVideos,
-        parsedCertificates,
-      });
+      // console.log("Parsed fields:", {
+      //   parsedSkills,
+      //   parsedLanguages,
+      //   parsedSelectedAreas,
+      //   parsedPreferredAreas,
+      //   parsedGigs,
+      //   parsedAvailability,
+      //   parsedPortfolioImages,
+      //   parsedVideos,
+      //   parsedCertificates,
+      // });
     } catch (parseErr) {
       console.error("JSON Parse Error:", parseErr.message);
       return res.status(400).json({
@@ -84,6 +246,8 @@ export const updateUser = async (req, res, next) => {
       console.log("User not verified:", id);
       return res.status(403).json({ error: "User not verified" });
     }
+
+    
 
     // Restrict seller-specific fields for buyers
     if (user.role === "buyer") {
@@ -125,6 +289,22 @@ export const updateUser = async (req, res, next) => {
       user.name = name.trim();
     }
 
+     if (email) {
+      // Optional: basic email format check
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+
+      // Check if email is already used by another user
+      const existingUser = await User.findOne({ email, _id: { $ne: id } });
+      if (existingUser) {
+        return res.status(400).json({ error: "Email is already in use" });
+      }
+
+      user.email = email;
+    }
+
     // Handle profileImage (JSON-based, buyers and sellers)
     if (profileImage) {
       if (
@@ -144,6 +324,37 @@ export const updateUser = async (req, res, next) => {
       };
       console.log("profileImage updated:", user.profileImage);
     }
+    if (parsedPreferredAreas !== undefined) {
+    if (!Array.isArray(parsedPreferredAreas)) {
+      console.log("Invalid preferredAreas format:", parsedPreferredAreas);
+      return res
+        .status(400)
+        .json({ error: "preferredAreas must be an array" });
+    }
+    // V-V-V- COPY VALIDATION FROM 'selectedAreas' V-V-V-
+    for (let i = 0; i < parsedPreferredAreas.length; i++) {
+      const area = parsedPreferredAreas[i];
+      if (
+        !area.type ||
+        area.type !== "Point" ||
+        !Array.isArray(area.coordinates) ||
+        area.coordinates.length !== 2 ||
+        typeof area.coordinates[0] !== "number" ||
+        typeof area.coordinates[1] !== "number" ||
+        area.coordinates[1] < -90 ||
+        area.coordinates[1] > 90 ||
+        area.coordinates[0] < -180 ||
+        area.coordinates[0] > 180
+      ) {
+        return res.status(400).json({
+          error: `preferredAreas at index ${i} must have valid GeoJSON coordinates [lng, lat]`,
+        });
+      }
+    }
+    // ^-^-^- END OF COPIED VALIDATION -^-^-^
+    user.preferredAreas = parsedPreferredAreas; // This assignment is now correct
+    console.log("preferredAreas updated:", parsedPreferredAreas);
+  }
 
     // Update role-specific fields
     if (user.role === "seller") {
@@ -199,21 +410,21 @@ export const updateUser = async (req, res, next) => {
         }
         for (let i = 0; i < parsedSelectedAreas.length; i++) {
           const area = parsedSelectedAreas[i];
-          if (
-            !area.lat ||
-            !area.lng ||
-            typeof area.lat !== "number" ||
-            typeof area.lng !== "number" ||
-            area.lat < -90 ||
-            area.lat > 90 ||
-            area.lng < -180 ||
-            area.lng > 180
-          ) {
-            console.log(`Invalid selectedAreas at index ${i}:`, area);
-            return res.status(400).json({
-              error: `selectedAreas at index ${i} must have valid lat (-90 to 90) and lng (-180 to 180)`,
-            });
-          }
+         if (
+  !area.type ||
+  area.type !== "Point" ||
+  !Array.isArray(area.coordinates) ||
+  area.coordinates.length !== 2 ||
+  typeof area.coordinates[0] !== "number" ||
+  typeof area.coordinates[1] !== "number" ||
+  area.coordinates[1] < -90 || area.coordinates[1] > 90 ||
+  area.coordinates[0] < -180 || area.coordinates[0] > 180
+) {
+  return res.status(400).json({
+    error: `selectedAreas at index ${i} must have valid GeoJSON coordinates [lng, lat]`
+  });
+}
+
         }
         user.selectedAreas = parsedSelectedAreas;
         console.log("selectedAreas updated:", parsedSelectedAreas);
@@ -525,23 +736,7 @@ export const updateUser = async (req, res, next) => {
       });
     }
 
-    // Save user
-    console.log("Saving user:", {
-      _id: user._id,
-      name: user.name,
-      role: user.role,
-      bio: user.bio,
-      skills: user.skills,
-      languages: user.languages,
-      yearsOfExperience: user.yearsOfExperience,
-      selectedAreas: user.selectedAreas,
-      preferredAreas: user.preferredAreas,
-      availability: user.availability,
-      profileImage: user.profileImage,
-      portfolioImages: user.portfolioImages,
-      videos: user.videos,
-      certificates: user.certificates,
-    });
+   
     await user.save({ validateBeforeSave: true });
     console.log("User saved successfully");
 
@@ -734,7 +929,7 @@ export const getMyProfile = async (req, res) => {
     // FETCH GIGS SEPARATELY (No populate needed)
     const gigs = await Gig.find({
       sellerId: id,
-      status: "active",
+      //   status: "active",
     }).select("title description images pricing status createdAt");
 
     // Structure response

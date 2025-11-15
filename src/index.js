@@ -9,6 +9,7 @@ import YAML from 'yamljs';
 import swaggerUi from 'swagger-ui-express';
 import apiRoutes from './routes/api.js';
 import cors from 'cors';   // ✅ ADD THIS
+import User from './models/User.js';
 
 
 
