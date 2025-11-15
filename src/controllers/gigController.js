@@ -48,6 +48,7 @@ export const createGig = async (req, res, next) => {
       images: Array.isArray(images)
         ? images.map(url => ({ url, publicId: null }))
         : [],
+        skills: skills
     });
 
     await gig.save();
@@ -159,7 +160,7 @@ export const getMyGigs = async (req, res, next) => {
 export const updateGig = async (req, res, next) => {
   try {
     const { id, role } = req.user;
-    const { title, description, pricingMethod, price, images } = req.body;
+    const { title, description, pricingMethod, price, images,skills } = req.body;
 
     if (role !== 'seller') {
       return res.status(403).json({ error: 'Only sellers can update gigs' });
@@ -173,7 +174,12 @@ export const updateGig = async (req, res, next) => {
     // ✅ BASIC FIELDS
     if (title !== undefined) gig.title = title;
     if (description !== undefined) gig.description = description;
-
+ if(!skills || skills.length === 0){
+      return res.status(400).json({ error: 'At least one skill/category is required' });
+    }
+    else {
+      gig.skills = skills;
+    }
     // ✅ PRICING
     if (pricingMethod !== undefined) {
       gig.pricing.method = pricingMethod;
