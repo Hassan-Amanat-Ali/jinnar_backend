@@ -1,6 +1,7 @@
 import Gig from '../models/Gig.js';
 import User from '../models/User.js';
 import asyncHandler from "express-async-handler";
+import Order from '../models/Order.js';
 
 export const createGig = async (req, res, next) => {
   try {
@@ -64,32 +65,76 @@ export const createGig = async (req, res, next) => {
 };
 
 
-export const getGigs = async (req, res, next) => {
+
+export const getAllGigs = async (req, res, next) => {
   try {
     const { pricingMethod, minPrice, maxPrice, title } = req.query;
 
-    // Build query
+    // -------------------------
+    // Build Query
+    // -------------------------
     const query = {};
+
     if (pricingMethod) {
       query['pricing.method'] = pricingMethod;
     }
+
     if (minPrice || maxPrice) {
       query['pricing.price'] = {};
       if (minPrice) query['pricing.price'].$gte = Number(minPrice);
       if (maxPrice) query['pricing.price'].$lte = Number(maxPrice);
     }
+
     if (title) {
       query.title = { $regex: title, $options: 'i' }; // Case-insensitive search
     }
 
-    // Fetch gigs with seller details
-    const gigs = await Gig.find(query).populate('sellerId', 'name bio skills');
-    res.json({ gigs });
+    // -------------------------
+    // Fetch Gigs & Seller Info
+    // -------------------------
+    const gigs = await Gig.find(query)
+      .populate('sellerId', 'name bio skills yearsOfExperience rating');
+
+    // -------------------------
+    // Append Orders Completed per Seller
+    // -------------------------
+    const sellerIds = gigs.map(g => g.sellerId?._id);
+
+    // Count completed orders for all sellers at once
+    const completedOrders = await Order.aggregate([
+      { $match: { sellerId: { $in: sellerIds }, status: 'completed' } },
+      { $group: { _id: '$sellerId', count: { $sum: 1 } } }
+    ]);
+
+    // Convert to lookup map
+    const orderCountMap = {};
+    completedOrders.forEach(entry => {
+      orderCountMap[entry._id.toString()] = entry.count;
+    });
+
+    // Inject into gig objects
+    const enrichedGigs = gigs.map(gig => {
+      const seller = gig.sellerId;
+      const ordersCompleted = orderCountMap[seller._id.toString()] || 0;
+
+      return {
+        ...gig.toObject(),
+        sellerId: {
+          ...seller.toObject(),
+          ordersCompleted,           // 👈 added
+          yearsOfExperience: seller.yearsOfExperience || 0, // already in schema
+        }
+      };
+    });
+
+    res.json({ gigs: enrichedGigs });
+
   } catch (error) {
     console.error('Get Gigs Error:', error.message);
     next(error);
   }
 };
+
 
 // ✅ NEW: GET MY GIGS (Add this)
 export const getMyGigs = async (req, res, next) => {
