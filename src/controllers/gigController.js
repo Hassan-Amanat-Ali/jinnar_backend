@@ -1,10 +1,11 @@
 import Gig from '../models/Gig.js';
 import User from '../models/User.js';
+import asyncHandler from "express-async-handler";
 
 export const createGig = async (req, res, next) => {
   try {
     const { id, role } = req.user; // From JWT middleware
-    const { title, description, pricingMethod, price, images } = req.body;
+    const { title, description, pricingMethod, price, images , skills } = req.body;
 
     // ✅ Validate role
     if (role !== 'seller') {
@@ -23,6 +24,9 @@ export const createGig = async (req, res, next) => {
     // ✅ Validate input
     if (!title || !description || !pricingMethod) {
       return res.status(400).json({ error: 'Title, description, and pricing method are required' });
+    }
+    if(!skills || skills.length === 0){
+      return res.status(400).json({ error: 'At least one skill/category is required' });
     }
     if (!['fixed', 'hourly', 'negotiable'].includes(pricingMethod)) {
       return res.status(400).json({ error: 'Pricing method must be fixed, hourly, or negotiable' });
@@ -157,7 +161,17 @@ export const updateGig = async (req, res, next) => {
   }
 };
 
+export const getGigById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
 
+  const gig = await Gig.findById(id).populate('sellerId', 'name profilePicture');
+
+  if (!gig) {
+    return res.status(404).json({ success: false, message: 'Gig not found' });
+  }
+
+  res.json({ success: true, gig });
+});
 
 
 // ✅ NEW: DELETE GIG (Add this)

@@ -43,6 +43,10 @@ const gigSchema = new mongoose.Schema(
         },
       },
     },
+     skills: {
+      type: [String], // added skills array
+      default: [],
+    },
   },
   { timestamps: true }
 );
