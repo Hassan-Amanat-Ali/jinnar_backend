@@ -77,3 +77,4 @@
 {"level":"info","message":"Payout created successfully: 5d822290-19f7-44d6-9572-31ecc51866f2","timestamp":"2025-11-12T15:03:42.692Z"}
 {"level":"info","message":"Payout processed successfully for withdrawId: 44e48ada-df5b-45a6-b688-2f2e228a165c","timestamp":"2025-11-12T15:03:42.693Z"}
 {"level":"info","message":"Deposit Callback","timestamp":"2025-11-15T15:16:13.958Z"}
+{"level":"info","message":"Deposit Callback","timestamp":"2025-11-15T15:20:56.153Z"}

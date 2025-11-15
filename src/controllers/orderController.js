@@ -489,12 +489,15 @@ export const getMyOrders = async (req, res) => {
   try {
     const { id, role } = req.user;
 
+    console.log("User Role : ", req.user)
     let filter = {};
-    if (role === 'buyer') {
-      filter = { buyerId: id };
-    } else if (role === 'seller') {
-      filter = { sellerId: id };
-    }
+    filter = {
+  $or: [
+    { buyerId: id },
+    { sellerId: id }
+  ]
+};
+
 
     const jobs = await Order.find(filter)
       .populate('buyerId', 'name profileImage')
