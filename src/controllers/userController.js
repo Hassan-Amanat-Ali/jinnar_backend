@@ -11,22 +11,30 @@ import Order from "../models/Order.js";
  * Find workers/sellers based on skills, location, radius, and optional sorting/pagination.
  * Optional debug logging: add `?debug=true` to see detailed logs.
  */
+const haversineDistance = (lat1, lng1, lat2, lng2) => {
+  const toRad = angle => (angle * Math.PI) / 180;
+  const R = 6371; // Earth radius in km
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // distance in km
+};
+
 export const findWorkers = asyncHandler(async (req, res) => {
   const {
     skills,
     lat,
     lng,
-    radius = 10, // in miles
+    radius = 10, // km
     sortBy = 'rating.average',
     sortOrder = 'desc',
     page = 1,
     limit = 10,
-    debug = false,
   } = req.query;
 
-  // -------------------------
-  // 1️⃣ Validate required fields
-  // -------------------------
   if (!skills || !lat || !lng) {
     return res.status(400).json({ success: false, message: 'Skills, latitude, and longitude are required' });
   }
@@ -36,99 +44,70 @@ export const findWorkers = asyncHandler(async (req, res) => {
   const parsedRadius = parseFloat(radius);
   const parsedPage = parseInt(page, 10);
   const parsedLimit = parseInt(limit, 10);
-  const isDebug = debug === 'true';
 
-  if (isNaN(parsedLat) || isNaN(parsedLng)) {
-    return res.status(400).json({ success: false, message: 'Invalid latitude or longitude' });
-  }
-  if (isNaN(parsedRadius) || parsedRadius <= 0) {
-    return res.status(400).json({ success: false, message: 'Radius must be a positive number' });
-  }
-
-  // -------------------------
-  // 2️⃣ Prepare skill matching
-  // -------------------------
   const skillsArray = Array.isArray(skills)
     ? skills
     : skills.split(',').map(s => s.trim().toLowerCase());
   const skillsRegexArray = skillsArray.map(skill => new RegExp(`^${skill}$`, 'i'));
 
-  if (isDebug) console.log('Skills Regex Array:', skillsRegexArray);
+  console.log('Skills Regex Array:', skillsRegexArray);
 
   // -------------------------
-  // 3️⃣ Convert radius to meters
+  // Fetch all sellers matching skills
   // -------------------------
-  const parsedRadiusInMeters = parsedRadius * 1609.34; // miles → meters
-
-  // -------------------------
-  // 4️⃣ Fetch sellers using $geoNear
-  // -------------------------
-  let sellers;
-  try {
-    sellers = await User.aggregate([
-      {
-        $geoNear: {
-          near: { type: 'Point', coordinates: [parsedLng, parsedLat] },
-          distanceField: 'distance',  // distance in meters
-          spherical: true,
-          maxDistance: parsedRadiusInMeters,
-          query: {
-            role: 'seller',
-            skills: { $in: skillsRegexArray },
-          },
-        },
-      },
-      {
-        $project: {
-          name: 1,
-          profilePicture: 1,
-          skills: 1,
-          languages: 1,
-          yearsOfExperience: 1,
-          rating: 1,
-          selectedAreas: 1,
-          preferredAreas: 1,
-          bio: 1,
-          portfolioImages: 1,
-          distance: 1, // distance in meters
-        },
-      },
-      { $sort: { [sortBy]: sortOrder === 'desc' ? -1 : 1 } },
-      { $skip: (parsedPage - 1) * parsedLimit },
-      { $limit: parsedLimit },
-    ]);
-  } catch (err) {
-    console.error('Error fetching sellers with geo query:', err);
-    return res.status(500).json({ success: false, message: 'Failed to fetch workers' });
-  }
-
-  if (isDebug) console.log(`Found ${sellers.length} sellers`);
-
-  // -------------------------
-  // 5️⃣ Convert distance to miles (optional)
-  // -------------------------
-  sellers.forEach(s => {
-    if (s.distance != null) s.distance = +(s.distance / 1609.34).toFixed(2); // meters → miles
-  });
-
-  // -------------------------
-  // 6️⃣ Get total count
-  // -------------------------
-  const totalResults = await User.countDocuments({
+  let sellers = await User.find({
     role: 'seller',
     skills: { $in: skillsRegexArray },
-    $or: [
-      { 'selectedAreas.coordinates': { $exists: true } },
-      { 'preferredAreas.coordinates': { $exists: true } }
-    ]
+  }).select(`
+    name profilePicture skills languages yearsOfExperience rating bio selectedAreas portfolioImages preferredAreas
+  `);
+
+  console.log(`Found ${sellers.length} sellers matching skills`);
+  // -------------------------
+  // Calculate distance manually using Haversine
+  // -------------------------
+ sellers = sellers
+  .map(seller => {
+    let minDistance = null;
+
+    // Use preferredAreas safely
+    const areas = Array.isArray(seller.preferredAreas) ? seller.preferredAreas : [];
+    if (areas.length === 0) {
+      console.log(`Seller ${seller.name} has no preferredAreas`);
+    }
+
+    areas.forEach(area => {
+      if (!area?.coordinates || area.coordinates.length < 2) return; // skip invalid areas
+      const [lng2, lat2] = area.coordinates;
+      const distanceKm = haversineDistance(parsedLat, parsedLng, lat2, lng2);
+      if (minDistance === null || distanceKm < minDistance) minDistance = distanceKm;
+    });
+
+    console.log(`Seller: ${seller.name}, Distance: ${minDistance !== null ? minDistance.toFixed(2) + ' km' : 'N/A'}`);
+
+    return { ...seller.toObject(), distance: minDistance };
+  })
+  .filter(seller => seller.distance !== null && seller.distance <= parsedRadius);
+
+  // -------------------------
+  // Sort
+  // -------------------------
+  sellers.sort((a, b) => {
+    let valA = a[sortBy] ?? 0;
+    let valB = b[sortBy] ?? 0;
+    if (sortOrder === 'desc') return valB - valA;
+    return valA - valB;
   });
 
   // -------------------------
-  // 7️⃣ Response
+  // Pagination
   // -------------------------
+  const totalResults = sellers.length;
+  const paginatedSellers = sellers.slice((parsedPage - 1) * parsedLimit, parsedPage * parsedLimit);
+
   res.json({
     success: true,
-    data: sellers,
+    data: paginatedSellers,
     pagination: {
       currentPage: parsedPage,
       totalPages: Math.ceil(totalResults / parsedLimit),
