@@ -822,7 +822,7 @@ export const getPublicProfile = async (req, res) => {
 
     // Fetch user
     const user = await User.findById(id).select(`
-        name role bio profileImage 
+        name role bio profilePicture 
         skills languages yearsOfExperience 
         selectedAreas portfolioImages videos certificates
         rating wallet.balance availability createdAt
@@ -848,7 +848,7 @@ export const getPublicProfile = async (req, res) => {
       _id: user._id,
       name: user.name,
       role: user.role,
-      profileImage: user.profileImage,
+      profilePicture: user.profilePicture,
       bio: user.bio || "No bio yet",
       skills: user.skills || [],
       languages: user.languages || [],
