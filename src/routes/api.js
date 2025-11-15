@@ -12,6 +12,7 @@ import walletRoutes from './wallet.js'
 import uploadRoutes from './uploadRoutes.js'
 import pawaPayCallbackRoutes from "./pawapayCallback.js";
 import workerRoutes from './workers.js'
+import pawapayCallbackRoutes from "./pawapayCallback.js"
 
 
 
@@ -30,6 +31,8 @@ router.use('/upload', uploadRoutes)
 router.use('/payout' , payoutRoutes)
 router.use("/api/webhooks", pawaPayCallbackRoutes);
 router.use('/workers', workerRoutes );
+router.use("/pawapay", pawapayCallbackRoutes);
+
 
 
 
