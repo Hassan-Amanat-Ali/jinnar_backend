@@ -80,3 +80,17 @@
 {"level":"info","message":"Deposit Callback","timestamp":"2025-11-15T15:20:56.153Z"}
 {"level":"info","message":"Deposit created successfully: 28f7807a-f9cb-48f6-aa54-ba2d04c79969","timestamp":"2025-11-15T15:54:13.131Z"}
 {"level":"info","message":"Deposit processed successfully for order: ORD102","timestamp":"2025-11-15T15:54:13.132Z"}
+{"level":"info","message":"Payout created successfully: 7dbabc9b-8cff-48c6-92f3-5296ad2ee44c","timestamp":"2025-11-17T12:02:49.274Z"}
+{"level":"info","message":"Payout processed successfully for withdrawId: 6542408d-7e8f-41b3-9c34-21b035a6443b","timestamp":"2025-11-17T12:02:49.277Z"}
+{"level":"info","message":"Deposit created successfully: bccccb09-a734-4706-b3fd-b958270f5e43","timestamp":"2025-11-17T12:25:27.633Z"}
+{"level":"info","message":"Wallet top-up initiated | User: 690a11e8c10e66a15ca6d574 | Order: TOPUP-690a11e8c10e66a15ca6d574-1763382327096-c6e4c231 | Amount: 5000","timestamp":"2025-11-17T12:25:27.636Z"}
+{"level":"info","message":"Deposit created successfully: 991c6821-16a9-4a1c-8058-5f123331ccaa","timestamp":"2025-11-17T12:48:24.907Z"}
+{"level":"info","message":"Wallet top-up initiated | User: 690a11e8c10e66a15ca6d574 | Order: TOPUP-690a11e8c10e66a15ca6d574-1763383704353-65a03beb | Amount: 1400","timestamp":"2025-11-17T12:48:24.907Z"}
+{"level":"info","message":"Deposit created successfully: cf4bf6f2-5fc0-40c6-ab02-928b3aeb01be","timestamp":"2025-11-17T12:48:56.675Z"}
+{"level":"info","message":"Wallet top-up initiated | User: 690a11e8c10e66a15ca6d574 | Order: TOPUP-690a11e8c10e66a15ca6d574-1763383736235-804a7ffe | Amount: 100","timestamp":"2025-11-17T12:48:56.675Z"}
+{"level":"info","message":"Deposit created successfully: e1d2c115-1443-4b3c-a489-60820ca121c3","timestamp":"2025-11-17T12:50:37.873Z"}
+{"level":"info","message":"Wallet top-up initiated | User: 690a11e8c10e66a15ca6d574 | Order: TOPUP-690a11e8c10e66a15ca6d574-1763383837328-39c00b68 | Amount: 100","timestamp":"2025-11-17T12:50:37.873Z"}
+{"level":"info","message":"Deposit created successfully: dd623b66-4c33-4176-b833-4606c4736e51","timestamp":"2025-11-17T12:51:01.933Z"}
+{"level":"info","message":"Wallet top-up initiated | User: 690a11e8c10e66a15ca6d574 | Order: TOPUP-690a11e8c10e66a15ca6d574-1763383861485-4e720ff0 | Amount: 100","timestamp":"2025-11-17T12:51:01.934Z"}
+{"level":"info","message":"Deposit created successfully: 6bf98768-109b-4206-a047-382c83055035","timestamp":"2025-11-17T12:51:56.621Z"}
+{"level":"info","message":"Wallet top-up initiated | User: 690a11e8c10e66a15ca6d574 | Order: TOPUP-690a11e8c10e66a15ca6d574-1763383916096-e97bb056 | Amount: 100","timestamp":"2025-11-17T12:51:56.621Z"}

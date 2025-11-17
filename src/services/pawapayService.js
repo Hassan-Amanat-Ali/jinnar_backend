@@ -49,7 +49,7 @@ class PawaPayController {
     }
   }
 
-  static async createDeposit({ provider, amount, phoneNumber, orderId, country, currency }) {
+  static async  createDeposit({ provider, amount, phoneNumber, orderId, country, currency }) {
     try {
       if (!validatePhoneNumber(phoneNumber)) {
         throw new Error("Invalid phone number format");

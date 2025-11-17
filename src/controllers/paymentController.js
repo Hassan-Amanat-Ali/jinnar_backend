@@ -34,7 +34,14 @@ console.log("this is req body " , req.body)
 
   // POST /api/payments/deposit
   async deposit(req, res) {
-    const { provider, amount, phoneNumber, orderId, country, currency } = req.body;
+    const { provider, amount, phoneNumber, country, currency } = req.body;
+
+    const orderId =  () => {
+  const ts = Date.now().toString(36);  
+  const rnd = Math.random().toString(36).substring(2, 8);
+  return `ORD-${ts}-${rnd}`.toUpperCase();
+};
+
 
     try {
       const validationError = validateDepositRequest(req.body);

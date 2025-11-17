@@ -1,167 +1,184 @@
 // controllers/walletController.js
-import Flutterwave from "flutterwave-node-v3";
-import dotenv from "dotenv";
+import PawaPayService from "../services/pawapayService.js";
 import {
   updateWalletBalance,
   deductWalletBalance,
   getWalletHistory,
-  getOrCreateWallet
+  getOrCreateWallet,
 } from "../services/walletService.js";
+import logger from "../utils/logger.js";
+import { validateDepositRequest, validatePayoutRequest } from "../utils/validators.js";
+import crypto from "crypto";
 
-dotenv.config();
-const flw = new Flutterwave(process.env.FLW_PUBLIC_KEY, process.env.FLW_SECRET_KEY);
-
-const errorResponse = (res, message, field = null) =>
-  res.status(400).json({ status: "error", message, ...(field && { field }) });
+const errorResponse = (res, message, status = 400) =>
+  res.status(status).json({ status: "error", message });
 
 // ──────────────────────────────────────────────────────────────
-// TOP-UP WALLET (CARD ONLY FOR NOW)
+// TOP-UP WALLET VIA MOBILE MONEY (PawaPay Deposit)
 // ──────────────────────────────────────────────────────────────
 export const topupWallet = async (req, res) => {
   const { id: userId } = req.user;
-  const { email, amount, payment_method, phone_number, ...paymentData } = req.body;
+  const { provider, amount, phoneNumber, country = "NG", currency = "NGN" } = req.body;
 
-  if (!amount || amount <= 0) return errorResponse(res, "Valid amount required", "amount");
-  if (!payment_method) return errorResponse(res, "Payment method required", "payment_method");
-
-  const tx_ref = `WALLET-${userId}-${Date.now()}`;
-  const basePayload = {
-    amount: String(amount),
-    currency: "NGN",
-    tx_ref,
-    redirect_url: process.env.REDIRECT_URL || "http://localhost:3000/wallet/success",
-    email: email || `${userId}@temp.com`,
-    phone_number: phone_number || "08000000000",
-    fullname: req.user.name,
-    enckey: process.env.FLW_ENCRYPTION_KEY,
-  };
+  // Generate unique orderId for this top-up
+  const orderId = `TOPUP-${userId}-${Date.now()}-${crypto.randomUUID().split("-")[0]}`;
 
   try {
-    if (payment_method === "card") {
-      const { card_number, cvv, expiry_month, expiry_year, pin } = paymentData;
-      if (!card_number || !cvv || !expiry_month || !expiry_year)
-        return errorResponse(res, "Card details required");
-
-      let payload = { ...basePayload, card_number, cvv, expiry_month, expiry_year };
-      if (pin) payload.pin = pin;
-
-      let response = await flw.Charge.card(payload);
-
-      if (response.meta?.authorization?.mode === "pin") {
-        return res.json({
-          status: "pin_required",
-          flw_ref: response.data.flw_ref,
-          message: "PIN required"
-        });
-      }
-
-      if (response.meta?.authorization?.mode === "otp") {
-        return res.json({
-          status: "otp_required",
-          flw_ref: response.data.flw_ref,
-          message: "OTP sent"
-        });
-      }
-
-      if (response.meta?.authorization?.mode === "redirect") {
-        return res.json({
-          status: "redirect",
-          redirect_url: response.meta.authorization.redirect
-        });
-      }
-
-      if (response.data.status === "successful") {
-        await updateWalletBalance(userId, amount, {
-          flutterwaveTxRef: tx_ref,
-          flutterwaveFlwRef: response.data.flw_ref,
-          paymentMethod: "card"
-        });
-        return res.json({ status: "success", message: "Wallet funded" });
-      }
+    // Validate request
+    const validationError = validateDepositRequest({
+      provider,
+      amount,
+      phoneNumber,
+      orderId,
+      country,
+      currency,
+    });
+    if (validationError) {
+      return errorResponse(res, validationError, 400);
     }
 
-    return errorResponse(res, "Method not supported yet");
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-};
+    // Create deposit via PawaPay
+    const depositResult = await PawaPayService.createDeposit({
+      provider,
+      amount,
+      phoneNumber,
+      orderId,
+      country,
+      currency,
+    });
 
-// ──────────────────────────────────────────────────────────────
-// VALIDATE OTP
-// ──────────────────────────────────────────────────────────────
-export const validateChargeOtp = async (req, res) => {
-  const { flw_ref, otp } = req.body;
-  const { id: userId } = req.user;
-
-  if (!flw_ref || !otp) return errorResponse(res, "flw_ref and otp required");
-
-  try {
-    const result = await flw.Charge.validate({ flw_ref, otp });
-    if (result.data.status === "successful") {
-      await updateWalletBalance(userId, result.data.amount, {
-        flutterwaveTxRef: result.data.tx_ref,
-        flutterwaveFlwRef: result.data.flw_ref,
-        paymentMethod: "card"
+    // If deposit is immediately successful (rare), credit wallet right away
+    if (depositResult.status === "SUCCESSFUL") {
+      await updateWalletBalance(userId, amount, {
+        type: "deposit",
+        paymentMethod: "mobile_money",
+        provider,
+        pawaPayDepositId: depositResult.depositId,
+        status: "successful",
       });
-      return res.json({ status: "success", message: "Funded via OTP" });
     }
-    return res.status(400).json({ status: "failed", data: result.data });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
+    // Otherwise, status will be updated via webhook later
+
+    logger.info(`Wallet top-up initiated | User: ${userId} | Order: ${orderId} | Amount: ${amount}`);
+
+    res.status(201).json({
+      message: "Top-up request sent to your phone",
+      orderId,
+      depositId: depositResult.depositId,
+      status: depositResult.status,
+      data: depositResult,
+    });
+  } catch (error) {
+    logger.error(`Wallet top-up failed: ${error.message}`);
+    res.status(error.statusCode || 500).json({
+      status: "error",
+      message: error.message || "Failed to initiate wallet top-up",
+    });
   }
 };
 
 // ──────────────────────────────────────────────────────────────
-// WITHDRAW TO BANK
+// WITHDRAW WALLET TO MOBILE MONEY (PawaPay Payout)
 // ──────────────────────────────────────────────────────────────
 export const withdrawWallet = async (req, res) => {
   const { id: userId } = req.user;
-  const { amount, bank_code, account_number } = req.body;
+  const { provider, amount, phoneNumber, country = "NG", currency = "NGN" } = req.body;
 
-  if (!amount || amount <= 0) return errorResponse(res, "Valid amount required");
-  if (!bank_code || !account_number) return errorResponse(res, "Bank details required");
+  const withdrawId = `WITHDRAW-${userId}-${Date.now()}-${crypto.randomUUID().split("-")[0]}`;
 
   try {
+    // Check wallet balance first
     const wallet = await getOrCreateWallet(userId);
-    if (wallet.balance < amount) return errorResponse(res, "Insufficient balance");
+    if (wallet.balance < amount) {
+      return errorResponse(res, "Insufficient wallet balance", 400);
+    }
 
-    const reference = `WITHDRAW-${userId}-${Date.now()}`;
-    const transfer = await flw.Transfer.initiate({
-      account_bank: bank_code,
-      account_number,
+    // Validate payout request
+    const validationError = validatePayoutRequest({
+      provider,
       amount,
-      narration: "Wallet withdrawal",
-      currency: "NGN",
-      reference,
-     callback_url: "https://google.com",
-      debit_currency: "NGN"
+      phoneNumber,
+      withdrawId,
+      country,
+      currency,
+    });
+    if (validationError) {
+      return errorResponse(res, validationError, 400);
+    }
+
+    // Deduct immediately (or you can wait for SUCCESS webhook)
+    await deductWalletBalance(userId, amount, {
+      type: "withdrawal",
+      paymentMethod: "mobile_money",
+      provider,
+      pawaPayPayoutId: withdrawId,
+      status: "pending",
     });
 
-    if (transfer.status === "success") {
-      await deductWalletBalance(userId, amount, {
-        type: "withdrawal",
-        paymentMethod: "bank_transfer",
-        flutterwaveTxRef: reference,
-        status: "pending"
-      });
-      return res.json({ message: "Withdrawal initiated", reference });
-    }
-console.log(transfer);
-    return res.status(400).json({ error: "Transfer failed" + transfer.toString() });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
+    // Initiate payout via PawaPay
+    const payoutResult = await PawaPayService.createPayout({
+      provider,
+      amount,
+      phoneNumber,
+      withdrawId,
+      country,
+      currency,
+    });
+
+    logger.info(`Wallet withdrawal initiated | User: ${userId} | Amount: ${amount} | WithdrawID: ${withdrawId}`);
+
+    res.status(201).json({
+      message: "Withdrawal request sent",
+      withdrawId,
+      payoutId: payoutResult.payoutId,
+      status: payoutResult.status,
+      data: payoutResult,
+    });
+  } catch (error) {
+    // If payout fails, you might want to reverse the deduction (optional)
+    logger.error(`Wallet withdrawal failed: ${error.message}`);
+    res.status(error.statusCode || 500).json({
+      status: "error",
+      message: error.message || "Failed to process withdrawal",
+    });
   }
 };
 
 // ──────────────────────────────────────────────────────────────
-// GET WALLET
+// GET WALLET BALANCE & HISTORY
 // ──────────────────────────────────────────────────────────────
 export const getWallet = async (req, res) => {
   const { id: userId } = req.user;
   try {
     const wallet = await getWalletHistory(userId);
-    res.json(wallet);
+    res.json({
+      status: "success",
+      data: wallet,
+    });
   } catch (err) {
-    res.status(500).json({  error: err.message });
+    logger.error(`Get wallet failed: ${err.message}`);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
+// ──────────────────────────────────────────────────────────────
+// OPTIONAL: Check status of a top-up or withdrawal (useful for frontend polling)
+// ──────────────────────────────────────────────────────────────
+export const checkTransactionStatus = async (req, res) => {
+  const { transactionId, type } = req.params; // type: "deposit" or "payout"
+
+  try {
+    if (!["deposit", "payout"].includes(type)) {
+      return errorResponse(res, "Invalid transaction type", 400);
+    }
+
+    const result = await PawaPayService.checkTransactionStatus(transactionId, type);
+    res.json({ status: "success", data: result });
+  } catch (error) {
+    logger.error(`Status check failed: ${error.message}`);
+    res.status(error.statusCode || 500).json({
+      status: "error",
+      message: error.message || "Failed to check status",
+    });
   }
 };
