@@ -1,184 +1,185 @@
-// controllers/walletController.js
-import PawaPayService from "../services/pawapayService.js";
-import {
-  updateWalletBalance,
-  deductWalletBalance,
-  getWalletHistory,
-  getOrCreateWallet,
-} from "../services/walletService.js";
+// controllers/WalletController.js
+import Wallet from "../models/Wallet.js";
+import PawaPayController from "../services/pawapayService.js"; // your existing service
 import logger from "../utils/logger.js";
-import { validateDepositRequest, validatePayoutRequest } from "../utils/validators.js";
-import crypto from "crypto";
 
-const errorResponse = (res, message, status = 400) =>
-  res.status(status).json({ status: "error", message });
+// Simple helper to get or create wallet
+const getUserWallet = async (userId) => {
+  let wallet = await Wallet.findOne({ userId });
+  if (!wallet) {
+    wallet = await Wallet.create({ userId, balance: 0 });
+  }
+  return wallet;
+};
 
-// ──────────────────────────────────────────────────────────────
-// TOP-UP WALLET VIA MOBILE MONEY (PawaPay Deposit)
-// ──────────────────────────────────────────────────────────────
-export const topupWallet = async (req, res) => {
-  const { id: userId } = req.user;
-  const { provider, amount, phoneNumber, country = "NG", currency = "NGN" } = req.body;
+class WalletController {
+  // 1. Predict Mobile Money Provider (e.g., JazzCash, Easypaisa)
+  static async predictCorrespondent(req, res) {
+    const { phoneNumber } = req.body;
 
-  // Generate unique orderId for this top-up
-  const orderId = `TOPUP-${userId}-${Date.now()}-${crypto.randomUUID().split("-")[0]}`;
-
-  try {
-    // Validate request
-    const validationError = validateDepositRequest({
-      provider,
-      amount,
-      phoneNumber,
-      orderId,
-      country,
-      currency,
-    });
-    if (validationError) {
-      return errorResponse(res, validationError, 400);
+    if (!phoneNumber) {
+      return res.status(400).json({ success: false, message: "Phone number required" });
     }
 
-    // Create deposit via PawaPay
-    const depositResult = await PawaPayService.createDeposit({
-      provider,
-      amount,
-      phoneNumber,
-      orderId,
-      country,
-      currency,
-    });
+    try {
+      const result = await PawaPayController.predictCorrespondent(phoneNumber);
+      if (!result.success) {
+        return res.status(400).json({ success: false, message: result.error });
+      }
 
-    // If deposit is immediately successful (rare), credit wallet right away
-    if (depositResult.status === "SUCCESSFUL" || depositResult.status === "ACCEPTED" ) {
-      await updateWalletBalance(userId, amount, {
-        type: "deposit",
-        paymentMethod: "mobile_money",
-        provider,
-        pawaPayDepositId: depositResult.depositId,
-        status: "successful",
+      res.json({
+        success: true,
+        provider: result.data.correspondent,
+        country: result.data.country,
+        currency: result.data.currency,
       });
+    } catch (err) {
+      res.status(500).json({ success: false, message: "Server error" });
     }
-    // Otherwise, status will be updated via webhook later
-
-    logger.info(`Wallet top-up initiated | User: ${userId} | Order: ${orderId} | Amount: ${amount}`);
-
-    res.status(201).json({
-      message: "Top-up request sent to your phone",
-      orderId,
-      depositId: depositResult.depositId,
-      status: depositResult.status,
-      data: depositResult,
-    });
-  } catch (error) {
-    logger.error(`Wallet top-up failed: ${error.message}`);
-    res.status(error.statusCode || 500).json({
-      status: "error",
-      message: error.message || "Failed to initiate wallet top-up",
-    });
   }
-};
 
-// ──────────────────────────────────────────────────────────────
-// WITHDRAW WALLET TO MOBILE MONEY (PawaPay Payout)
-// ──────────────────────────────────────────────────────────────
-export const withdrawWallet = async (req, res) => {
-  const { id: userId } = req.user;
-  const { provider, amount, phoneNumber, country = "NG", currency = "NGN" } = req.body;
+  // 2. Deposit → Top-up Wallet (User adds money)
+  static async deposit(req, res) {
+    const { phoneNumber, amount, provider, currency , country } = req.body;
+    const userId = req.user.id; // from protect middleware
 
-  const withdrawId = `WITHDRAW-${userId}-${Date.now()}-${crypto.randomUUID().split("-")[0]}`;
-
-  try {
-    // Check wallet balance first
-    const wallet = await getOrCreateWallet(userId);
-    if (wallet.balance < amount) {
-      return errorResponse(res, "Insufficient wallet balance", 400);
+    if (!phoneNumber || !amount || !provider || !currency || !country) {
+      return res.status(400).json({ success: false, message: "Missing fields" });
     }
 
-    // Validate payout request
-    const validationError = validatePayoutRequest({
-      provider,
-      amount,
-      phoneNumber,
-      withdrawId,
-      country,
-      currency,
-    });
-    if (validationError) {
-      return errorResponse(res, validationError, 400);
+    try {
+      const orderId = `DEP-${Date.now()}`;
+
+      const pawaResult = await PawaPayController.createDeposit({
+        phoneNumber,
+        amount: Number(amount),
+        provider,
+        orderId,
+        country, // Pakistan
+        currency,
+      });
+
+      if (!pawaResult.success) {
+        return res.status(400).json({
+          success: false,
+          message: "Payment request failed",
+          error: pawaResult.error,
+        });
+      }
+
+      const depositId = pawaResult.depositId;
+
+      // Instantly add to wallet (for testing — later move to webhook)
+      const wallet = await getUserWallet(userId);
+      wallet.balance += Number(amount);
+      wallet.transactions.push({
+        type: "deposit",
+        amount: Number(amount),
+        status: "completed", // fake success for testing
+        paymentMethod: provider,
+        description: `Deposit via ${provider}`,
+        createdAt: new Date(),
+      });
+      await wallet.save();
+
+      logger.info(`TEST DEPOSIT SUCCESS: User ${userId} +${amount} PKR`);
+
+      return res.json({
+        success: true,
+        message: "Deposit successful! (Test mode: money added instantly)",
+        balance: wallet.balance,
+        depositId,
+      });
+    } catch (err) {
+      logger.error("Deposit error:", err);
+      res.status(500).json({ success: false, message: "Deposit failed" });
+    }
+  }
+
+  // 3. Withdraw → Send money to phone
+  static async withdraw(req, res) {
+    const { phoneNumber, amount, provider , currency , country } = req.body;
+    const userId = req.user.id;
+
+    if (!phoneNumber || !amount || !provider || !currency || !country) {
+      return res.status(400).json({ success: false, message: "Missing fields" });
     }
 
-    // Deduct immediately (or you can wait for SUCCESS webhook)
-    await deductWalletBalance(userId, amount, {
-      type: "withdrawal",
-      paymentMethod: "mobile_money",
-      provider,
-      pawaPayPayoutId: withdrawId,
-      status: "pending",
-    });
-
-    // Initiate payout via PawaPay
-    const payoutResult = await PawaPayService.createPayout({
-      provider,
-      amount,
-      phoneNumber,
-      withdrawId,
-      country,
-      currency,
-    });
-
-    logger.info(`Wallet withdrawal initiated | User: ${userId} | Amount: ${amount} | WithdrawID: ${withdrawId}`);
-
-    res.status(201).json({
-      message: "Withdrawal request sent",
-      withdrawId,
-      payoutId: payoutResult.payoutId,
-      status: payoutResult.status,
-      data: payoutResult,
-    });
-  } catch (error) {
-    // If payout fails, you might want to reverse the deduction (optional)
-    logger.error(`Wallet withdrawal failed: ${error.message}`);
-    res.status(error.statusCode || 500).json({
-      status: "error",
-      message: error.message || "Failed to process withdrawal",
-    });
-  }
-};
-
-// ──────────────────────────────────────────────────────────────
-// GET WALLET BALANCE & HISTORY
-// ──────────────────────────────────────────────────────────────
-export const getWallet = async (req, res) => {
-  const { id: userId } = req.user;
-  try {
-    const wallet = await getWalletHistory(userId);
-    res.json({
-      status: "success",
-      data: wallet,
-    });
-  } catch (err) {
-    logger.error(`Get wallet failed: ${err.message}`);
-    res.status(500).json({ status: "error", message: err.message });
-  }
-};
-
-// ──────────────────────────────────────────────────────────────
-// OPTIONAL: Check status of a top-up or withdrawal (useful for frontend polling)
-// ──────────────────────────────────────────────────────────────
-export const checkTransactionStatus = async (req, res) => {
-  const { transactionId, type } = req.params; // type: "deposit" or "payout"
-
-  try {
-    if (!["deposit", "payout"].includes(type)) {
-      return errorResponse(res, "Invalid transaction type", 400);
+    if (amount < 100) {
+      return res.status(400).json({ success: false, message: "Minimum withdrawal: 100 PKR" });
     }
 
-    const result = await PawaPayService.checkTransactionStatus(transactionId, type);
-    res.json({ status: "success", data: result });
-  } catch (error) {
-    logger.error(`Status check failed: ${error.message}`);
-    res.status(error.statusCode || 500).json({
-      status: "error",
-      message: error.message || "Failed to check status",
-    });
+    try {
+      const wallet = await getUserWallet(userId);
+
+      if (wallet.balance < amount) {
+        return res.status(400).json({ success: false, message: "Insufficient balance" });
+      }
+
+      const withdrawId = `WDR-${Date.now()}`;
+
+      const pawaResult = await PawaPayController.createPayout({
+        phoneNumber,
+        amount: Number(amount),
+        provider,
+        withdrawId,
+        country,
+        currency,
+      });
+
+      if (!pawaResult.success) {
+        return res.status(400).json({
+          success: false,
+          message: "Withdrawal failed",
+          error: pawaResult.error,
+        });
+      }
+
+      const payoutId = pawaResult.payoutId;
+
+      // Deduct immediately (for testing)
+      wallet.balance -= Number(amount);
+      wallet.transactions.push({
+        type: "withdrawal",
+        amount: Number(amount),
+        status: "completed", // fake success
+        paymentMethod: provider,
+        description: `Withdraw to ${phoneNumber}`,
+        createdAt: new Date(),
+      });
+      await wallet.save();
+
+      logger.info(`TEST WITHDRAWAL SUCCESS: User ${userId} -${amount} PKR`);
+
+      return res.json({
+        success: true,
+        message: "Withdrawal successful! (Test mode)",
+        balance: wallet.balance,
+        payoutId,
+      });
+    } catch (err) {
+      logger.error("Withdraw error:", err);
+      res.status(500).json({ success: false, message: "Withdrawal failed" });
+    }
   }
-};
+
+  // 4. Get Wallet Balance
+  static async getBalance(req, res) {
+    const userId = req.user.id;
+
+    try {
+      const wallet = await getUserWallet(userId);
+      const recentTransactions = wallet.transactions.slice(-10).reverse();
+
+      res.json({
+        success: true,
+        balance: wallet.balance,
+        transactions: recentTransactions,
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, message: "Server error : " , err });
+    }
+  }
+}
+
+export default WalletController;

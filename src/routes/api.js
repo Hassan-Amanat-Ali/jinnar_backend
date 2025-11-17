@@ -8,7 +8,7 @@ import imagesRoutes from './image.js'
 import conversationRoutes from './conversation.js'
 import notificationRoutes from './notification.js'
 import jobRequestRoutes from './order.js'
-import walletRoutes from './wallet.js'
+ import walletRoutes from './wallet.js'
 import uploadRoutes from './uploadRoutes.js'
 import pawaPayCallbackRoutes from "./pawapayCallback.js";
 import workerRoutes from './workers.js'
@@ -26,7 +26,7 @@ router.use('/images', imagesRoutes)
 router.use('/conversations' , conversationRoutes)
 router.use('/notifications' , notificationRoutes)
 router.use('/orders', jobRequestRoutes)
-router.use('/wallet' , walletRoutes)
+ router.use('/wallet' , walletRoutes)
 router.use('/upload', uploadRoutes)
 router.use('/payout' , payoutRoutes)
 router.use("/api/webhooks", pawaPayCallbackRoutes);

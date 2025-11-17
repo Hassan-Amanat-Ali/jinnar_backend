@@ -1,31 +1,17 @@
-// src/routes/walletRoutes.js (CORRECTED VERSION)
-
+// routes/wallet.js
 import express from "express";
-import {
-  topupWallet,
-  withdrawWallet,
-  getWallet,
-} from "../controllers/walletController.js";
+import WalletController from "../controllers/WalletController.js";
 import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// Apply auth middleware to all routes
+// Public (for frontend to show correct provider)
+router.post("/predict", WalletController.predictCorrespondent);
+
+// Protected routes
 router.use(protect);
-
-// Core wallet routes
-router.post("/topup", topupWallet);
-router.post("/withdraw", withdrawWallet);
-router.get("/", getWallet);
-
-// Fixed route — escape parentheses with backslashes
-// router.get(
-//   "/status/:type(deposit\\|payout)/:transactionId",
-//   checkTransactionStatus
-// );
-
-// Alternative (cleaner and recommended): Use a regex with .get() directly
-// router.get("/status/:type/:transactionId", checkTransactionStatus)
-//   .where({ type: /^(deposit|payout)$/ });
+router.post("/deposit", WalletController.deposit);
+router.post("/withdraw", WalletController.withdraw);
+router.get("/balance", WalletController.getBalance);
 
 export default router;

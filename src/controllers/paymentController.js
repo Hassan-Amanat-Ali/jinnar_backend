@@ -3,6 +3,7 @@ import { getSupportedProviders } from "../services/correspondentService.js";
 import { validateDepositRequest, validatePayoutRequest, validateRefundRequest } from "../utils/validators.js";
 import logger from "../utils/logger.js";
 import crypto from "crypto";
+import { WalletService } from "../services/walletService.js";
 
 export const paymentController = {
   // GET /api/payments/providers
@@ -34,15 +35,15 @@ console.log("this is req body " , req.body)
 
 
   // POST /api/payments/deposit
-  async deposit(req, res) {
-    const { provider, amount, phoneNumber, country, currency } = req.body;
+  // POST /api/payments/deposit
+async deposit(req, res) {
+  const { provider, amount, phoneNumber, country, currency } = req.body;
+  console.log(req.userId);
 
-    const orderId =  () => {
-  return "ORD-" + crypto.randomUUID();
-};
+  const userId = req.user.id;   // IMPORTANT: wallet belongs to logged in user
+  const orderId = "ORD-" + crypto.randomUUID();
 
-
-    try {
+  try {
       const validationError = validateDepositRequest(req.body);
       if (validationError) {
         return res.status(400).json({ error: validationError });
@@ -57,21 +58,33 @@ console.log("this is req body " , req.body)
         currency,
       });
 
-      logger.info(`Deposit processed successfully for order: ${orderId}`);
+      // 🔥 If deposit accepted → update wallet
+      if (
+        result?.data?.status === "ACCEPTED" ||
+        result?.data?.status === "COMPLETED"
+      ) {
+        await WalletService.addDeposit(userId, amount, result.data.depositId);
+      }
+
       res.status(201).json(result);
-    } catch (error) {
+
+  } catch (error) {
       logger.error(`Deposit failed: ${error.message}`);
       res.status(error.statusCode || 500).json({
         error: error.message || "An unexpected error occurred",
       });
-    }
-  },
-
+  }
+}
+,
   // POST /api/payments/payout
-  async payout(req, res) {
-    const { provider, amount, phoneNumber,  country, currency } = req.body;
-const withdrawId = crypto.randomUUID();
-    try {
+  // POST /api/payments/payout
+async payout(req, res) {
+  const { provider, amount, phoneNumber, country, currency } = req.body;
+  const userId = req.user.id;
+
+  const withdrawId = crypto.randomUUID();
+
+  try {
       const validationError = validatePayoutRequest(req.body);
       if (validationError) {
         return res.status(400).json({ error: validationError });
@@ -86,15 +99,24 @@ const withdrawId = crypto.randomUUID();
         currency,
       });
 
-      logger.info(`Payout processed successfully for withdrawId: ${withdrawId}`);
+      // 🔥 Deduct only when accepted or completed
+      if (
+        result?.data?.status === "ACCEPTED" ||
+        result?.data?.status === "COMPLETED"
+      ) {
+        await WalletService.addWithdrawal(userId, amount, withdrawId);
+      }
+
       res.status(201).json(result);
-    } catch (error) {
+
+  } catch (error) {
       logger.error(`Payout failed: ${error.message}`);
       res.status(error.statusCode || 500).json({
         error: error.message || "An unexpected error occurred",
       });
-    }
-  },
+  }
+}
+,
 
   // GET /api/payments/status/:transactionId/:type
   async checkStatus(req, res) {

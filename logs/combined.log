@@ -106,3 +106,20 @@
 {"level":"info","message":"Deposit processed successfully for order: () => {\n  return \"ORD-\" + crypto.randomUUID();\n}","timestamp":"2025-11-17T13:03:42.401Z"}
 {"level":"info","message":"Deposit created successfully: fd67b43d-65b0-4fb6-82e6-0fcebf2cd28e","timestamp":"2025-11-17T13:06:48.973Z"}
 {"level":"info","message":"Deposit processed successfully for order: () => {\n  return \"ORD-\" + crypto.randomUUID();\n}","timestamp":"2025-11-17T13:06:48.975Z"}
+{"level":"info","message":"Deposit created successfully: b8577068-c097-49fd-8e01-952920a633c2","timestamp":"2025-11-17T13:08:01.026Z"}
+{"level":"info","message":"Wallet top-up initiated | User: 690a11e8c10e66a15ca6d574 | Order: TOPUP-690a11e8c10e66a15ca6d574-1763384880543-6626aad1 | Amount: 100","timestamp":"2025-11-17T13:08:01.027Z"}
+{"level":"info","message":"Deposit created successfully: 25cfe553-932f-42c8-b083-fc3018ddd9fa","timestamp":"2025-11-17T13:10:32.531Z"}
+{"level":"info","message":"Deposit processed successfully for order: () => {\n  return \"ORD-\" + crypto.randomUUID();\n}","timestamp":"2025-11-17T13:10:32.531Z"}
+{"level":"info","message":"Deposit created successfully: 4523693a-91a1-4420-9329-1513a8abf2b4","timestamp":"2025-11-17T13:22:04.780Z"}
+{"level":"error","message":"Deposit failed: WalletService is not defined","timestamp":"2025-11-17T13:22:04.783Z"}
+{"level":"info","message":"Deposit created successfully: e4197474-8e99-4c14-a58f-b9742fd75836","timestamp":"2025-11-17T13:23:26.983Z"}
+{"level":"info","message":"Deposit created successfully: 4801b1c7-ef80-40d0-a1b4-dfb5da7317cf","timestamp":"2025-11-17T13:36:38.119Z"}
+{"level":"info","message":"Deposit created successfully: 8c6eb2f6-1ef0-4660-91af-5a3006e31d81","timestamp":"2025-11-17T13:38:05.228Z"}
+{"level":"info","message":"TEST DEPOSIT SUCCESS: User 690a11e8c10e66a15ca6d574 +100 PKR","timestamp":"2025-11-17T13:38:05.478Z"}
+{"level":"info","message":"Deposit created successfully: e139e17b-ff05-4395-a018-9708721a4cf1","timestamp":"2025-11-17T13:39:57.314Z"}
+{"level":"info","message":"TEST DEPOSIT SUCCESS: User 690a11e8c10e66a15ca6d574 +4422 PKR","timestamp":"2025-11-17T13:39:57.560Z"}
+{"level":"info","message":"Payout created successfully: 3e3d749b-c29f-408d-a31d-4d562fdd2b3f","timestamp":"2025-11-17T13:40:43.869Z"}
+{"level":"info","message":"Payout created successfully: 31fad312-b69e-4cfa-b61d-2c7960ee690c","timestamp":"2025-11-17T13:41:15.521Z"}
+{"level":"info","message":"Payout created successfully: f6034be7-f59d-4e9c-ba0c-46fa4da446b0","timestamp":"2025-11-17T13:41:27.447Z"}
+{"level":"info","message":"Payout created successfully: ebe1ef47-fb76-40fa-aee0-4d7b38d13ead","timestamp":"2025-11-17T13:42:27.896Z"}
+{"level":"info","message":"TEST WITHDRAWAL SUCCESS: User 690a11e8c10e66a15ca6d574 -4000 PKR","timestamp":"2025-11-17T13:42:28.027Z"}
