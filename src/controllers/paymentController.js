@@ -2,6 +2,7 @@ import PawaPayService from "../services/pawapayService.js";
 import { getSupportedProviders } from "../services/correspondentService.js";
 import { validateDepositRequest, validatePayoutRequest, validateRefundRequest } from "../utils/validators.js";
 import logger from "../utils/logger.js";
+import crypto from "crypto";
 
 export const paymentController = {
   // GET /api/payments/providers
@@ -37,9 +38,7 @@ console.log("this is req body " , req.body)
     const { provider, amount, phoneNumber, country, currency } = req.body;
 
     const orderId =  () => {
-  const ts = Date.now().toString(36);  
-  const rnd = Math.random().toString(36).substring(2, 8);
-  return `ORD-${ts}-${rnd}`.toUpperCase();
+  return "ORD-" + crypto.randomUUID();
 };
 
 

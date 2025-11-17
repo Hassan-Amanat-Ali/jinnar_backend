@@ -80,7 +80,7 @@ class PawaPayController {
         statementDescription,
         country,
         metadata: [
-          { fieldName: "orderId", fieldValue: orderId },
+          { fieldName: "orderId", fieldValue: depositId },
           { fieldName: "customerId", fieldValue: "customer@email.com", isPII: true },
         ],
       };

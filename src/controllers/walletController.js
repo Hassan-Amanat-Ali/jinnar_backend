@@ -48,7 +48,7 @@ export const topupWallet = async (req, res) => {
     });
 
     // If deposit is immediately successful (rare), credit wallet right away
-    if (depositResult.status === "SUCCESSFUL") {
+    if (depositResult.status === "SUCCESSFUL" || depositResult.status === "ACCEPTED" ) {
       await updateWalletBalance(userId, amount, {
         type: "deposit",
         paymentMethod: "mobile_money",
