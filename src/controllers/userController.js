@@ -28,82 +28,80 @@ export const findWorkers = asyncHandler(async (req, res) => {
     skills,
     lat,
     lng,
-    radius = 10, // km
+    radius = 10, 
     sortBy = 'rating.average',
     sortOrder = 'desc',
     page = 1,
     limit = 10,
   } = req.query;
 
-  if (!skills || !lat || !lng) {
-    return res.status(400).json({ success: false, message: 'Skills, latitude, and longitude are required' });
-  }
-
-  const parsedLat = parseFloat(lat);
-  const parsedLng = parseFloat(lng);
+  const parsedLat = lat ? parseFloat(lat) : null;
+  const parsedLng = lng ? parseFloat(lng) : null;
   const parsedRadius = parseFloat(radius);
   const parsedPage = parseInt(page, 10);
   const parsedLimit = parseInt(limit, 10);
 
-  const skillsArray = Array.isArray(skills)
-    ? skills
-    : skills.split(',').map(s => s.trim().toLowerCase());
-  const skillsRegexArray = skillsArray.map(skill => new RegExp(`^${skill}$`, 'i'));
+  // -------------------------
+  // Build skills filter (optional)
+  // -------------------------
+  let query = { role: 'seller' };
 
-  console.log('Skills Regex Array:', skillsRegexArray);
+  if (skills) {
+    const skillArr = Array.isArray(skills)
+      ? skills
+      : skills.split(',').map(s => s.trim().toLowerCase());
+
+    const regexArr = skillArr.map(skill => new RegExp(`^${skill}$`, 'i'));
+    query.skills = { $in: regexArr };
+  }
 
   // -------------------------
-  // Fetch all sellers matching skills
+  // Fetch sellers
   // -------------------------
-  let sellers = await User.find({
-    role: 'seller',
-    skills: { $in: skillsRegexArray },
-  }).select(`
+  let sellers = await User.find(query).select(`
     name profilePicture skills languages yearsOfExperience rating bio selectedAreas portfolioImages preferredAreas
   `);
 
-  console.log(`Found ${sellers.length} sellers matching skills`);
   // -------------------------
-  // Calculate distance manually using Haversine
+  // Distance filtering (optional)
   // -------------------------
- sellers = sellers
-  .map(seller => {
-    let minDistance = null;
+  if (parsedLat !== null && parsedLng !== null) {
+    sellers = sellers
+      .map(seller => {
+        let minDistance = null;
+        const areas = Array.isArray(seller.preferredAreas) ? seller.preferredAreas : [];
 
-    // Use preferredAreas safely
-    const areas = Array.isArray(seller.preferredAreas) ? seller.preferredAreas : [];
-    if (areas.length === 0) {
-      console.log(`Seller ${seller.name} has no preferredAreas`);
-    }
+        areas.forEach(area => {
+          if (!area?.coordinates || area.coordinates.length < 2) return;
+          const [lng2, lat2] = area.coordinates;
+          const distanceKm = haversineDistance(parsedLat, parsedLng, lat2, lng2);
+          if (minDistance === null || distanceKm < minDistance) minDistance = distanceKm;
+        });
 
-    areas.forEach(area => {
-      if (!area?.coordinates || area.coordinates.length < 2) return; // skip invalid areas
-      const [lng2, lat2] = area.coordinates;
-      const distanceKm = haversineDistance(parsedLat, parsedLng, lat2, lng2);
-      if (minDistance === null || distanceKm < minDistance) minDistance = distanceKm;
-    });
-
-    console.log(`Seller: ${seller.name}, Distance: ${minDistance !== null ? minDistance.toFixed(2) + ' km' : 'N/A'}`);
-
-    return { ...seller.toObject(), distance: minDistance };
-  })
-  .filter(seller => seller.distance !== null && seller.distance <= parsedRadius);
+        return { ...seller.toObject(), distance: minDistance };
+      })
+      .filter(seller =>
+        seller.distance !== null && seller.distance <= parsedRadius
+      );
+  }
 
   // -------------------------
-  // Sort
+  // Sorting
   // -------------------------
   sellers.sort((a, b) => {
     let valA = a[sortBy] ?? 0;
     let valB = b[sortBy] ?? 0;
-    if (sortOrder === 'desc') return valB - valA;
-    return valA - valB;
+    return sortOrder === 'desc' ? valB - valA : valA - valB;
   });
 
   // -------------------------
   // Pagination
   // -------------------------
   const totalResults = sellers.length;
-  const paginatedSellers = sellers.slice((parsedPage - 1) * parsedLimit, parsedPage * parsedLimit);
+  const paginatedSellers = sellers.slice(
+    (parsedPage - 1) * parsedLimit,
+    parsedPage * parsedLimit
+  );
 
   res.json({
     success: true,

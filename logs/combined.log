@@ -78,3 +78,5 @@
 {"level":"info","message":"Payout processed successfully for withdrawId: 44e48ada-df5b-45a6-b688-2f2e228a165c","timestamp":"2025-11-12T15:03:42.693Z"}
 {"level":"info","message":"Deposit Callback","timestamp":"2025-11-15T15:16:13.958Z"}
 {"level":"info","message":"Deposit Callback","timestamp":"2025-11-15T15:20:56.153Z"}
+{"level":"info","message":"Deposit created successfully: 28f7807a-f9cb-48f6-aa54-ba2d04c79969","timestamp":"2025-11-15T15:54:13.131Z"}
+{"level":"info","message":"Deposit processed successfully for order: ORD102","timestamp":"2025-11-15T15:54:13.132Z"}
