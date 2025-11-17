@@ -1,7 +1,7 @@
-// routes/wallet.js
 import express from "express";
-import WalletController from "../controllers/WalletController.js";
 import { protect } from "../middleware/auth.js";
+import WalletController from "../controllers/walletController.js";
+
 
 const router = express.Router();
 

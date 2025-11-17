@@ -1,4 +1,3 @@
-// controllers/WalletController.js
 import Wallet from "../models/Wallet.js";
 import PawaPayController from "../services/pawapayService.js"; // your existing service
 import logger from "../utils/logger.js";
@@ -34,7 +33,7 @@ class WalletController {
         currency: result.data.currency,
       });
     } catch (err) {
-      res.status(500).json({ success: false, message: "Server error" });
+      res.status(500).json({ success: false, message: "Server error" , err });
     }
   }
 
