@@ -1,7 +1,7 @@
-import ChatController from "../controllers/ChatController.js";
 import express from "express";
 import { protect } from "../middleware/auth.js";
 import { uploadChatAttachmentMW } from "../middleware/upload.js"; // your file
+import ChatController from "../controllers/chatController.js";
 
 const router = express.Router();
 
