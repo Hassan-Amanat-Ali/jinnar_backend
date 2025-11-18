@@ -9,7 +9,10 @@ import YAML from 'yamljs';
 import swaggerUi from 'swagger-ui-express';
 import apiRoutes from './routes/api.js';
 import cors from 'cors';   // ✅ ADD THIS
-import User from './models/User.js';
+import path from 'path';
+import http from "http";
+
+import setupSocket from "./socket.js";
 
 
 
@@ -23,6 +26,8 @@ const limiter = rateLimit({
 
 connectDb();
 app.use(cors());
+const server = http.createServer(app);
+setupSocket(server); // This activates Socket.IO
 
 app.use(express.json());
 // for parsing application/xwww-form-urlencoded
@@ -54,9 +59,20 @@ app.get('/', (req,res) => {
     res.send('API Server is running...');
 })
 
+// Serve test-chat.html at /chat-interface
+app.get('/chat-interface', (req, res) => {
+  const filePath = path.resolve('test-chat.html');
+  return res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error('Error sending test-chat.html:', err);
+      res.status(500).send('Could not load chat interface');
+    }
+  });
+})
 
 
-app.listen(PORT, () => {
+
+server.listen(PORT, () => {
     console.log('Server is running on port' , PORT);
     console.log('Swagger UI is availible at /api-docs');
 })

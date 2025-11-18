@@ -1,15 +1,6 @@
-===Account Details Needed For Payment Gateway.
-M-Pesa
-Airtel Money
-Tigo Pesa
-Debit/Credit Card 
-Bank Transfer.
+Create end point for stats for earning
+weekly monthly 
 
-FCM push Notification
-Filters
-Pagination
-
-
-=====
-User account created joined date is not coming up when fetching profile GetMyProfile
-Profile Picture is not nbeing saved in DB.
+Booking Order should not happen if wallet has no balance.
+Look into how pricing is calculated for negotiable and fixed Rates
+Ensure chat is working properly.

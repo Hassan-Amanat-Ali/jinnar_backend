@@ -157,3 +157,5 @@ export const uploadPortfolioImagesMW = [upload.array("portfolioImages", 5), comp
 export const uploadVideosMW = [upload.array("videos", 2), compressFiles];
 export const uploadCertificatesMW = [upload.array("certificates", 3), compressFiles];
 export const uploadGigImageMW = [upload.single("gigImage"), compressFiles];
+// Add this line with your other exports
+export const uploadChatAttachmentMW = [upload.single("attachment"), compressFiles];

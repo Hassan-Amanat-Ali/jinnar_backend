@@ -24,7 +24,7 @@ const notificationSchema = new mongoose.Schema({
   },
   relatedModel: {
     type: String,
-    enum: ['Gig', 'Conversation', 'Wallet','Order', null],
+    enum: ['Gig', 'Conversation', 'Wallet','Order','Message', null],
     default: null
   },
   isRead: {
