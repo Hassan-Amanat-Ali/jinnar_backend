@@ -13,6 +13,7 @@ import pawaPayCallbackRoutes from "./pawapayCallback.js";
 import workerRoutes from './workers.js'
 import pawapayCallbackRoutes from "./pawapayCallback.js"
 import chatRoutes from './chat.js'
+import { getSkills } from '../controllers/gigController.js';
 
 
 const router = express.Router();
@@ -33,8 +34,10 @@ router.use('/checkout' , chatRoutes)
 router.use("/pawapay", pawapayCallbackRoutes);
 router.use('/chat', chatRoutes)
 
+router.use('/categories' , getSkills)
 
 
 
 
-export default router;
+
+export default router;  

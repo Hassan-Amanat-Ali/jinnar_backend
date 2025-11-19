@@ -309,7 +309,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Final Integration Tester</title>
-    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
+    <script src="https://jinnar-marketplace.onrender.com/socket.io/socket.io.js"></script>
     <style>
         :root { --primary: #4f46e5; --bg: #f3f4f6; }
         body { font-family: system-ui, -apple-system, sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); }
@@ -398,7 +398,7 @@
 
     <script>
         // CONFIGURATION
-        const API_URL = 'http://localhost:3000'; // Your Backend URL
+        const API_URL = 'https://jinnar-marketplace.onrender.com'; // Your Backend URL
         
         let socket;
         let myUserId;
@@ -512,7 +512,7 @@
                 }
 
             } catch (err) {
-                console.error(err);
+                console.log(err);
                 alert("API Request Failed");
             } finally {
                 btn.innerText = originalText;

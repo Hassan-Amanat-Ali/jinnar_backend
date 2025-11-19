@@ -65,6 +65,30 @@ export const createGig = async (req, res, next) => {
   }
 };
 
+export const getSkills = async (req, res) => {
+  try {
+    // Fetch only the "skills" field from all gigs
+    const gigs = await Gig.find({}, { skills: 1, _id: 0 });
+
+    // Flatten and dedupe skills
+    const result = [
+      ...new Set(
+        gigs
+          .filter(g => Array.isArray(g.skills))
+          .flatMap(g => g.skills.map(s => s.trim().toLowerCase()))
+      )
+    ];
+
+    res.json({
+      success: true,
+      count: result.length,
+      skills: result
+    });
+  } catch (error) {
+    console.log("Error getting skills: ", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
 
 
 export const getAllGigs = async (req, res, next) => {
