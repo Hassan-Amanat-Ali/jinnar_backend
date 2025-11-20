@@ -1,10 +1,10 @@
 // routes/userRoutes.js
-import express from 'express';
-import { findWorkers } from '../controllers/userController.js';
-import { protect } from '../middleware/auth.js'; // Assuming you have authentication
+import express from "express";
+import { findWorkers } from "../controllers/userController.js";
 
 const router = express.Router();
 
-router.get('/find', protect, findWorkers);
+// Public endpoint - no authentication required for landing page
+router.get("/find", findWorkers);
 
 export default router;
