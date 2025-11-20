@@ -72,7 +72,7 @@ export const registerUser = async (req, res) => {
       try {
         const msg = await client.messages.create({
           body: `Jinnar Services App. Your verification code is: ${verificationCode}`,
-          from: +17064802072,
+          from: '+17064802072',
           to: mobileNumber.toString(),
         });
         console.log(`SMS sent to ${mobileNumber}`, { sid: msg.sid, status: msg.status });
@@ -147,7 +147,7 @@ export const signIn = async (req, res, next) => {
       try {
         const msg = await client.messages.create({
           body: `Jinnar Services App. Your sign-in verification code is: ${verificationCode}`,
-          from: +17064802072,
+          from: '+17064802072',
           to: mobileNumber,
         });
         console.log(`Sign-in SMS sent to ${mobileNumber}`, { sid: msg.sid, status: msg.status });
