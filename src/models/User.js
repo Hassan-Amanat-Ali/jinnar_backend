@@ -119,6 +119,16 @@ notifications: [
       min: 0 
     }
   },
+  // Stores individual reviews left by buyers for this user (seller)
+  reviews: [
+    {
+      orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' },
+      reviewer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      rating: { type: Number, min: 0, max: 5 },
+      review: { type: String, default: null },
+      createdAt: { type: Date, default: Date.now }
+    }
+  ],
   portfolioImages: [{ 
     url: String, 
     publicId: String 

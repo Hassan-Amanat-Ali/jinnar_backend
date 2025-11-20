@@ -4,3 +4,8 @@ weekly monthly
 Booking Order should not happen if wallet has no balance.
 Look into how pricing is calculated for negotiable and fixed Rates
 Ensure chat is working properly.
+
+
+======
+
+Review does not have text and also userId of reviewer.

@@ -448,18 +448,23 @@ export const rateAndReviewOrder = async (req, res) => {
     // 7️⃣ Update seller’s average rating
     const seller = await User.findById(order.sellerId);
     if (seller) {
-      const completedOrders = await Order.find({
-        sellerId: seller._id,
-        status: 'completed',
-        rating: { $ne: null },
+      // Save review into seller.reviews for record and compute average from these
+      if (!Array.isArray(seller.reviews)) seller.reviews = [];
+
+      seller.reviews.push({
+        orderId: order._id,
+        reviewer: buyerId,
+        rating,
+        review: review || null,
       });
 
-      const avg =
-        completedOrders.reduce((sum, o) => sum + o.rating, 0) /
-        (completedOrders.length || 1);
+      // Compute average from stored reviews
+      const total = seller.reviews.reduce((sum, r) => sum + (r.rating || 0), 0);
+      const count = seller.reviews.length;
+      const avg = count ? total / count : 0;
 
       seller.rating.average = parseFloat(avg.toFixed(2));
-      seller.rating.count = completedOrders.length;
+      seller.rating.count = count;
       await seller.save();
 
       // 8️⃣ Notify seller
