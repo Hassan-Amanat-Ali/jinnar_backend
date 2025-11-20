@@ -13,12 +13,14 @@ import path from 'path';
 import http from "http";
 
 import setupSocket from "./socket.js";
+import { errorHandler } from './middleware/errorHandler.js';
+import mongoose from 'mongoose';
 
 
 
 const app = express();
-const PORT = process.env.PORT;
-console.log('Environment:' , process.env.PORT)
+const PORT = process.env.PORT || 3000;
+console.log('Environment PORT:' , PORT)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests
@@ -76,6 +78,59 @@ server.listen(PORT, () => {
     console.log('Server is running on port' , PORT);
     console.log('Swagger UI is availible at /api-docs');
 })
+
+// Mount global error handler AFTER routes
+app.use(errorHandler);
+
+// Graceful shutdown & process-level error handling
+const shutdown = async (reason) => {
+  try {
+    console.error('Shutting down server due to:', reason);
+    server.close(() => console.log('HTTP server closed'));
+    if (mongoose?.connection && mongoose.connection.readyState === 1) {
+      await mongoose.disconnect();
+      console.log('Disconnected from MongoDB');
+    }
+    process.exit(1);
+  } catch (err) {
+    console.error('Error during shutdown:', err);
+    process.exit(1);
+  }
+};
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  shutdown('uncaughtException');
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
+  shutdown('unhandledRejection');
+});
+
+process.on('SIGINT', async () => {
+  console.log('SIGINT received, shutting down gracefully');
+  try {
+    server.close();
+    if (mongoose?.connection && mongoose.connection.readyState === 1) await mongoose.disconnect();
+    process.exit(0);
+  } catch (err) {
+    console.error('Error on SIGINT shutdown:', err);
+    process.exit(1);
+  }
+});
+
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  try {
+    server.close();
+    if (mongoose?.connection && mongoose.connection.readyState === 1) await mongoose.disconnect();
+    process.exit(0);
+  } catch (err) {
+    console.error('Error on SIGTERM shutdown:', err);
+    process.exit(1);
+  }
+});
 
 
 

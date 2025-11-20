@@ -1,11 +1,38 @@
 import logger from "../utils/logger.js";
 
+const maskHeaders = (headers) => {
+  const copy = { ...headers };
+  if (copy.authorization) copy.authorization = '[REDACTED]';
+  if (copy.cookie) copy.cookie = '[REDACTED]';
+  return copy;
+};
+
+const logRequest = (label, req) => {
+  const info = {
+    time: new Date().toISOString(),
+    label,
+    method: req.method,
+    path: req.originalUrl || req.url,
+    headers: maskHeaders(req.headers || {}),
+    query: req.query || {},
+    body: req.body || {},
+  };
+
+  // Console-friendly pretty print for immediate visibility
+  console.log('----- PAWAPAY CALLBACK START -----');
+  console.log(JSON.stringify(info, null, 2));
+  console.log('----- PAWAPAY CALLBACK END -------');
+
+  // Structured logger as well
+  logger.info(label, info);
+};
+
 class PawaPayCallbackController {
 
   // 🔹 Deposit callback
   static depositCallback = async (req, res) => {
     try {
-      console.log("📥 Deposit Callback Received:", req.body);
+      logRequest('Deposit Callback Received', req.body);
 
     //   const {
     //     depositId,
@@ -32,16 +59,16 @@ class PawaPayCallbackController {
   // 🔹 Payout callback
   static payoutCallback = async (req, res) => {
     try {
-      console.log("📥 Payout Callback Received:", req.body);
+      logRequest('Payout Callback Received', req.body);
 
-      const {
-        payoutId,
-        status,
-        rejectionReason,
-        amount,
-        currency,
-        metadata
-      } = req.body;
+      // const {
+      //   payoutId,
+      //   status,
+      //   rejectionReason,
+      //   amount,
+      //   currency,
+      //   metadata
+      // } = req.body;
 
       logger.info("Payout Callback", req.body);
 
@@ -59,16 +86,16 @@ class PawaPayCallbackController {
   // 🔹 Refund callback
   static refundCallback = async (req, res) => {
     try {
-      console.log("📥 Refund Callback Received:", req.body);
+      logRequest('Refund Callback Received', req.body);
 
-      const {
-        refundId,
-        status,
-        rejectionReason,
-        depositId,
-        amount,
-        currency
-      } = req.body;
+      // const {
+      //   refundId,
+      //   status,
+      //   rejectionReason,
+      //   depositId,
+      //   amount,
+      //   currency
+      // } = req.body;
 
       logger.info("Refund Callback", req.body);
 
