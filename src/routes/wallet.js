@@ -11,7 +11,7 @@ router.post("/predict", WalletController.predictCorrespondent);
 // Protected routes
 router.use(protect);
 router.post("/deposit", WalletController.deposit);
-router.post("/withdraw", WalletController.withdraw);
+router.post("/withdraw", WalletController.payout);
 router.get("/balance", WalletController.getBalance);
 
 export default router;

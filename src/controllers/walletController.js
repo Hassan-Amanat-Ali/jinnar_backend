@@ -1,6 +1,8 @@
 import Wallet from "../models/Wallet.js";
 import PawaPayController from "../services/pawapayService.js"; // your existing service
 import logger from "../utils/logger.js";
+import { validateDepositRequest, validatePayoutRequest, validateRefundRequest } from "../utils/validators.js";
+import PawaPayService from "../services/pawapayService.js";
 
 // Simple helper to get or create wallet
 const getUserWallet = async (userId) => {
@@ -96,71 +98,44 @@ class WalletController {
   }
 
   // 3. Withdraw → Send money to phone
-  static async withdraw(req, res) {
-    const { phoneNumber, amount, provider , currency , country } = req.body;
-    const userId = req.user.id;
+ static async payout(req, res) {
+  const { provider, amount, phoneNumber, country, currency } = req.body;
+  const userId = req.user.id;
 
-    if (!phoneNumber || !amount || !provider || !currency || !country) {
-      return res.status(400).json({ success: false, message: "Missing fields" });
-    }
+  const withdrawId = crypto.randomUUID();
 
-    if (amount < 100) {
-      return res.status(400).json({ success: false, message: "Minimum withdrawal: 100 PKR" });
-    }
-
-    try {
-      const wallet = await getUserWallet(userId);
-
-      if (wallet.balance < amount) {
-        return res.status(400).json({ success: false, message: "Insufficient balance" });
+  try {
+      const validationError = validatePayoutRequest(req.body);
+      if (validationError) {
+        return res.status(400).json({ error: validationError });
       }
 
-      const withdrawId = `WDR-${Date.now()}`;
-
-      const pawaResult = await PawaPayController.createPayout({
-        phoneNumber,
-        amount: Number(amount),
+      const result = await PawaPayService.createPayout({
         provider,
+        amount,
+        phoneNumber,
         withdrawId,
         country,
         currency,
       });
 
-      if (!pawaResult.success) {
-        return res.status(400).json({
-          success: false,
-          message: "Withdrawal failed",
-          error: pawaResult.error,
-        });
+      // 🔥 Deduct only when accepted or completed
+      if (
+        result?.data?.status === "ACCEPTED" ||
+        result?.data?.status === "COMPLETED"
+      ) {
+        await WalletService.addWithdrawal(userId, amount, withdrawId);
       }
 
-      const payoutId = pawaResult.payoutId;
+      res.status(201).json(result);
 
-      // Deduct immediately (for testing)
-      wallet.balance -= Number(amount);
-      wallet.transactions.push({
-        type: "withdrawal",
-        amount: Number(amount),
-        status: "completed", // fake success
-        paymentMethod: provider,
-        description: `Withdraw to ${phoneNumber}`,
-        createdAt: new Date(),
+  } catch (error) {
+      logger.error(`Payout failed: ${error.message}`);
+      res.status(error.statusCode || 500).json({
+        error: error.message || "An unexpected error occurred",
       });
-      await wallet.save();
-
-      logger.info(`TEST WITHDRAWAL SUCCESS: User ${userId} -${amount} PKR`);
-
-      return res.json({
-        success: true,
-        message: "Withdrawal successful! (Test mode)",
-        balance: wallet.balance,
-        payoutId,
-      });
-    } catch (err) {
-      logger.error("Withdraw error:", err);
-      res.status(500).json({ success: false, message: "Withdrawal failed" });
-    }
   }
+}
 
   // 4. Get Wallet Balance
   static async getBalance(req, res) {

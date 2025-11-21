@@ -27,7 +27,7 @@ router.use('/notifications' , notificationRoutes)
 router.use('/orders', jobRequestRoutes)
  router.use('/wallet' , walletRoutes)
 router.use('/upload', uploadRoutes)
-router.use('/payout' , payoutRoutes)
+// router.use('/payout' , payoutRoutes)
 router.use("/api/webhooks", pawaPayCallbackRoutes);
 router.use('/workers', workerRoutes );
 router.use('/checkout' , chatRoutes)
