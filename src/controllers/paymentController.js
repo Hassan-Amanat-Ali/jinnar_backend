@@ -1,8 +1,13 @@
 import PawaPayService from "../services/pawapayService.js";
 import { getSupportedProviders } from "../services/correspondentService.js";
-import { validateDepositRequest, validatePayoutRequest, validateRefundRequest } from "../utils/validators.js";
+import {  validatePayoutRequest, validateRefundRequest } from "../utils/validators.js";
 import logger from "../utils/logger.js";
 import crypto from "crypto";
+import Transaction from "../models/Transaction.js";
+
+// Simple helper to get or create wallet
+import { getUserWallet } from "./walletController.js";
+import PawaPayController from "../services/pawapayService.js";
 
 export const paymentController = {
   // GET /api/payments/providers
@@ -105,7 +110,7 @@ console.log("this is req body " , req.body)
       });
     } catch (err) {
       logger.error("Deposit error:", err);
-      res.status(500).json({ success: false, message: "Deposit failed" });
+      res.status(500).json({ success: false, message: "Deposit failed" , error: err.message});
     }
   },
 
