@@ -134,3 +134,7 @@
 {"dasd":"eeeee","level":"info","message":"Deposit Callback","timestamp":"2025-11-20T16:23:33.223Z"}
 {"body":{},"headers":{},"label":"Deposit Callback Received","level":"info","message":"Deposit Callback Received","query":{},"time":"2025-11-20T16:24:10.811Z","timestamp":"2025-11-20T16:24:10.812Z"}
 {"dasd":"eeeee","level":"info","message":"Deposit Callback","timestamp":"2025-11-20T16:24:10.814Z"}
+{"level":"info","message":"Deposit created successfully: 1e2c22cb-9ddc-4010-835d-f2ec3b688845","timestamp":"2025-11-21T19:40:03.664Z"}
+{"level":"info","message":"Deposit requested: User 690a1e3f8a56feb2acaf2eb3 amount=4422 depositId=1e2c22cb-9ddc-4010-835d-f2ec3b688845","timestamp":"2025-11-21T19:40:04.564Z"}
+{"level":"info","message":"Deposit created successfully: ea675f16-f14d-401b-8138-af03f3468023","timestamp":"2025-11-21T20:00:21.432Z"}
+{"level":"info","message":"Deposit requested: User 690a1e3f8a56feb2acaf2eb3 amount=4422 depositId=ea675f16-f14d-401b-8138-af03f3468023","timestamp":"2025-11-21T20:00:22.070Z"}

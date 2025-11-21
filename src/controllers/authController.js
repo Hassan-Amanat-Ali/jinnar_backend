@@ -163,7 +163,7 @@ export const signIn = async (req, res, next) => {
       console.log('Twilio not configured; skipping SMS send');
     }
 
-    return res.json({ message: 'Sign-in verification code sent to mobile number' });
+    return res.json({ message: 'Sign-in verification code sent to mobile number : ' ,  verificationCode });
   } catch (error) {
     console.error('Sign-In Error:', error.message);
     return next(error);

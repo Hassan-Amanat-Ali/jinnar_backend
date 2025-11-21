@@ -19,7 +19,7 @@ class PawaPayCallbackController {
 
   static depositCallback = async (req, res) => {
     logRequest('Deposit Callback Received', req.body);
-    const { depositId, status, depositedAmount, requestedAmount, correspondent, correspondentIds, country, currency, metadata } = req.body;
+    const { depositId, status, depositedAmount, requestedAmount, correspondent, correspondentIds, country, currency, metadata, failureReason } = req.body;
 
     if (!depositId) {
       return res.status(400).json({ message: "Deposit ID is missing." });
@@ -71,8 +71,15 @@ class PawaPayCallbackController {
         wallet.balance += Number(transaction.amount || 0);
       } else if (status === 'FAILED') {
         transaction.status = 'failed';
-        if (embeddedTx) embeddedTx.status = 'failed';
-        // Balance was not added, so no need to deduct anything
+        // attach provider failure details into transaction metadata for audit
+        transaction.metadata = transaction.metadata || {};
+        transaction.metadata.failureReason = failureReason || transaction.metadata.failureReason;
+        if (embeddedTx) {
+          embeddedTx.status = 'failed';
+          embeddedTx.failureReason = failureReason || embeddedTx.failureReason;
+        }
+        // Balance was not added previously for pending transactions, so do not modify wallet.balance
+        logger.info(`Deposit callback: marked transaction ${transaction._id} as failed; reason: ${JSON.stringify(failureReason || metadata?.failureReason || {})}`);
       } else {
         // For other statuses like 'PENDING', 'ACCEPTED', we just log and don't change our state
         logger.info(`Deposit callback: Received status '${status}' for depositId ${depositId}. No action taken.`);
