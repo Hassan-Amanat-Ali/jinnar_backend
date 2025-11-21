@@ -32,10 +32,60 @@ class PawaPayCallbackController {
       const transaction = await Transaction.findOne({ pawapayDepositId: depositId }).session(session);
 
       if (!transaction) {
-        logger.error(`Deposit callback: Transaction not found for depositId: ${depositId}`);
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(404).json({ message: "Transaction not found." });
+        logger.warn(`Deposit callback: Transaction not found for depositId: ${depositId}. Creating failed audit record.`);
+        try {
+          const auditTx = new Transaction({
+            pawapayDepositId: depositId,
+            status: 'failed',
+            amount: Number(requestedAmount) || 0,
+            correspondent: correspondent || undefined,
+            correspondentIds: correspondentIds || undefined,
+            country: country || undefined,
+            currency: currency || undefined,
+            metadata: Object.assign({}, metadata || {}, { pawapayRaw: req.body }),
+          });
+          // attach provider failure to metadata if present
+          if (failureReason) {
+            auditTx.metadata = auditTx.metadata || {};
+            auditTx.metadata.failureReason = failureReason;
+          }
+          await auditTx.save({ session });
+
+          // try to find a wallet transaction that may have used the depositId in the wrong field
+          const walletQuery = {
+            $or: [
+              { 'transactions.pawapayDepositId': depositId },
+              { 'transactions.flutterwaveTxRef': depositId },
+              { 'transactions.description': { $regex: depositId } },
+            ],
+          };
+
+          const wallet = await Wallet.findOne(walletQuery).session(session);
+          if (wallet) {
+            const embedded = wallet.transactions.find(t => t.pawapayDepositId === depositId || t.flutterwaveTxRef === depositId || (t.description && t.description.includes(depositId)));
+            if (embedded) {
+              const wasCompleted = embedded.status === 'completed';
+              embedded.status = 'failed';
+              embedded.failureReason = failureReason || embedded.failureReason || metadata?.failureReason || null;
+              // if it was completed earlier, revert the credited balance
+              if (wasCompleted) {
+                const amt = Number(embedded.amount || auditTx.amount || requestedAmount || 0);
+                wallet.balance = Number(wallet.balance || 0) - Number(amt || 0);
+                logger.warn(`Deposit callback audit: Reverted previously-credited amount ${amt} for wallet ${wallet.userId} due to missing transaction for depositId ${depositId}`);
+              }
+              await wallet.save({ session });
+            }
+          }
+
+          await session.commitTransaction();
+          session.endSession();
+          return res.status(200).json({ message: "Transaction not found. Recorded failed callback for audit; reconciled wallet entry if found." });
+        } catch (err) {
+          logger.error(`Deposit callback: Failed to write audit transaction for depositId ${depositId}`, err);
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(500).json({ message: "Failed to record audit transaction." });
+        }
       }
 
       if (transaction.status === 'completed') {
@@ -67,8 +117,11 @@ class PawaPayCallbackController {
         transaction.metadata = metadata || transaction.metadata;
 
         if (embeddedTx) embeddedTx.status = 'completed';
-        // credit wallet by transaction.amount
-        wallet.balance += Number(transaction.amount || 0);
+        // credit wallet by transaction.amount, but only once
+        if (!transaction.applied) {
+          wallet.balance += Number(transaction.amount || 0);
+          transaction.applied = true;
+        }
       } else if (status === 'FAILED') {
         transaction.status = 'failed';
         // attach provider failure details into transaction metadata for audit
@@ -78,7 +131,13 @@ class PawaPayCallbackController {
           embeddedTx.status = 'failed';
           embeddedTx.failureReason = failureReason || embeddedTx.failureReason;
         }
-        // Balance was not added previously for pending transactions, so do not modify wallet.balance
+        // If for some reason the transaction was already applied, revert it
+        if (transaction.applied) {
+          const amt = Number(transaction.amount || 0);
+          wallet.balance = Number(wallet.balance || 0) - amt;
+          transaction.applied = false;
+          logger.warn(`Deposit callback: reverted applied amount ${amt} for transaction ${transaction._id} because provider reported FAILED`);
+        }
         logger.info(`Deposit callback: marked transaction ${transaction._id} as failed; reason: ${JSON.stringify(failureReason || metadata?.failureReason || {})}`);
       } else {
         // For other statuses like 'PENDING', 'ACCEPTED', we just log and don't change our state
@@ -150,13 +209,21 @@ class PawaPayCallbackController {
         transaction.currency = currency || transaction.currency;
         transaction.metadata = metadata || transaction.metadata;
         if (embeddedTx) embeddedTx.status = 'completed';
-        // Balance was already deducted at payout request time; nothing further needed
+        // Deduct balance for payout, but only once
+        if (!transaction.applied) {
+          const amt = Number(transaction.amount || amount || 0);
+          wallet.balance = Number(wallet.balance || 0) - amt;
+          transaction.applied = true;
+        }
       } else if (status === 'FAILED') {
         transaction.status = 'failed';
         if (embeddedTx) embeddedTx.status = 'failed';
-        // Refund the optimistically deducted amount (use transaction.amount or amount from payload)
-        const amt = Number(transaction.amount || amount || 0);
-        wallet.balance += amt;
+        // If we had already deducted the amount, refund it
+        if (transaction.applied) {
+          const amt = Number(transaction.amount || amount || 0);
+          wallet.balance = Number(wallet.balance || 0) + amt;
+          transaction.applied = false;
+        }
       } else {
         logger.info(`Payout callback: Received status '${status}' for payoutId ${payoutId}. No action taken.`);
         await session.abortTransaction();

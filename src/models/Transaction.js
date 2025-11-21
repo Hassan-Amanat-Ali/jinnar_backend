@@ -32,6 +32,12 @@ const transactionSchema = new mongoose.Schema({
     default: "pending",
   },
 
+  // whether the transaction's effect on wallet balance has been applied
+  applied: {
+    type: Boolean,
+    default: false,
+  },
+
   paymentMethod: {
     type: String,
     default: null

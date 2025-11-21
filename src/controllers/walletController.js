@@ -1,10 +1,10 @@
 import Wallet from "../models/Wallet.js";
 import Transaction from "../models/Transaction.js";
-import { WalletService } from "../services/walletService.js";
 import PawaPayController from "../services/pawapayService.js"; // your existing service
 import logger from "../utils/logger.js";
 import { validatePayoutRequest } from "../utils/validators.js";
 import PawaPayService from "../services/pawapayService.js";
+import crypto from 'crypto';
 
 // Simple helper to get or create wallet
 const getUserWallet = async (userId) => {
@@ -115,18 +115,19 @@ class WalletController {
   }
 
   // 3. Withdraw → Send money to phone
- static async payout(req, res) {
-  const { provider, amount, phoneNumber, country, currency } = req.body;
-  const userId = req.user.id;
+  static async payout(req, res) {
+    const { provider, amount, phoneNumber, country, currency } = req.body;
+    const userId = req.user.id;
 
-  const withdrawId = crypto.randomUUID();
+    const withdrawId = crypto.randomUUID();
 
-  try {
+    try {
       const validationError = validatePayoutRequest(req.body);
       if (validationError) {
         return res.status(400).json({ error: validationError });
       }
 
+      // initiate payout with provider
       const result = await PawaPayService.createPayout({
         provider,
         amount,
@@ -136,23 +137,43 @@ class WalletController {
         currency,
       });
 
-      // 🔥 Deduct only when accepted or completed
-      if (
-        result?.data?.status === "ACCEPTED" ||
-        result?.data?.status === "COMPLETED"
-      ) {
-        await WalletService.addWithdrawal(userId, amount, withdrawId);
-      }
+      // determine payout id from provider response, fallback to our withdrawId
+      const payoutId = result?.data?.payoutId || result?.payoutId || withdrawId;
 
-      res.status(201).json(result);
-
-  } catch (error) {
-      logger.error(`Payout failed: ${error.message}`);
-      res.status(error.statusCode || 500).json({
-        error: error.message || "An unexpected error occurred",
+      // create authoritative Transaction (pending)
+      const tx = await Transaction.create({
+        userId,
+        type: 'withdrawal',
+        amount: Number(amount),
+        status: 'pending',
+        paymentMethod: provider,
+        pawapayPayoutId: payoutId,
+        country: country,
+        currency: currency,
+        description: `Payout via ${provider}`,
       });
+
+      // add pending nested wallet transaction (do NOT deduct balance yet)
+      const wallet = await getUserWallet(userId);
+      wallet.transactions.push({
+        type: 'withdrawal',
+        amount: Number(amount),
+        status: 'pending',
+        paymentMethod: provider,
+        description: `Payout via ${provider}`,
+        createdAt: new Date(),
+        pawapayPayoutId: payoutId,
+        transactionId: tx._id,
+      });
+      await wallet.save();
+
+      res.status(201).json({ success: true, message: 'Payout initiated; awaiting confirmation', payoutId, providerResult: result });
+
+    } catch (error) {
+      logger.error(`Payout failed: ${error?.message || error}`);
+      res.status(error?.statusCode || 500).json({ error: error?.message || "An unexpected error occurred" });
+    }
   }
-}
 
   // 4. Get Wallet Balance
   static async getBalance(req, res) {
