@@ -16,6 +16,11 @@ const walletTransactionSchema = new mongoose.Schema({
   paymentMethod: String,
   flutterwaveTxRef: String,
   flutterwaveFlwRef: String,
+  // Pawapay specific ids
+  pawapayDepositId: { type: String, default: null, index: true, sparse: true },
+  pawapayPayoutId: { type: String, default: null, index: true, sparse: true },
+  // Link back to Transaction collection entry
+  transactionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Transaction', default: null },
   description: String,
   orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'JobRequest' },
   createdAt: { type: Date, default: Date.now }

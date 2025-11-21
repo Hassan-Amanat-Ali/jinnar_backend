@@ -1,19 +1,26 @@
 import mongoose from "mongoose";
 
 const transactionSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    index: true
+  },
   type: {
     type: String,
-    // enum: [
-    //   "wallet_topup",     // User added money via Flutterwave
-    //   "withdrawal",       // User withdrew funds to bank/mobile money
-    //   "order_payment",    // User paid for a job/service
-    //   "order_earning",    // Seller received money from a job
-    //   "refund"            // Money refunded back to user
-    // ],
+    enum: [
+      "deposit",
+      "withdrawal",
+      "order_payment",
+      "order_earning",
+      "refund",
+      "wallet_topup"
+    ],
     required: true,
   },
 
-  amount: {               // Always a positive number
+  amount: {
     type: Number,
     required: true,
     min: 0
@@ -25,16 +32,21 @@ const transactionSchema = new mongoose.Schema({
     default: "pending",
   },
 
-  paymentMethod: {        // e.g. mpesa, card, bank_transfer, paypal
+  paymentMethod: {
     type: String,
     default: null
   },
 
-  // ✅ Store Flutterwave references (for webhook verification & refund)
-  flutterwaveTxRef: { type: String, default: null },   // tx_ref we sent
-  flutterwaveFlwRef: { type: String, default: null },  // flw_ref from Flutterwave
+  // Pawapay specific fields
+  correspondent: { type: String, default: null },
+  correspondentIds: { type: Object, default: null },
+  country: { type: String, default: null },
+  currency: { type: String, default: null },
+  metadata: { type: Object, default: null },
 
-  // ✅ Optional job/service reference
+  pawapayDepositId: { type: String, index: true, sparse: true },
+  pawapayPayoutId: { type: String, index: true, sparse: true },
+
   jobId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "JobRequest",
@@ -47,12 +59,7 @@ const transactionSchema = new mongoose.Schema({
     maxlength: 500,
     default: null
   },
-
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  }
-}, { _id: true });
+}, { timestamps: true });
 
 
 export default mongoose.model("Transaction", transactionSchema);

@@ -1,7 +1,9 @@
 import Wallet from "../models/Wallet.js";
+import Transaction from "../models/Transaction.js";
+import { WalletService } from "../services/walletService.js";
 import PawaPayController from "../services/pawapayService.js"; // your existing service
 import logger from "../utils/logger.js";
-import { validateDepositRequest, validatePayoutRequest, validateRefundRequest } from "../utils/validators.js";
+import { validatePayoutRequest } from "../utils/validators.js";
 import PawaPayService from "../services/pawapayService.js";
 
 // Simple helper to get or create wallet
@@ -70,25 +72,40 @@ class WalletController {
 
       const depositId = pawaResult.depositId;
 
-      // Instantly add to wallet (for testing — later move to webhook)
-      const wallet = await getUserWallet(userId);
-      wallet.balance += Number(amount);
-      wallet.transactions.push({
-        type: "deposit",
+      // Create Transaction record (pending)
+      const tx = await Transaction.create({
+        userId,
+        type: 'deposit',
         amount: Number(amount),
-        status: "completed", // fake success for testing
+        status: 'pending',
+        paymentMethod: provider,
+        pawapayDepositId: depositId,
+        correspondent: pawaResult.correspondent || null,
+        country: country,
+        currency: currency,
+        metadata: pawaResult.metadata || null,
+        description: `Deposit via ${provider}`,
+      });
+
+      // Add pending transaction to wallet.transactions (nested)
+      const wallet = await getUserWallet(userId);
+      wallet.transactions.push({
+        type: 'deposit',
+        amount: Number(amount),
+        status: 'pending',
         paymentMethod: provider,
         description: `Deposit via ${provider}`,
         createdAt: new Date(),
+        pawapayDepositId: depositId,
+        transactionId: tx._id,
       });
       await wallet.save();
 
-      logger.info(`TEST DEPOSIT SUCCESS: User ${userId} +${amount} PKR`);
+      logger.info(`Deposit requested: User ${userId} amount=${amount} depositId=${depositId}`);
 
       return res.json({
         success: true,
-        message: "Deposit successful! (Test mode: money added instantly)",
-        balance: wallet.balance,
+        message: 'Deposit requested; awaiting confirmation',
         depositId,
       });
     } catch (err) {
