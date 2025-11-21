@@ -1,4 +1,6 @@
 import express from 'express';
+import pawapayCallbackRoutes from "./pawapayCallback.js";
+
 import authRoutes from './auth.js';
 import gigRoutes from './gig.js';
 import userRoutes from './user.js'
@@ -9,9 +11,7 @@ import notificationRoutes from './notification.js'
 import jobRequestRoutes from './order.js'
  import walletRoutes from './wallet.js'
 import uploadRoutes from './uploadRoutes.js'
-import pawaPayCallbackRoutes from "./pawapayCallback.js";
 import workerRoutes from './workers.js'
-import pawapayCallbackRoutes from "./pawapayCallback.js"
 import chatRoutes from './chat.js'
 import { getSkills } from '../controllers/gigController.js';
 
@@ -28,7 +28,6 @@ router.use('/orders', jobRequestRoutes)
  router.use('/wallet' , walletRoutes)
 router.use('/upload', uploadRoutes)
 // router.use('/payout' , payoutRoutes)
-router.use("/api/webhooks", pawaPayCallbackRoutes);
 router.use('/workers', workerRoutes );
 router.use('/checkout' , chatRoutes)
 router.use("/pawapay", pawapayCallbackRoutes);

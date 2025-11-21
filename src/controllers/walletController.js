@@ -7,7 +7,7 @@ import PawaPayService from "../services/pawapayService.js";
 import crypto from 'crypto';
 
 // Simple helper to get or create wallet
-const getUserWallet = async (userId) => {
+export const getUserWallet = async (userId) => {
   let wallet = await Wallet.findOne({ userId });
   if (!wallet) {
     wallet = await Wallet.create({ userId, balance: 0 });
