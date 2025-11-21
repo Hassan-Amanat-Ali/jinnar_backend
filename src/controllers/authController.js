@@ -68,7 +68,7 @@ export const registerUser = async (req, res) => {
     await user.save();
 
     // Send SMS verification (if Twilio configured)
-    if (client && twilioPhone || false) {
+    if (client && twilioPhone && false==true) {
       try {
         const msg = await client.messages.create({
           body: `Jinnar Services App. Your verification code is: ${verificationCode}`,
@@ -143,7 +143,7 @@ export const signIn = async (req, res, next) => {
     console.log(`Sign-in verification code for ${mobileNumber}: ${verificationCode}`);
 
     // Send SMS verification (if Twilio configured)
-    if (client && twilioPhone || false) {
+    if (client && twilioPhone && false==true) {
       try {
         const msg = await client.messages.create({
           body: `Jinnar Services App. Your sign-in verification code is: ${verificationCode}`,
