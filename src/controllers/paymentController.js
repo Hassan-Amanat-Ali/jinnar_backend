@@ -109,7 +109,7 @@ console.log("this is req body " , req.body)
         depositId,
       });
     } catch (err) {
-      logger.error("Deposit error:", err);
+      logger.error("Deposit errorrrr:", err);
       res.status(500).json({ success: false, message: "Deposit failed" , error: err.message});
     }
   },

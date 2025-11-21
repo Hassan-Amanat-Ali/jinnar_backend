@@ -109,7 +109,7 @@ class WalletController {
         depositId,
       });
     } catch (err) {
-      logger.error("Deposit error:", err);
+      logger.error("Deposit errora:", err);
       res.status(500).json({ success: false, message: "Deposit failed" , error: err.message});
     }
   }
