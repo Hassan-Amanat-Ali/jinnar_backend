@@ -821,6 +821,20 @@ export const getPublicProfile = async (req, res) => {
       status: "completed",
     });
 
+    // Prepare recent reviews (most recent first)
+    const recentReviewsRaw = (user.reviews || []).slice(-5).reverse();
+    const reviewerIds = recentReviewsRaw.map(r => r.reviewer).filter(Boolean);
+    const reviewers = await User.find({ _id: { $in: reviewerIds } }).select('name profilePicture');
+    const reviewerMap = reviewers.reduce((acc, u) => { acc[u._id] = u; return acc; }, {});
+
+    const recentReviews = recentReviewsRaw.map(r => ({
+      orderId: r.orderId,
+      rating: r.rating,
+      review: r.review,
+      createdAt: r.createdAt,
+      reviewer: r.reviewer ? { id: r.reviewer, name: reviewerMap[r.reviewer]?._doc?.name || reviewerMap[r.reviewer]?.name, profilePicture: reviewerMap[r.reviewer]?._doc?.profilePicture || reviewerMap[r.reviewer]?.profilePicture } : null
+    }));
+
     const publicProfile = {
       _id: user._id,
       name: user.name,
@@ -839,6 +853,7 @@ export const getPublicProfile = async (req, res) => {
       memberSince: user.createdAt,
       availability: user.availability || [],
       ordersCompleted: completedOrdersCount || 0,
+      reviews: recentReviews,
     };
 
     res.json({ profile: publicProfile });
@@ -929,5 +944,40 @@ export const getMyProfile = async (req, res) => {
   } catch (error) {
     console.error("Get Profile Error:", error);
     res.status(500).json({ error: "Failed to fetch profile" });
+  }
+};
+
+// GET seller reviews (paginated)
+export const getSellerReviews = async (req, res) => {
+  try {
+    const { id } = req.params; // seller id
+    const page = parseInt(req.query.page || '1', 10);
+    const limit = parseInt(req.query.limit || '10', 10);
+
+    const user = await User.findById(id).select('reviews');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const reviews = (user.reviews || []).slice().reverse(); // most recent first
+    const total = reviews.length;
+    const start = (page - 1) * limit;
+    const paged = reviews.slice(start, start + limit);
+
+    // Fetch reviewer details
+    const reviewerIds = paged.map(r => r.reviewer).filter(Boolean);
+    const reviewers = await User.find({ _id: { $in: reviewerIds } }).select('name profilePicture');
+    const reviewerMap = reviewers.reduce((acc, u) => { acc[u._id] = u; return acc; }, {});
+
+    const results = paged.map(r => ({
+      orderId: r.orderId,
+      rating: r.rating,
+      review: r.review,
+      createdAt: r.createdAt,
+      reviewer: r.reviewer ? { id: r.reviewer, name: reviewerMap[r.reviewer]?._doc?.name || reviewerMap[r.reviewer]?.name, profilePicture: reviewerMap[r.reviewer]?._doc?.profilePicture || reviewerMap[r.reviewer]?.profilePicture } : null
+    }));
+
+    return res.json({ total, page, limit, reviews: results });
+  } catch (error) {
+    console.error('Get seller reviews error:', error);
+    res.status(500).json({ error: 'Failed to fetch reviews' });
   }
 };
