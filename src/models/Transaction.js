@@ -12,10 +12,7 @@ const transactionSchema = new mongoose.Schema({
     enum: [
       "deposit",
       "withdrawal",
-      "order_payment",
-      "order_earning",
       "refund",
-      "wallet_topup"
     ],
     required: true,
   },
