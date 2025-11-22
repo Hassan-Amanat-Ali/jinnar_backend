@@ -2,6 +2,7 @@
 import Order from '../models/Order.js';
 import Gig from '../models/Gig.js';
 import User from '../models/User.js';
+import { getUserWallet } from './walletController.js';
 import { sendNotification } from './notificationController.js';
 
 // ───────────────────────────────────────
@@ -21,6 +22,17 @@ export const createJobRequest = async (req, res) => {
     if (!gig) return res.status(404).json({ error: "Gig not found" });
     if (gig.sellerId.toString() === buyerId)
       return res.status(400).json({ error: "You cannot create a job request for your own gig" });
+
+    // ✅ Check for sufficient funds if the gig has a price
+    if (gig.pricing && gig.pricing.method !== 'negotiable' && gig.pricing.price > 0) {
+      const buyerWallet = await getUserWallet(buyerId);
+      if (buyerWallet.balance < gig.pricing.price) {
+        return res.status(402).json({
+          error: "Insufficient funds in wallet.",
+          message: `Your balance is ${buyerWallet.balance}, but the job requires ${gig.pricing.price}. Please top up your wallet.`
+        });
+      }
+    }
 
     const newJob = await Order.create({
       gigId,
