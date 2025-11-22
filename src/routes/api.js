@@ -14,7 +14,7 @@ import uploadRoutes from "./uploadRoutes.js";
 import workerRoutes from "./workers.js";
 import chatRoutes from "./chat.js";
 import { getSkills } from "../controllers/gigController.js";
-import adminRoutes from "./admin.js"; // Import admin routes
+// import adminRoutes from "./admin.js"; 
 
 const router = express.Router();
 
