@@ -8,7 +8,7 @@ import imagesRoutes from "./image.js";
 import paymentRoutes from "./payment.js";
 import payoutRoutes from "./payout.js";
 import notificationRoutes from "./notification.js";
-import jobRequestRoutes from "./order.js";
+import orderRoutes from "./order.js";
 import walletRoutes from "./wallet.js";
 import uploadRoutes from "./uploadRoutes.js";
 import workerRoutes from "./workers.js";
@@ -24,7 +24,7 @@ router.use("/user", userRoutes);
 router.use("/images", imagesRoutes);
 router.use("/payment", paymentRoutes);
 router.use("/notifications", notificationRoutes);
-router.use("/orders", jobRequestRoutes);
+router.use("/orders", orderRoutes);
 router.use("/wallet", walletRoutes);
 router.use("/upload", uploadRoutes);
 // router.use('/payout' , payoutRoutes)
