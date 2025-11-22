@@ -48,17 +48,17 @@ const orderSchema = new mongoose.Schema(
     },
     rating: {
       type: Number,
-      min:0,max:5,default:null
-    
+      min: 0,
+      max: 5,
+      default: null,
     },
-    review:{
+    review: {
       type: String,
       default: null,
-      max : 480
-      
-    }
+      max: 480,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export default mongoose.model("Order", orderSchema);

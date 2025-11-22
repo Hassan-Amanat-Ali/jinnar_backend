@@ -10,7 +10,7 @@ const firebaseConfig = {
   projectId: "tanzaniaservices-739c2",
   storageBucket: "tanzaniaservices-739c2.firebasestorage.app",
   messagingSenderId: "1007107385150",
-  appId: "1:1007107385150:web:2ead6cd5f212abd105ee6f"
+  appId: "1:1007107385150:web:2ead6cd5f212abd105ee6f",
 };
 
 // Initialize Firebase

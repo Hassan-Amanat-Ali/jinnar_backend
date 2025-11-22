@@ -3,7 +3,8 @@ import logger from "../utils/logger.js";
 import { validatePhoneNumber, validateAmount } from "../utils/validators.js";
 import dotenv from "dotenv";
 
-const BASE_URL = process.env.PAWAPAY_BASE_URL || "https://api.sandbox.pawapay.io";
+const BASE_URL =
+  process.env.PAWAPAY_BASE_URL || "https://api.sandbox.pawapay.io";
 
 class PawaPayController {
   static initialize() {
@@ -30,7 +31,9 @@ class PawaPayController {
       const response = await fetch(url, options);
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`HTTP error! Status: ${response.status}, Details: ${errorText}`);
+        throw new Error(
+          `HTTP error! Status: ${response.status}, Details: ${errorText}`,
+        );
       }
       const data = await response.json();
       console.log("Predict Correspondent Response:", data);
@@ -41,7 +44,10 @@ class PawaPayController {
       };
     } catch (error) {
       console.error(`Predicting Correspondent Failed: ${phoneNumber}`, error);
-      logger.error("Predicting Correspondent Failed", { phoneNumber, error: error.message });
+      logger.error("Predicting Correspondent Failed", {
+        phoneNumber,
+        error: error.message,
+      });
       return {
         success: false,
         error: error.message || "Failed to predict correspondent",
@@ -49,7 +55,14 @@ class PawaPayController {
     }
   }
 
-  static async  createDeposit({ provider, amount, phoneNumber, orderId, country, currency }) {
+  static async createDeposit({
+    provider,
+    amount,
+    phoneNumber,
+    orderId,
+    country,
+    currency,
+  }) {
     try {
       if (!validatePhoneNumber(phoneNumber)) {
         throw new Error("Invalid phone number format");
@@ -62,9 +75,13 @@ class PawaPayController {
       }
 
       const depositId = crypto.randomUUID();
-      const statementDescription = `Order ${orderId}`.slice(0, 22).replace(/[^a-zA-Z0-9 ]/g, " ");
+      const statementDescription = `Order ${orderId}`
+        .slice(0, 22)
+        .replace(/[^a-zA-Z0-9 ]/g, " ");
       if (statementDescription.length < 4) {
-        throw new Error("Statement description too short (must be 4-22 characters)");
+        throw new Error(
+          "Statement description too short (must be 4-22 characters)",
+        );
       }
 
       const body = {
@@ -81,7 +98,11 @@ class PawaPayController {
         country,
         metadata: [
           { fieldName: "orderId", fieldValue: depositId },
-          { fieldName: "customerId", fieldValue: "customer@email.com", isPII: true },
+          {
+            fieldName: "customerId",
+            fieldValue: "customer@email.com",
+            isPII: true,
+          },
         ],
       };
 
@@ -99,7 +120,9 @@ class PawaPayController {
       const response = await fetch(url, options);
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`HTTP error! Status: ${response.status}, Details: ${errorText}`);
+        throw new Error(
+          `HTTP error! Status: ${response.status}, Details: ${errorText}`,
+        );
       }
       const data = await response.json();
       console.log("Create Deposit Response:", data);
@@ -126,7 +149,14 @@ class PawaPayController {
     }
   }
 
-  static async createPayout({ provider, amount, phoneNumber, withdrawId, country, currency }) {
+  static async createPayout({
+    provider,
+    amount,
+    phoneNumber,
+    withdrawId,
+    country,
+    currency,
+  }) {
     try {
       if (!validatePhoneNumber(phoneNumber)) {
         throw new Error("Invalid phone number format");
@@ -140,9 +170,13 @@ class PawaPayController {
       }
 
       const payoutId = crypto.randomUUID();
-      const statementDescription = `Withdraw ${withdrawId}`.slice(0, 22).replace(/[^a-zA-Z0-9 ]/g, " ");
+      const statementDescription = `Withdraw ${withdrawId}`
+        .slice(0, 22)
+        .replace(/[^a-zA-Z0-9 ]/g, " ");
       if (statementDescription.length < 4) {
-        throw new Error("Statement description too short (must be 4-22 characters)");
+        throw new Error(
+          "Statement description too short (must be 4-22 characters)",
+        );
       }
 
       const body = {
@@ -159,7 +193,11 @@ class PawaPayController {
         country,
         metadata: [
           { fieldName: "orderId", fieldValue: withdrawId },
-          { fieldName: "customerId", fieldValue: "customer@email.com", isPII: true },
+          {
+            fieldName: "customerId",
+            fieldValue: "customer@email.com",
+            isPII: true,
+          },
         ],
       };
 
@@ -177,7 +215,9 @@ class PawaPayController {
       const response = await fetch(url, options);
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`HTTP error! Status: ${response.status}, Details: ${errorText}`);
+        throw new Error(
+          `HTTP error! Status: ${response.status}, Details: ${errorText}`,
+        );
       }
       const data = await response.json();
       console.log("Create Payout Response:", data);
@@ -210,7 +250,10 @@ class PawaPayController {
         throw new Error("Invalid transaction ID or type");
       }
 
-      const endpoint = type === "deposit" ? `/v1/deposits/${transactionId}` : `/v1/payouts/${transactionId}`;
+      const endpoint =
+        type === "deposit"
+          ? `/v1/deposits/${transactionId}`
+          : `/v1/payouts/${transactionId}`;
       const url = `${BASE_URL}${endpoint}`;
       const options = {
         method: "GET",
@@ -223,7 +266,9 @@ class PawaPayController {
       const response = await fetch(url, options);
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`HTTP error! Status: ${response.status}, Details: ${errorText}`);
+        throw new Error(
+          `HTTP error! Status: ${response.status}, Details: ${errorText}`,
+        );
       }
       const data = await response.json();
       console.log("Check Transaction Status Response:", data);
@@ -254,7 +299,9 @@ class PawaPayController {
         throw new Error("Invalid deposit ID or amount");
       }
       if (!reason || reason.length > 100) {
-        throw new Error("Invalid reason (must be non-empty and <= 100 characters)");
+        throw new Error(
+          "Invalid reason (must be non-empty and <= 100 characters)",
+        );
       }
 
       const refundId = crypto.randomUUID();
@@ -280,7 +327,9 @@ class PawaPayController {
       const response = await fetch(url, options);
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`HTTP error! Status: ${response.status}, Details: ${errorText}`);
+        throw new Error(
+          `HTTP error! Status: ${response.status}, Details: ${errorText}`,
+        );
       }
       const data = await response.json();
       console.log("Create Refund Response:", data);

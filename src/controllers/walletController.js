@@ -4,7 +4,7 @@ import PawaPayController from "../services/pawapayService.js"; // your existing 
 import logger from "../utils/logger.js";
 import { validatePayoutRequest } from "../utils/validators.js";
 import PawaPayService from "../services/pawapayService.js";
-import crypto from 'crypto';
+import crypto from "crypto";
 
 // Simple helper to get or create wallet
 export const getUserWallet = async (userId) => {
@@ -21,7 +21,9 @@ class WalletController {
     const { phoneNumber } = req.body;
 
     if (!phoneNumber) {
-      return res.status(400).json({ success: false, message: "Phone number required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Phone number required" });
     }
 
     try {
@@ -37,17 +39,19 @@ class WalletController {
         currency: result.data.currency,
       });
     } catch (err) {
-      res.status(500).json({ success: false, message: "Server error" , err });
+      res.status(500).json({ success: false, message: "Server error", err });
     }
   }
 
   // 2. Deposit → Top-up Wallet (User adds money)
   static async deposit(req, res) {
-    const { phoneNumber, amount, provider, currency , country } = req.body;
+    const { phoneNumber, amount, provider, currency, country } = req.body;
     const userId = req.user.id; // from protect middleware
 
     if (!phoneNumber || !amount || !provider || !currency || !country) {
-      return res.status(400).json({ success: false, message: "Missing fields" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing fields" });
     }
 
     try {
@@ -75,9 +79,9 @@ class WalletController {
       // Create Transaction record (pending)
       const tx = await Transaction.create({
         userId,
-        type: 'deposit',
+        type: "deposit",
         amount: Number(amount),
-        status: 'pending',
+        status: "pending",
         paymentMethod: provider,
         pawapayDepositId: depositId,
         correspondent: pawaResult.correspondent || null,
@@ -90,9 +94,9 @@ class WalletController {
       // Add pending transaction to wallet.transactions (nested)
       const wallet = await getUserWallet(userId);
       wallet.transactions.push({
-        type: 'deposit',
+        type: "deposit",
         amount: Number(amount),
-        status: 'pending',
+        status: "pending",
         paymentMethod: provider,
         description: `Deposit via ${provider}`,
         createdAt: new Date(),
@@ -101,16 +105,24 @@ class WalletController {
       });
       await wallet.save();
 
-      logger.info(`Deposit requested: User ${userId} amount=${amount} depositId=${depositId}`);
+      logger.info(
+        `Deposit requested: User ${userId} amount=${amount} depositId=${depositId}`,
+      );
 
       return res.json({
         success: true,
-        message: 'Deposit requested; awaiting confirmation',
+        message: "Deposit requested; awaiting confirmation",
         depositId,
       });
     } catch (err) {
       logger.error("Deposit errora:", err);
-      res.status(500).json({ success: false, message: "Deposit failed" , error: err.message});
+      res
+        .status(500)
+        .json({
+          success: false,
+          message: "Deposit failed",
+          error: err.message,
+        });
     }
   }
 
@@ -143,9 +155,9 @@ class WalletController {
       // create authoritative Transaction (pending)
       const tx = await Transaction.create({
         userId,
-        type: 'withdrawal',
+        type: "withdrawal",
         amount: Number(amount),
-        status: 'pending',
+        status: "pending",
         paymentMethod: provider,
         pawapayPayoutId: payoutId,
         country: country,
@@ -156,9 +168,9 @@ class WalletController {
       // add pending nested wallet transaction (do NOT deduct balance yet)
       const wallet = await getUserWallet(userId);
       wallet.transactions.push({
-        type: 'withdrawal',
+        type: "withdrawal",
         amount: Number(amount),
-        status: 'pending',
+        status: "pending",
         paymentMethod: provider,
         description: `Payout via ${provider}`,
         createdAt: new Date(),
@@ -167,11 +179,19 @@ class WalletController {
       });
       await wallet.save();
 
-      res.status(201).json({ success: true, message: 'Payout initiated; awaiting confirmation', payoutId, providerResult: result });
-
+      res
+        .status(201)
+        .json({
+          success: true,
+          message: "Payout initiated; awaiting confirmation",
+          payoutId,
+          providerResult: result,
+        });
     } catch (error) {
       logger.error(`Payout failed: ${error?.message || error}`);
-      res.status(error?.statusCode || 500).json({ error: error?.message || "An unexpected error occurred" });
+      res
+        .status(error?.statusCode || 500)
+        .json({ error: error?.message || "An unexpected error occurred" });
     }
   }
 
@@ -189,7 +209,7 @@ class WalletController {
         transactions: recentTransactions,
       });
     } catch (err) {
-      res.status(500).json({ success: false, message: "Server error : " , err });
+      res.status(500).json({ success: false, message: "Server error : ", err });
     }
   }
 }

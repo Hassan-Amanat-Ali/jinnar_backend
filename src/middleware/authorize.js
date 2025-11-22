@@ -1,11 +1,10 @@
-
 const ROLES = {
-  BUYER: 'buyer',
-  SELLER: 'seller',
-  SUPPORT: 'support',
-  SUPERVISOR: 'supervisor',
-  REGIONAL_MANAGER: 'regional_manager',
-  SUPER_ADMIN: 'super_admin',
+  BUYER: "buyer",
+  SELLER: "seller",
+  SUPPORT: "support",
+  SUPERVISOR: "supervisor",
+  REGIONAL_MANAGER: "regional_manager",
+  SUPER_ADMIN: "super_admin",
 };
 
 // Role hierarchy: lower number = higher privilege
@@ -27,16 +26,23 @@ export const authorize = (requiredRoles) => {
     const userRole = req.user?.role;
 
     if (!userRole || !roleHierarchy[userRole]) {
-      return res.status(403).json({ error: 'Forbidden: Invalid user role.' });
+      return res.status(403).json({ error: "Forbidden: Invalid user role." });
     }
 
-    const roles = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
+    const roles = Array.isArray(requiredRoles)
+      ? requiredRoles
+      : [requiredRoles];
     const userLevel = roleHierarchy[userRole];
 
-    const isAuthorized = roles.some(role => userLevel <= roleHierarchy[role]);
+    const isAuthorized = roles.some((role) => userLevel <= roleHierarchy[role]);
 
     if (!isAuthorized) {
-      return res.status(403).json({ error: 'Forbidden: You do not have permission to perform this action.' });
+      return res
+        .status(403)
+        .json({
+          error:
+            "Forbidden: You do not have permission to perform this action.",
+        });
     }
 
     next();

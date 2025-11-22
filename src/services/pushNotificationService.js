@@ -1,6 +1,6 @@
 // services/pushService.js
 import admin from "./firebase.js";
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 dotenv.config();
 
 /**
@@ -28,7 +28,6 @@ export const sendPushNotification = async (token, title, body, data = {}) => {
     console.error("❌ Error sending FCM push:", error);
   }
 };
-
 
 export const sendTestNotification = async (fcmToken) => {
   try {

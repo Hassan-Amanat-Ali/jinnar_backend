@@ -8,7 +8,7 @@ export const validateAmount = (amount) => {
 
 export const validateDepositRequest = (body) => {
   const { provider, amount, phoneNumber, country, currency } = body;
-  if (!provider || !amount || !phoneNumber ||   !country || !currency) {
+  if (!provider || !amount || !phoneNumber || !country || !currency) {
     return "Missing required fields";
   }
   if (!validateAmount(amount)) {
@@ -22,8 +22,8 @@ export const validateDepositRequest = (body) => {
 };
 
 export const validatePayoutRequest = (body) => {
-  const { provider, amount, phoneNumber,  country, currency } = body;
-  if (!provider || !amount || !phoneNumber  || !country || !currency) {
+  const { provider, amount, phoneNumber, country, currency } = body;
+  if (!provider || !amount || !phoneNumber || !country || !currency) {
     return "Missing required fields";
   }
   if (!validateAmount(amount)) {

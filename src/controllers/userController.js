@@ -2,9 +2,8 @@ import User from "../models/User.js";
 import Gig from "../models/Gig.js";
 import cloudinary from "cloudinary";
 import asyncHandler from "express-async-handler";
-import { calculateDistance  } from "../utils/helpers.js";
+import { calculateDistance } from "../utils/helpers.js";
 import Order from "../models/Order.js";
-
 
 /**
  * GET /api/workers/find
@@ -12,7 +11,7 @@ import Order from "../models/Order.js";
  * Optional debug logging: add `?debug=true` to see detailed logs.
  */
 const haversineDistance = (lat1, lng1, lat2, lng2) => {
-  const toRad = angle => (angle * Math.PI) / 180;
+  const toRad = (angle) => (angle * Math.PI) / 180;
   const R = 6371; // Earth radius in km
   const dLat = toRad(lat2 - lat1);
   const dLng = toRad(lng2 - lng1);
@@ -28,9 +27,9 @@ export const findWorkers = asyncHandler(async (req, res) => {
     skills,
     lat,
     lng,
-    radius = 10, 
-    sortBy = 'rating.average',
-    sortOrder = 'desc',
+    radius = 10,
+    sortBy = "rating.average",
+    sortOrder = "desc",
     page = 1,
     limit = 10,
   } = req.query;
@@ -44,14 +43,14 @@ export const findWorkers = asyncHandler(async (req, res) => {
   // -------------------------
   // Build skills filter (optional)
   // -------------------------
-  let query = { role: 'seller' };
+  let query = { role: "seller" };
 
   if (skills) {
     const skillArr = Array.isArray(skills)
       ? skills
-      : skills.split(',').map(s => s.trim().toLowerCase());
+      : skills.split(",").map((s) => s.trim().toLowerCase());
 
-    const regexArr = skillArr.map(skill => new RegExp(`^${skill}$`, 'i'));
+    const regexArr = skillArr.map((skill) => new RegExp(`^${skill}$`, "i"));
     query.skills = { $in: regexArr };
   }
 
@@ -67,21 +66,29 @@ export const findWorkers = asyncHandler(async (req, res) => {
   // -------------------------
   if (parsedLat !== null && parsedLng !== null) {
     sellers = sellers
-      .map(seller => {
+      .map((seller) => {
         let minDistance = null;
-        const areas = Array.isArray(seller.preferredAreas) ? seller.preferredAreas : [];
+        const areas = Array.isArray(seller.preferredAreas)
+          ? seller.preferredAreas
+          : [];
 
-        areas.forEach(area => {
+        areas.forEach((area) => {
           if (!area?.coordinates || area.coordinates.length < 2) return;
           const [lng2, lat2] = area.coordinates;
-          const distanceKm = haversineDistance(parsedLat, parsedLng, lat2, lng2);
-          if (minDistance === null || distanceKm < minDistance) minDistance = distanceKm;
+          const distanceKm = haversineDistance(
+            parsedLat,
+            parsedLng,
+            lat2,
+            lng2,
+          );
+          if (minDistance === null || distanceKm < minDistance)
+            minDistance = distanceKm;
         });
 
         return { ...seller.toObject(), distance: minDistance };
       })
-      .filter(seller =>
-        seller.distance !== null && seller.distance <= parsedRadius
+      .filter(
+        (seller) => seller.distance !== null && seller.distance <= parsedRadius,
       );
   }
 
@@ -91,7 +98,7 @@ export const findWorkers = asyncHandler(async (req, res) => {
   sellers.sort((a, b) => {
     let valA = a[sortBy] ?? 0;
     let valB = b[sortBy] ?? 0;
-    return sortOrder === 'desc' ? valB - valA : valA - valB;
+    return sortOrder === "desc" ? valB - valA : valA - valB;
   });
 
   // -------------------------
@@ -100,7 +107,7 @@ export const findWorkers = asyncHandler(async (req, res) => {
   const totalResults = sellers.length;
   const paginatedSellers = sellers.slice(
     (parsedPage - 1) * parsedLimit,
-    parsedPage * parsedLimit
+    parsedPage * parsedLimit,
   );
 
   res.json({
@@ -114,9 +121,6 @@ export const findWorkers = asyncHandler(async (req, res) => {
     },
   });
 });
-
-
-
 
 export const updateUser = async (req, res) => {
   try {
@@ -202,8 +206,6 @@ export const updateUser = async (req, res) => {
       return res.status(403).json({ error: "User not verified" });
     }
 
-    
-
     // Restrict seller-specific fields for buyers
     if (user.role === "buyer") {
       if (
@@ -220,7 +222,7 @@ export const updateUser = async (req, res) => {
       ) {
         console.log(
           "Buyer attempted to update seller-specific fields:",
-          req.body
+          req.body,
         );
         return res.status(403).json({
           error:
@@ -244,7 +246,7 @@ export const updateUser = async (req, res) => {
       user.name = name.trim();
     }
 
-     if (email) {
+    if (email) {
       // Optional: basic email format check
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
@@ -280,36 +282,36 @@ export const updateUser = async (req, res) => {
       console.log("profileImage updated:", user.profileImage);
     }
     if (parsedPreferredAreas !== undefined) {
-    if (!Array.isArray(parsedPreferredAreas)) {
-      console.log("Invalid preferredAreas format:", parsedPreferredAreas);
-      return res
-        .status(400)
-        .json({ error: "preferredAreas must be an array" });
-    }
-    // V-V-V- COPY VALIDATION FROM 'selectedAreas' V-V-V-
-    for (let i = 0; i < parsedPreferredAreas.length; i++) {
-      const area = parsedPreferredAreas[i];
-      if (
-        !area.type ||
-        area.type !== "Point" ||
-        !Array.isArray(area.coordinates) ||
-        area.coordinates.length !== 2 ||
-        typeof area.coordinates[0] !== "number" ||
-        typeof area.coordinates[1] !== "number" ||
-        area.coordinates[1] < -90 ||
-        area.coordinates[1] > 90 ||
-        area.coordinates[0] < -180 ||
-        area.coordinates[0] > 180
-      ) {
-        return res.status(400).json({
-          error: `preferredAreas at index ${i} must have valid GeoJSON coordinates [lng, lat]`,
-        });
+      if (!Array.isArray(parsedPreferredAreas)) {
+        console.log("Invalid preferredAreas format:", parsedPreferredAreas);
+        return res
+          .status(400)
+          .json({ error: "preferredAreas must be an array" });
       }
+      // V-V-V- COPY VALIDATION FROM 'selectedAreas' V-V-V-
+      for (let i = 0; i < parsedPreferredAreas.length; i++) {
+        const area = parsedPreferredAreas[i];
+        if (
+          !area.type ||
+          area.type !== "Point" ||
+          !Array.isArray(area.coordinates) ||
+          area.coordinates.length !== 2 ||
+          typeof area.coordinates[0] !== "number" ||
+          typeof area.coordinates[1] !== "number" ||
+          area.coordinates[1] < -90 ||
+          area.coordinates[1] > 90 ||
+          area.coordinates[0] < -180 ||
+          area.coordinates[0] > 180
+        ) {
+          return res.status(400).json({
+            error: `preferredAreas at index ${i} must have valid GeoJSON coordinates [lng, lat]`,
+          });
+        }
+      }
+      // ^-^-^- END OF COPIED VALIDATION -^-^-^
+      user.preferredAreas = parsedPreferredAreas; // This assignment is now correct
+      console.log("preferredAreas updated:", parsedPreferredAreas);
     }
-    // ^-^-^- END OF COPIED VALIDATION -^-^-^
-    user.preferredAreas = parsedPreferredAreas; // This assignment is now correct
-    console.log("preferredAreas updated:", parsedPreferredAreas);
-  }
 
     // Update role-specific fields
     if (user.role === "seller") {
@@ -365,21 +367,22 @@ export const updateUser = async (req, res) => {
         }
         for (let i = 0; i < parsedSelectedAreas.length; i++) {
           const area = parsedSelectedAreas[i];
-         if (
-  !area.type ||
-  area.type !== "Point" ||
-  !Array.isArray(area.coordinates) ||
-  area.coordinates.length !== 2 ||
-  typeof area.coordinates[0] !== "number" ||
-  typeof area.coordinates[1] !== "number" ||
-  area.coordinates[1] < -90 || area.coordinates[1] > 90 ||
-  area.coordinates[0] < -180 || area.coordinates[0] > 180
-) {
-  return res.status(400).json({
-    error: `selectedAreas at index ${i} must have valid GeoJSON coordinates [lng, lat]`
-  });
-}
-
+          if (
+            !area.type ||
+            area.type !== "Point" ||
+            !Array.isArray(area.coordinates) ||
+            area.coordinates.length !== 2 ||
+            typeof area.coordinates[0] !== "number" ||
+            typeof area.coordinates[1] !== "number" ||
+            area.coordinates[1] < -90 ||
+            area.coordinates[1] > 90 ||
+            area.coordinates[0] < -180 ||
+            area.coordinates[0] > 180
+          ) {
+            return res.status(400).json({
+              error: `selectedAreas at index ${i} must have valid GeoJSON coordinates [lng, lat]`,
+            });
+          }
         }
         user.selectedAreas = parsedSelectedAreas;
         console.log("selectedAreas updated:", parsedSelectedAreas);
@@ -422,7 +425,7 @@ export const updateUser = async (req, res) => {
             ) {
               console.log(
                 `Invalid time slot at index ${i}, position ${j}:`,
-                slot.timeSlots[j]
+                slot.timeSlots[j],
               );
               return res.status(400).json({
                 error: `Availability at index ${i} has invalid time slot at position ${j}; must be morning, afternoon, or evening`,
@@ -532,7 +535,7 @@ export const updateUser = async (req, res) => {
           ) {
             console.log(
               `Invalid pricingMethod at index ${i}:`,
-              gigData.pricingMethod
+              gigData.pricingMethod,
             );
             return res.status(400).json({
               error: `Gig at index ${i} has invalid pricing method. Must be fixed, hourly, or negotiable`,
@@ -569,7 +572,7 @@ export const updateUser = async (req, res) => {
             ) {
               console.log(
                 `Invalid image data at index ${i}, image ${j}:`,
-                images[j]
+                images[j],
               );
               return res.status(400).json({
                 error: `Gig at index ${i} has invalid image data at position ${j}; url and publicId are required`,
@@ -589,7 +592,7 @@ export const updateUser = async (req, res) => {
               if (existingGig.sellerId.toString() !== id) {
                 console.log(
                   `Unauthorized update attempt for gig at index ${i}:`,
-                  gigData.gigId
+                  gigData.gigId,
                 );
                 return res
                   .status(403)
@@ -628,7 +631,7 @@ export const updateUser = async (req, res) => {
           } catch (gigErr) {
             console.error(
               `Gig Processing Error at index ${i}:`,
-              gigErr.message
+              gigErr.message,
             );
             return res.status(400).json({
               error: `Failed to process gig at index ${i}`,
@@ -691,13 +694,12 @@ export const updateUser = async (req, res) => {
       });
     }
 
-   
     await user.save({ validateBeforeSave: true });
     console.log("User saved successfully");
 
     // Re-fetch user to confirm updates
     const updatedUser = await User.findById(id).select(
-      "-verificationCode -verificationCodeExpires"
+      "-verificationCode -verificationCodeExpires",
     );
     return res.status(200).json({
       message: "User updated successfully",
@@ -823,16 +825,31 @@ export const getPublicProfile = async (req, res) => {
 
     // Prepare recent reviews (most recent first)
     const recentReviewsRaw = (user.reviews || []).slice(-5).reverse();
-    const reviewerIds = recentReviewsRaw.map(r => r.reviewer).filter(Boolean);
-    const reviewers = await User.find({ _id: { $in: reviewerIds } }).select('name profilePicture');
-    const reviewerMap = reviewers.reduce((acc, u) => { acc[u._id] = u; return acc; }, {});
+    const reviewerIds = recentReviewsRaw.map((r) => r.reviewer).filter(Boolean);
+    const reviewers = await User.find({ _id: { $in: reviewerIds } }).select(
+      "name profilePicture",
+    );
+    const reviewerMap = reviewers.reduce((acc, u) => {
+      acc[u._id] = u;
+      return acc;
+    }, {});
 
-    const recentReviews = recentReviewsRaw.map(r => ({
+    const recentReviews = recentReviewsRaw.map((r) => ({
       orderId: r.orderId,
       rating: r.rating,
       review: r.review,
       createdAt: r.createdAt,
-      reviewer: r.reviewer ? { id: r.reviewer, name: reviewerMap[r.reviewer]?._doc?.name || reviewerMap[r.reviewer]?.name, profilePicture: reviewerMap[r.reviewer]?._doc?.profilePicture || reviewerMap[r.reviewer]?.profilePicture } : null
+      reviewer: r.reviewer
+        ? {
+            id: r.reviewer,
+            name:
+              reviewerMap[r.reviewer]?._doc?.name ||
+              reviewerMap[r.reviewer]?.name,
+            profilePicture:
+              reviewerMap[r.reviewer]?._doc?.profilePicture ||
+              reviewerMap[r.reviewer]?.profilePicture,
+          }
+        : null,
     }));
 
     const publicProfile = {
@@ -898,7 +915,7 @@ export const getMyProfile = async (req, res) => {
     const { id } = req.user;
 
     const user = await User.findById(id).select(
-      "-password -verificationCode -verificationCodeExpires"
+      "-password -verificationCode -verificationCodeExpires",
     );
 
     if (!user) {
@@ -951,11 +968,11 @@ export const getMyProfile = async (req, res) => {
 export const getSellerReviews = async (req, res) => {
   try {
     const { id } = req.params; // seller id
-    const page = parseInt(req.query.page || '1', 10);
-    const limit = parseInt(req.query.limit || '10', 10);
+    const page = parseInt(req.query.page || "1", 10);
+    const limit = parseInt(req.query.limit || "10", 10);
 
-    const user = await User.findById(id).select('reviews');
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    const user = await User.findById(id).select("reviews");
+    if (!user) return res.status(404).json({ error: "User not found" });
 
     const reviews = (user.reviews || []).slice().reverse(); // most recent first
     const total = reviews.length;
@@ -963,21 +980,36 @@ export const getSellerReviews = async (req, res) => {
     const paged = reviews.slice(start, start + limit);
 
     // Fetch reviewer details
-    const reviewerIds = paged.map(r => r.reviewer).filter(Boolean);
-    const reviewers = await User.find({ _id: { $in: reviewerIds } }).select('name profilePicture');
-    const reviewerMap = reviewers.reduce((acc, u) => { acc[u._id] = u; return acc; }, {});
+    const reviewerIds = paged.map((r) => r.reviewer).filter(Boolean);
+    const reviewers = await User.find({ _id: { $in: reviewerIds } }).select(
+      "name profilePicture",
+    );
+    const reviewerMap = reviewers.reduce((acc, u) => {
+      acc[u._id] = u;
+      return acc;
+    }, {});
 
-    const results = paged.map(r => ({
+    const results = paged.map((r) => ({
       orderId: r.orderId,
       rating: r.rating,
       review: r.review,
       createdAt: r.createdAt,
-      reviewer: r.reviewer ? { id: r.reviewer, name: reviewerMap[r.reviewer]?._doc?.name || reviewerMap[r.reviewer]?.name, profilePicture: reviewerMap[r.reviewer]?._doc?.profilePicture || reviewerMap[r.reviewer]?.profilePicture } : null
+      reviewer: r.reviewer
+        ? {
+            id: r.reviewer,
+            name:
+              reviewerMap[r.reviewer]?._doc?.name ||
+              reviewerMap[r.reviewer]?.name,
+            profilePicture:
+              reviewerMap[r.reviewer]?._doc?.profilePicture ||
+              reviewerMap[r.reviewer]?.profilePicture,
+          }
+        : null,
     }));
 
     return res.json({ total, page, limit, reviews: results });
   } catch (error) {
-    console.error('Get seller reviews error:', error);
-    res.status(500).json({ error: 'Failed to fetch reviews' });
+    console.error("Get seller reviews error:", error);
+    res.status(500).json({ error: "Failed to fetch reviews" });
   }
 };

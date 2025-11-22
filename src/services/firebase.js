@@ -5,7 +5,7 @@ import fs from "fs";
 // https://console.firebase.google.com/project/YOUR_PROJECT_ID/settings/serviceaccounts
 
 const serviceAccount = JSON.parse(
-  fs.readFileSync("./serviceaccount.json", "utf8")
+  fs.readFileSync("./serviceaccount.json", "utf8"),
 );
 
 admin.initializeApp({

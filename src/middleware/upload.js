@@ -55,7 +55,12 @@ const upload = multer({
 // 🧩 Compression helpers
 const compressImage = async (inputPath, outputPath) => {
   await sharp(inputPath)
-    .resize({ width: 1920, height: 1080, fit: "inside", withoutEnlargement: true })
+    .resize({
+      width: 1920,
+      height: 1080,
+      fit: "inside",
+      withoutEnlargement: true,
+    })
     .jpeg({ quality: 85, progressive: true })
     .toFile(outputPath);
   console.log(`✅ Image compressed: ${path.basename(inputPath)}`);
@@ -96,13 +101,23 @@ export const compressFiles = async (req, res, next) => {
       const originalPath = file.path;
       const originalName = file.originalname;
       const timestamp = Date.now();
-      const compressedPath = path.join('temp', `${timestamp}-compressed-${originalName}`);
+      const compressedPath = path.join(
+        "temp",
+        `${timestamp}-compressed-${originalName}`,
+      );
 
-      if (['profilePicture', 'otherImages', 'portfolioImages', 'gigImage'].includes(fieldName)) {
+      if (
+        [
+          "profilePicture",
+          "otherImages",
+          "portfolioImages",
+          "gigImage",
+        ].includes(fieldName)
+      ) {
         await compressImage(originalPath, compressedPath);
-      } else if (fieldName === 'videos') {
+      } else if (fieldName === "videos") {
         await compressVideo(originalPath, compressedPath);
-      } else if (fieldName === 'certificates') {
+      } else if (fieldName === "certificates") {
         await compressPDF(originalPath, compressedPath);
       }
 
@@ -126,7 +141,7 @@ export const compressFiles = async (req, res, next) => {
     }
 
     // ✅ Handle field-based (object) upload
-    else if (typeof req.files === 'object') {
+    else if (typeof req.files === "object") {
       for (const [fieldName, files] of Object.entries(req.files)) {
         for (const file of files) {
           await processFile(file, fieldName);
@@ -134,10 +149,10 @@ export const compressFiles = async (req, res, next) => {
       }
     }
 
-    console.log('✅ All files compressed successfully');
+    console.log("✅ All files compressed successfully");
     next();
   } catch (error) {
-    console.error('❌ Compression Error:', error.message);
+    console.error("❌ Compression Error:", error.message);
     if (req.file) await fs.unlink(req.file.path).catch(() => {});
     if (req.files) {
       const files = Array.isArray(req.files)
@@ -145,17 +160,33 @@ export const compressFiles = async (req, res, next) => {
         : Object.values(req.files).flat();
       for (const file of files) await fs.unlink(file.path).catch(() => {});
     }
-    return res.status(500).json({ error: 'File processing failed', details: error.message });
+    return res
+      .status(500)
+      .json({ error: "File processing failed", details: error.message });
   }
 };
 
-
 // 🧩 Export renamed middleware functions
-export const uploadProfilePictureMW = [upload.single("profilePicture"), compressFiles];
-export const uploadOtherImagesMW = [upload.array("otherImages", 10), compressFiles];
-export const uploadPortfolioImagesMW = [upload.array("portfolioImages", 5), compressFiles];
+export const uploadProfilePictureMW = [
+  upload.single("profilePicture"),
+  compressFiles,
+];
+export const uploadOtherImagesMW = [
+  upload.array("otherImages", 10),
+  compressFiles,
+];
+export const uploadPortfolioImagesMW = [
+  upload.array("portfolioImages", 5),
+  compressFiles,
+];
 export const uploadVideosMW = [upload.array("videos", 2), compressFiles];
-export const uploadCertificatesMW = [upload.array("certificates", 3), compressFiles];
+export const uploadCertificatesMW = [
+  upload.array("certificates", 3),
+  compressFiles,
+];
 export const uploadGigImageMW = [upload.single("gigImage"), compressFiles];
 // Add this line with your other exports
-export const uploadChatAttachmentMW = [upload.single("attachment"), compressFiles];
+export const uploadChatAttachmentMW = [
+  upload.single("attachment"),
+  compressFiles,
+];

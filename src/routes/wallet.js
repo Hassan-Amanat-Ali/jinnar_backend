@@ -2,7 +2,6 @@ import express from "express";
 import { protect } from "../middleware/auth.js";
 import WalletController from "../controllers/walletController.js";
 
-
 const router = express.Router();
 
 // Public (for frontend to show correct provider)

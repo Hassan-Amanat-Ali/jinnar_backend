@@ -1,6 +1,9 @@
 import PawaPayService from "../services/pawapayService.js";
 import { getSupportedProviders } from "../services/correspondentService.js";
-import {  validatePayoutRequest, validateRefundRequest } from "../utils/validators.js";
+import {
+  validatePayoutRequest,
+  validateRefundRequest,
+} from "../utils/validators.js";
 import logger from "../utils/logger.js";
 import crypto from "crypto";
 import Transaction from "../models/Transaction.js";
@@ -24,30 +27,29 @@ export const paymentController = {
   // POST /api/payment/predict-correspondent
   async predictCorrespondent(req, res) {
     try {
-        const {msisdn} = req.body ;
-console.log("this is req body " , req.body)
-    const response = await PawaPayService.predictCorrespondent(msisdn);
+      const { msisdn } = req.body;
+      console.log("this is req body ", req.body);
+      const response = await PawaPayService.predictCorrespondent(msisdn);
 
-    res.status(200).json(response);
-    
+      res.status(200).json(response);
     } catch (error) {
-        console.log("Predicting Correspondent Failed:"  , error.message);
-        res.status(500).json({ error: "Failed to predict correspondent" });
+      console.log("Predicting Correspondent Failed:", error.message);
+      res.status(500).json({ error: "Failed to predict correspondent" });
     }
-
-},
-
+  },
 
   // POST /api/payments/deposit
   // POST /api/payments/deposit
   // 2. Deposit → Top-up Wallet (User adds money)
-  
+
   async deposit(req, res) {
-    const { phoneNumber, amount, provider, currency , country } = req.body;
+    const { phoneNumber, amount, provider, currency, country } = req.body;
     const userId = req.user.id; // from protect middleware
 
     if (!phoneNumber || !amount || !provider || !currency || !country) {
-      return res.status(400).json({ success: false, message: "Missing fields" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing fields" });
     }
 
     try {
@@ -75,9 +77,9 @@ console.log("this is req body " , req.body)
       // Create Transaction record (pending)
       const tx = await Transaction.create({
         userId,
-        type: 'deposit',
+        type: "deposit",
         amount: Number(amount),
-        status: 'pending',
+        status: "pending",
         paymentMethod: provider,
         pawapayDepositId: depositId,
         correspondent: pawaResult.correspondent || null,
@@ -90,9 +92,9 @@ console.log("this is req body " , req.body)
       // Add pending transaction to wallet.transactions (nested)
       const wallet = await getUserWallet(userId);
       wallet.transactions.push({
-        type: 'deposit',
+        type: "deposit",
         amount: Number(amount),
-        status: 'pending',
+        status: "pending",
         paymentMethod: provider,
         description: `Deposit via ${provider}`,
         createdAt: new Date(),
@@ -101,21 +103,29 @@ console.log("this is req body " , req.body)
       });
       await wallet.save();
 
-      logger.info(`Deposit requested: User ${userId} amount=${amount} depositId=${depositId}`);
+      logger.info(
+        `Deposit requested: User ${userId} amount=${amount} depositId=${depositId}`,
+      );
 
       return res.json({
         success: true,
-        message: 'Deposit requested; awaiting confirmation',
+        message: "Deposit requested; awaiting confirmation",
         depositId,
       });
     } catch (err) {
       logger.error("Deposit errorrrr:", err);
-      res.status(500).json({ success: false, message: "Deposit failed" , error: err.message});
+      res
+        .status(500)
+        .json({
+          success: false,
+          message: "Deposit failed",
+          error: err.message,
+        });
     }
   },
 
   // 3. Withdraw → Send money to phone
-   async payout(req, res) {
+  async payout(req, res) {
     const { provider, amount, phoneNumber, country, currency } = req.body;
     const userId = req.user.id;
 
@@ -143,9 +153,9 @@ console.log("this is req body " , req.body)
       // create authoritative Transaction (pending)
       const tx = await Transaction.create({
         userId,
-        type: 'withdrawal',
+        type: "withdrawal",
         amount: Number(amount),
-        status: 'pending',
+        status: "pending",
         paymentMethod: provider,
         pawapayPayoutId: payoutId,
         country: country,
@@ -156,9 +166,9 @@ console.log("this is req body " , req.body)
       // add pending nested wallet transaction (do NOT deduct balance yet)
       const wallet = await getUserWallet(userId);
       wallet.transactions.push({
-        type: 'withdrawal',
+        type: "withdrawal",
         amount: Number(amount),
-        status: 'pending',
+        status: "pending",
         paymentMethod: provider,
         description: `Payout via ${provider}`,
         createdAt: new Date(),
@@ -167,15 +177,21 @@ console.log("this is req body " , req.body)
       });
       await wallet.save();
 
-      res.status(201).json({ success: true, message: 'Payout initiated; awaiting confirmation', payoutId, providerResult: result });
-
+      res
+        .status(201)
+        .json({
+          success: true,
+          message: "Payout initiated; awaiting confirmation",
+          payoutId,
+          providerResult: result,
+        });
     } catch (error) {
       logger.error(`Payout failed: ${error?.message || error}`);
-      res.status(error?.statusCode || 500).json({ error: error?.message || "An unexpected error occurred" });
+      res
+        .status(error?.statusCode || 500)
+        .json({ error: error?.message || "An unexpected error occurred" });
     }
-  }
-,
-
+  },
   // GET /api/payments/status/:transactionId/:type
   async checkStatus(req, res) {
     const { transactionId, type } = req.params;
@@ -185,7 +201,10 @@ console.log("this is req body " , req.body)
         return res.status(400).json({ error: "Invalid transaction type" });
       }
 
-      const result = await PawaPayService.checkTransactionStatus(transactionId, type);
+      const result = await PawaPayService.checkTransactionStatus(
+        transactionId,
+        type,
+      );
 
       logger.info(`Status checked for transaction: ${transactionId}`);
       res.status(200).json(result);
@@ -207,7 +226,11 @@ console.log("this is req body " , req.body)
         return res.status(400).json({ error: validationError });
       }
 
-      const result = await PawaPayService.createRefund(depositId, amount, reason);
+      const result = await PawaPayService.createRefund(
+        depositId,
+        amount,
+        reason,
+      );
 
       logger.info(`Refund processed successfully for deposit: ${depositId}`);
       res.status(201).json(result);
@@ -219,4 +242,3 @@ console.log("this is req body " , req.body)
     }
   },
 };
-

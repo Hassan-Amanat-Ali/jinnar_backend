@@ -1,6 +1,10 @@
 import PawaPayController from "../services/pawapayService.js";
 import { getSupportedProviders } from "../services/correspondentService.js";
-import { validateDepositRequest, validatePayoutRequest, validateRefundRequest } from "../utils/validators.js";
+import {
+  validateDepositRequest,
+  validatePayoutRequest,
+  validateRefundRequest,
+} from "../utils/validators.js";
 import logger from "../utils/logger.js";
 
 export const paymentController = {
@@ -17,7 +21,8 @@ export const paymentController = {
 
   // POST /api/payments/deposit
   async deposit(req, res) {
-    const { provider, amount, phoneNumber, orderId, country, currency } = req.body;
+    const { provider, amount, phoneNumber, orderId, country, currency } =
+      req.body;
 
     try {
       const validationError = validateDepositRequest(req.body);
@@ -46,7 +51,8 @@ export const paymentController = {
 
   // POST /api/payments/payout
   async payout(req, res) {
-    const { provider, amount, phoneNumber, withdrawId, country, currency } = req.body;
+    const { provider, amount, phoneNumber, withdrawId, country, currency } =
+      req.body;
 
     try {
       const validationError = validatePayoutRequest(req.body);
@@ -63,7 +69,9 @@ export const paymentController = {
         currency,
       });
 
-      logger.info(`Payout processed successfully for withdrawId: ${withdrawId}`);
+      logger.info(
+        `Payout processed successfully for withdrawId: ${withdrawId}`,
+      );
       res.status(201).json(result);
     } catch (error) {
       logger.error(`Payout failed: ${error.message}`);
@@ -82,7 +90,10 @@ export const paymentController = {
         return res.status(400).json({ error: "Invalid transaction type" });
       }
 
-      const result = await PawaPayController.checkTransactionStatus(transactionId, type);
+      const result = await PawaPayController.checkTransactionStatus(
+        transactionId,
+        type,
+      );
 
       logger.info(`Status checked for transaction: ${transactionId}`);
       res.status(200).json(result);
@@ -104,7 +115,11 @@ export const paymentController = {
         return res.status(400).json({ error: validationError });
       }
 
-      const result = await PawaPayController.createRefund(depositId, amount, reason);
+      const result = await PawaPayController.createRefund(
+        depositId,
+        amount,
+        reason,
+      );
 
       logger.info(`Refund processed successfully for deposit: ${depositId}`);
       res.status(201).json(result);

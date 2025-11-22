@@ -1,9 +1,9 @@
 // controllers/jobRequestController.js
-import Order from '../models/Order.js';
-import Gig from '../models/Gig.js';
-import User from '../models/User.js';
-import { getUserWallet } from './walletController.js';
-import { sendNotification } from './notificationController.js';
+import Order from "../models/Order.js";
+import Gig from "../models/Gig.js";
+import User from "../models/User.js";
+import { getUserWallet } from "./walletController.js";
+import { sendNotification } from "./notificationController.js";
 
 // ───────────────────────────────────────
 // 1. CREATE JOB REQUEST (Buyer)
@@ -12,24 +12,43 @@ import { sendNotification } from './notificationController.js';
 export const createJobRequest = async (req, res) => {
   try {
     const { id: buyerId } = req.user;
-    const { gigId, date, timeSlot, jobDescription, image, lat, lng, emergency } = req.body;
+    const {
+      gigId,
+      date,
+      timeSlot,
+      jobDescription,
+      image,
+      lat,
+      lng,
+      emergency,
+    } = req.body;
 
     if (!gigId || !date || !timeSlot || !jobDescription || !lat || !lng) {
-      return res.status(400).json({ error: "gigId, date, timeSlot, description, lat, lng are required" });
+      return res
+        .status(400)
+        .json({
+          error: "gigId, date, timeSlot, description, lat, lng are required",
+        });
     }
 
     const gig = await Gig.findById(gigId);
     if (!gig) return res.status(404).json({ error: "Gig not found" });
     if (gig.sellerId.toString() === buyerId)
-      return res.status(400).json({ error: "You cannot create a job request for your own gig" });
+      return res
+        .status(400)
+        .json({ error: "You cannot create a job request for your own gig" });
 
     // ✅ Check for sufficient funds if the gig has a price
-    if (gig.pricing && gig.pricing.method !== 'negotiable' && gig.pricing.price > 0) {
+    if (
+      gig.pricing &&
+      gig.pricing.method !== "negotiable" &&
+      gig.pricing.price > 0
+    ) {
       const buyerWallet = await getUserWallet(buyerId);
       if (buyerWallet.balance < gig.pricing.price) {
         return res.status(402).json({
           error: "Insufficient funds in wallet.",
-          message: `Your balance is ${buyerWallet.balance}, but the job requires ${gig.pricing.price}. Please top up your wallet.`
+          message: `Your balance is ${buyerWallet.balance}, but the job requires ${gig.pricing.price}. Please top up your wallet.`,
         });
       }
     }
@@ -49,10 +68,10 @@ export const createJobRequest = async (req, res) => {
     // 👇 Notify seller about new job request
     await sendNotification(
       gig.sellerId,
-      'booking',
+      "booking",
       `You have a new job request for "${gig.title}"`,
       newJob._id,
-      'Order'
+      "Order",
     );
 
     res.status(201).json({
@@ -66,8 +85,6 @@ export const createJobRequest = async (req, res) => {
   }
 };
 
-
-
 // ───────────────────────────────────────
 // 2.  JOB REQUESTS (Buyer)
 // ───────────────────────────────────────
@@ -78,13 +95,15 @@ export const getAllJobRequests = async (req, res) => {
     const jobs = await Order.find({
       sellerId: sellerId,
     })
-      .populate('buyerId', 'name profileImage')
+      .populate("buyerId", "name profileImage")
       .sort({ createdAt: -1 });
 
     res.json({ jobs });
   } catch (error) {
-    console.error('Error fetching job requests:', error);
-    res.status(500).json({ error: 'Failed to fetch job requests: ' + error.message });
+    console.error("Error fetching job requests:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to fetch job requests: " + error.message });
   }
 };
 
@@ -94,15 +113,17 @@ export const getPendingJobRequests = async (req, res) => {
 
     const jobs = await Order.find({
       sellerId: sellerId,
-      status: 'pending'
+      status: "pending",
     })
-      .populate('buyerId', 'name profileImage')
+      .populate("buyerId", "name profileImage")
       .sort({ createdAt: -1 });
 
     res.json({ jobs });
   } catch (error) {
-    console.error('Error fetching job requests:', error);
-    res.status(500).json({ error: 'Failed to fetch job requests: ' + error.message });
+    console.error("Error fetching job requests:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to fetch job requests: " + error.message });
   }
 };
 
@@ -112,15 +133,17 @@ export const getCompletedJobRequests = async (req, res) => {
 
     const jobs = await Order.find({
       sellerId: sellerId,
-      status: 'completed'
+      status: "completed",
     })
-      .populate('buyerId', 'name profileImage')
+      .populate("buyerId", "name profileImage")
       .sort({ createdAt: -1 });
 
     res.json({ jobs });
   } catch (error) {
-    console.error('Error fetching job requests:', error);
-    res.status(500).json({ error: 'Failed to fetch job requests: ' + error.message });
+    console.error("Error fetching job requests:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to fetch job requests: " + error.message });
   }
 };
 
@@ -130,15 +153,17 @@ export const getOngoingJobRequests = async (req, res) => {
 
     const jobs = await Order.find({
       sellerId: sellerId,
-      status: 'accepted'
+      status: "accepted",
     })
-      .populate('buyerId', 'name profileImage')
+      .populate("buyerId", "name profileImage")
       .sort({ createdAt: -1 });
 
     res.json({ jobs });
   } catch (error) {
-    console.error('Error fetching job requests:', error);
-    res.status(500).json({ error: 'Failed to fetch job requests: ' + error.message });
+    console.error("Error fetching job requests:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to fetch job requests: " + error.message });
   }
 };
 
@@ -148,15 +173,17 @@ export const getDeclinedJobRequests = async (req, res) => {
 
     const jobs = await Order.find({
       sellerId: sellerId,
-      status: 'rejected'
+      status: "rejected",
     })
-      .populate('buyerId', 'name profileImage')
+      .populate("buyerId", "name profileImage")
       .sort({ createdAt: -1 });
 
     res.json({ jobs });
   } catch (error) {
-    console.error('Error fetching job requests:', error);
-    res.status(500).json({ error: 'Failed to fetch job requests: ' + error.message });
+    console.error("Error fetching job requests:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to fetch job requests: " + error.message });
   }
 };
 
@@ -166,19 +193,19 @@ export const getCancelledJobRequests = async (req, res) => {
 
     const jobs = await Order.find({
       sellerId: sellerId,
-      status: 'cancelled'
+      status: "cancelled",
     })
-      .populate('buyerId', 'name profileImage')
+      .populate("buyerId", "name profileImage")
       .sort({ createdAt: -1 });
 
     res.json({ jobs });
   } catch (error) {
-    console.error('Error fetching job requests:', error);
-    res.status(500).json({ error: 'Failed to fetch job requests: ' + error.message });
+    console.error("Error fetching job requests:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to fetch job requests: " + error.message });
   }
 };
-
-
 
 // ───────────────────────────────────────
 // 3. GET AVAILABLE JOBS (Seller)
@@ -187,16 +214,16 @@ export const getAvailableJobs = async (req, res) => {
   try {
     const { id } = req.user;
     const jobs = await Order.find({
-      status: 'open',
+      status: "open",
       buyerId: { $ne: id },
-      declinedBy: { $ne: id }
+      declinedBy: { $ne: id },
     })
-      .populate('buyerId', 'name profileImage')
+      .populate("buyerId", "name profileImage")
       .sort({ createdAt: -1 })
       .limit(20);
     res.json({ jobs });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch jobs' + error});
+    res.status(500).json({ error: "Failed to fetch jobs" + error });
   }
 };
 
@@ -206,11 +233,12 @@ export const getAvailableJobs = async (req, res) => {
 export const acceptJob = async (req, res) => {
   try {
     const { id: sellerId, name } = req.user;
-    const {id} = req.body;
+    const { id } = req.body;
     const job = await Order.findById(id);
-    if (!job || job.status !== 'pending') return res.status(400).json({ error: 'Job not available' });
+    if (!job || job.status !== "pending")
+      return res.status(400).json({ error: "Job not available" });
 
-    job.status = 'accepted';
+    job.status = "accepted";
     job.acceptedBy = sellerId;
     job.acceptedAt = new Date();
     await job.save();
@@ -218,15 +246,15 @@ export const acceptJob = async (req, res) => {
     // 👇 Notify buyer that seller accepted the job
     await sendNotification(
       job.buyerId,
-      'booking',
-      `${name || 'Seller'} accepted your job request.`,
+      "booking",
+      `${name || "Seller"} accepted your job request.`,
       job._id,
-      'Order'
+      "Order",
     );
 
-    res.json({ message: 'Job accepted' });
+    res.json({ message: "Job accepted" });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to accept ' + error });
+    res.status(500).json({ error: "Failed to accept " + error });
   }
 };
 
@@ -239,33 +267,36 @@ export const declineJob = async (req, res) => {
     const { id } = req.body; // order id
 
     const job = await Order.findById(id);
-    if (!job) return res.status(404).json({ error: 'Order not found' });
-    if (job.status !== 'pending')
-      return res.status(400).json({ error: 'Only pending jobs can be declined' });
+    if (!job) return res.status(404).json({ error: "Order not found" });
+    if (job.status !== "pending")
+      return res
+        .status(400)
+        .json({ error: "Only pending jobs can be declined" });
 
     // Ensure only the seller who received the request can decline
     if (job.sellerId.toString() !== sellerId)
-      return res.status(403).json({ error: 'You are not authorized to decline this job' });
+      return res
+        .status(403)
+        .json({ error: "You are not authorized to decline this job" });
 
-    job.status = 'rejected';
+    job.status = "rejected";
     await job.save();
 
     // Send notification to buyer
     await sendNotification(
       job.buyerId,
-      'booking',
+      "booking",
       `Your job request was declined by the seller.`,
       job._id,
-      'Order'
+      "Order",
     );
 
-    res.json({ message: 'Job declined successfully' });
+    res.json({ message: "Job declined successfully" });
   } catch (error) {
-    console.error('Decline error:', error);
-    res.status(500).json({ error: 'Failed to decline job: ' + error.message });
+    console.error("Decline error:", error);
+    res.status(500).json({ error: "Failed to decline job: " + error.message });
   }
 };
-
 
 export const cancelOrder = async (req, res) => {
   try {
@@ -285,12 +316,16 @@ export const cancelOrder = async (req, res) => {
 
     // ✅ Ensure this user is the buyer
     if (order.buyerId.toString() !== buyerId) {
-      return res.status(403).json({ error: "You can only cancel your own order" });
+      return res
+        .status(403)
+        .json({ error: "You can only cancel your own order" });
     }
 
     // ✅ Allow cancel only if open/pending
     if (!["open", "pending"].includes(order.status)) {
-      return res.status(400).json({ error: "Order cannot be canceled at this stage" });
+      return res
+        .status(400)
+        .json({ error: "Order cannot be canceled at this stage" });
     }
 
     // ✅ Update order
@@ -305,7 +340,7 @@ export const cancelOrder = async (req, res) => {
         "booking",
         `A job request was canceled by the buyer.`,
         order._id,
-        "Order"
+        "Order",
       );
     }
 
@@ -334,22 +369,24 @@ export const sendMessage = async (req, res) => {
     const { id: senderId } = req.user;
 
     const job = await Order.findById(id);
-    if (!job) return res.status(404).json({ error: 'Job not found' });
+    if (!job) return res.status(404).json({ error: "Job not found" });
 
-    const isParticipant = job.buyerId.toString() === senderId || 
-                         (job.acceptedBy && job.acceptedBy.toString() === senderId);
-    if (!isParticipant) return res.status(403).json({ error: 'Not authorized' });
+    const isParticipant =
+      job.buyerId.toString() === senderId ||
+      (job.acceptedBy && job.acceptedBy.toString() === senderId);
+    if (!isParticipant)
+      return res.status(403).json({ error: "Not authorized" });
 
     job.messages.push({
       senderId,
       content,
-      attachments
+      attachments,
     });
     await job.save();
 
-    res.json({ message: 'Message sent' });
+    res.json({ message: "Message sent" });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to send' + error});
+    res.status(500).json({ error: "Failed to send" + error });
   }
 };
 
@@ -362,18 +399,18 @@ export const markMessagesRead = async (req, res) => {
     const { id: userId } = req.user;
 
     const job = await Order.findById(id);
-    if (!job) return res.status(404).json({ error: 'Not found' });
+    if (!job) return res.status(404).json({ error: "Not found" });
 
-    job.messages.forEach(msg => {
+    job.messages.forEach((msg) => {
       if (msg.senderId.toString() !== userId && !msg.read) {
         msg.read = true;
       }
     });
     await job.save();
 
-    res.json({ message: 'Messages marked read' });
+    res.json({ message: "Messages marked read" });
   } catch (error) {
-    res.status(500).json({ error: 'Failed' + error});
+    res.status(500).json({ error: "Failed" + error });
   }
 };
 
@@ -388,9 +425,9 @@ export const uploadDeliverable = async (req, res) => {
 
     const job = await Order.findById(id);
     if (!job || job.acceptedBy.toString() !== sellerId)
-      return res.status(403).json({ error: 'Not your job' });
-    if (job.status !== 'accepted')
-      return res.status(400).json({ error: 'Job not accepted' });
+      return res.status(403).json({ error: "Not your job" });
+    if (job.status !== "accepted")
+      return res.status(400).json({ error: "Job not accepted" });
 
     job.deliverables.push({
       url,
@@ -398,21 +435,21 @@ export const uploadDeliverable = async (req, res) => {
       description,
       uploadedBy: sellerId,
     });
-    job.status = 'completed';
+    job.status = "completed";
     await job.save();
 
     // 👇 Notify buyer that work is delivered
     await sendNotification(
       job.buyerId,
-      'booking',
-      `${name || 'Seller'} has submitted the deliverables for your job.`,
+      "booking",
+      `${name || "Seller"} has submitted the deliverables for your job.`,
       job._id,
-      'Order'
+      "Order",
     );
 
-    res.json({ message: 'Work delivered. Awaiting payment.' });
+    res.json({ message: "Work delivered. Awaiting payment." });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to deliver ' + error });
+    res.status(500).json({ error: "Failed to deliver " + error });
   }
 };
 
@@ -426,30 +463,36 @@ export const rateAndReviewOrder = async (req, res) => {
 
     // 1️⃣ Validate input
     if (!orderId || rating == null) {
-      return res.status(400).json({ error: 'orderId and rating are required' });
+      return res.status(400).json({ error: "orderId and rating are required" });
     }
 
     if (rating < 0 || rating > 5) {
-      return res.status(400).json({ error: 'Rating must be between 0 and 5' });
+      return res.status(400).json({ error: "Rating must be between 0 and 5" });
     }
 
     // 2️⃣ Find order
     const order = await Order.findById(orderId);
-    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (!order) return res.status(404).json({ error: "Order not found" });
 
     // 3️⃣ Verify ownership
     if (order.buyerId.toString() !== buyerId) {
-      return res.status(403).json({ error: 'You are not authorized to review this order' });
+      return res
+        .status(403)
+        .json({ error: "You are not authorized to review this order" });
     }
 
     // 4️⃣ Only completed orders can be reviewed
-    if (order.status !== 'completed') {
-      return res.status(400).json({ error: 'You can only rate a completed order' });
+    if (order.status !== "completed") {
+      return res
+        .status(400)
+        .json({ error: "You can only rate a completed order" });
     }
 
     // 5️⃣ Prevent duplicate review
     if (order.rating !== null) {
-      return res.status(400).json({ error: 'You have already rated this order' });
+      return res
+        .status(400)
+        .json({ error: "You have already rated this order" });
     }
 
     // 6️⃣ Save rating and review
@@ -482,20 +525,20 @@ export const rateAndReviewOrder = async (req, res) => {
       // 8️⃣ Notify seller
       await sendNotification(
         seller._id,
-        'rating',
+        "rating",
         `You received a new rating of ${rating}★ from a buyer.`,
         order._id,
-        'Order'
+        "Order",
       );
     }
 
     res.json({
-      message: 'Review submitted successfully',
+      message: "Review submitted successfully",
       order,
     });
   } catch (error) {
-    console.error('Error rating order:', error);
-    res.status(500).json({ error: 'Failed to rate order: ' + error.message });
+    console.error("Error rating order:", error);
+    res.status(500).json({ error: "Failed to rate order: " + error.message });
   }
 };
 
@@ -504,26 +547,22 @@ export const rateAndReviewOrder = async (req, res) => {
 // ───────────────────────────────────────
 export const getMyOrders = async (req, res) => {
   try {
-    const { id, role } = req.user;
+    const { id } = req.user;
 
-    console.log("User Role : ", req.user)
+    console.log("User Role : ", req.user);
     let filter = {};
     filter = {
-  $or: [
-    { buyerId: id },
-    { sellerId: id }
-  ]
-};
-
+      $or: [{ buyerId: id }, { sellerId: id }],
+    };
 
     const jobs = await Order.find(filter)
-      .populate('buyerId', 'name profileImage')
-      .populate('sellerId', 'name profileImage')
+      .populate("buyerId", "name profileImage")
+      .populate("sellerId", "name profileImage")
       .sort({ createdAt: -1 });
 
     res.json({ orders: jobs });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch orders' + error});
+    res.status(500).json({ error: "Failed to fetch orders" + error });
   }
 };
 
@@ -534,42 +573,47 @@ export const completeOrder = async (req, res) => {
     const { id } = req.body; // order id
 
     const order = await Order.findById(id);
-    if (!order) return res.status(404).json({ error: 'Order not found' });
-    console.log("Order Id : ", order._id)
-    console.log("current uId : ", buyerId)
-    console.log("order buyer id : ", order.buyerId.toString())
+    if (!order) return res.status(404).json({ error: "Order not found" });
+    console.log("Order Id : ", order._id);
+    console.log("current uId : ", buyerId);
+    console.log("order buyer id : ", order.buyerId.toString());
     // Check buyer ownership
     if (order.buyerId.toString() !== buyerId)
-      return res.status(403).json({ error: 'You are not authorized to complete this order' });
+      return res
+        .status(403)
+        .json({ error: "You are not authorized to complete this order" });
 
     // Only allow completing accepted orders
-    if (order.status !== 'accepted')
-      return res.status(400).json({ error: 'Only ongoing orders can be completed' });
+    if (order.status !== "accepted")
+      return res
+        .status(400)
+        .json({ error: "Only ongoing orders can be completed" });
 
-    order.status = 'completed';
+    order.status = "completed";
     order.completedAt = new Date();
     await order.save();
 
     // Notify seller
     await sendNotification(
       order.sellerId,
-      'booking',
+      "booking",
       `The buyer has marked your order as completed.`,
       order._id,
-      'Order'
+      "Order",
     );
 
-    res.json({ message: 'Order marked as completed successfully', order });
+    res.json({ message: "Order marked as completed successfully", order });
   } catch (error) {
-    console.error('Error completing order:', error);
-    res.status(500).json({ error: 'Failed to complete order: ' + error.message });
+    console.error("Error completing order:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to complete order: " + error.message });
   }
 };
 
-
 export const getOrderById = async (req, res) => {
   try {
-    const { id: userId, role } = req.user; 
+    const { id: userId } = req.user;
     const { id } = req.params; // orderId
 
     // Validate ID format
@@ -579,9 +623,9 @@ export const getOrderById = async (req, res) => {
 
     // Fetch order with populated buyer and seller
     const order = await Order.findById(id)
-      .populate('buyerId', 'name profileImage')
-      .populate('sellerId', 'name profileImage')
-      .populate('gigId', 'title price skills images');
+      .populate("buyerId", "name profileImage")
+      .populate("sellerId", "name profileImage")
+      .populate("gigId", "title price skills images");
 
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
@@ -596,8 +640,52 @@ export const getOrderById = async (req, res) => {
     }
 
     res.json({ order });
-
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch order: " + error });
+  }
+};
+
+// ───────────────────────────────────────
+// 12. GET SELLER QUICK STATS
+// ───────────────────────────────────────
+export const getSellerQuickStats = async (req, res) => {
+  try {
+    const { id: sellerId } = req.user;
+
+    // 1. Completed Jobs
+    const completedJobsCount = await Order.countDocuments({
+      sellerId: sellerId,
+      status: "completed",
+    });
+
+    // 2. Active Jobs (accepted status)
+    const activeJobsCount = await Order.countDocuments({
+      sellerId: sellerId,
+      status: "accepted",
+    });
+
+    // 3. Pending Earning (sum of gig prices for accepted jobs)
+    const acceptedOrders = await Order.find({
+      sellerId: sellerId,
+      status: "accepted",
+    }).populate("gigId", "pricing"); // Populate only the pricing field of the gig
+
+    let pendingEarning = 0;
+    acceptedOrders.forEach((order) => {
+      if (order.gigId && order.gigId.pricing && order.gigId.pricing.price > 0) {
+        pendingEarning += order.gigId.pricing.price;
+      }
+    });
+
+    res.json({
+      completedJobs: completedJobsCount,
+      activeJobs: activeJobsCount,
+      pendingEarning: pendingEarning,
+    });
+  } catch (error) {
+    console.error("Error fetching seller quick stats:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to fetch seller quick stats: " + error.message });
   }
 };
