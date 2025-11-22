@@ -15,13 +15,14 @@ export const sendNotification = async (recipientId, type, content, relatedId = n
 
     // 2️⃣ Get recipient’s FCM token
     const user = await User.findById(recipientId);
-    if (user?.fcmToken) {
+    if (user?.fcmTokens && user.fcmTokens.length > 0) {
+      const fcmToken = user.fcmTokens[0].token; // Assuming we use the first token for now
       
       // 3️⃣ Send push notification
-      await sendPushNotification(user.fcmToken, 'New Notification', content, {
-        type,
-        relatedId,
-        relatedModel,
+      await sendPushNotification(fcmToken, 'New Notification', content, {
+        type: type.toString(),
+        relatedId: relatedId ? relatedId.toString() : null, // Convert ObjectId to string
+        relatedModel: relatedModel.toString(),
       });
     }
 

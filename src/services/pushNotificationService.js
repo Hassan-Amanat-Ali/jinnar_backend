@@ -1,40 +1,31 @@
 // services/pushService.js
 import admin from "./firebase.js";
-
-import axios from 'axios';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const FCM_URL = 'https://fcm.googleapis.com/fcm/send';
-const FCM_API_KEY = process.env.FCM_API_KEY;
-console.log('FCM_API_KEY:', FCM_API_KEY);
-
 /**
- * Sends a push notification using Firebase Cloud Messaging
+ * Sends a push notification using Firebase Admin SDK
  * @param {string} token - recipient device FCM token
  * @param {string} title - notification title
- * @param {string} body - notification body text
+ * @param {string} body - notification body
  * @param {object} [data] - optional custom payload
  */
 export const sendPushNotification = async (token, title, body, data = {}) => {
   try {
-    const payload = {
-      to: token,
+    const message = {
+      token,
       notification: {
         title,
         body,
       },
-      data,
+      data, // optional custom key-value data
     };
 
-        const response = await admin.messaging().send(payload);
+    const response = await admin.messaging().send(message);
 
-
-   
-
-    console.log('✅ Push notification sent:', response);
+    console.log("✅ Push notification sent:", response);
   } catch (error) {
-    console.error('❌ Error sending FCM push:', error.response?.data || error.message);
+    console.error("❌ Error sending FCM push:", error);
   }
 };
 
@@ -48,7 +39,7 @@ export const sendTestNotification = async (fcmToken) => {
         body: "Your FCM token is working!",
       },
       data: {
-        exampleKey: "exampleValue", // optional custom data
+        exampleKey: "exampleValue",
       },
     };
 
