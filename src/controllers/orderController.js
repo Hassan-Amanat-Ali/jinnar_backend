@@ -58,17 +58,6 @@ export const createJobRequest = async (req, res) => {
           message: `Your balance is ${buyerWallet.balance}, but the job requires ${jobPrice}. Please top up your wallet.`,
         });
       }
-
-      // Deduct from balance and add to onHoldBalance
-      buyerWallet.balance -= jobPrice;
-      buyerWallet.onHoldBalance += jobPrice;
-      buyerWallet.transactions.push({
-        type: "order_paid",
-        amount: jobPrice,
-        status: "pending",
-        description: "Funds held for new job request",
-      });
-      await buyerWallet.save();
     }
 
     const newJob = await Order.create({
@@ -84,19 +73,19 @@ export const createJobRequest = async (req, res) => {
       price: jobPrice, // Store the job price with the order
     });
 
-    // Update the transaction with the newJob's ID
-    if (jobPrice > 0) {
-      const buyerWallet = await Wallet.findOne({ userId: buyerId });
-      if (buyerWallet) {
-        const transaction = buyerWallet.transactions.find(
-          (tx) => tx.description === "Funds held for new job request" && tx.status === "pending" && tx.amount === jobPrice
-        );
-        if (transaction) {
-          transaction.orderId = newJob._id;
-          await buyerWallet.save();
-        }
-      }
-    }
+    // Update the transaction with the newJob's ID - This block is no longer needed here
+    // if (jobPrice > 0) {
+    //   const buyerWallet = await Wallet.findOne({ userId: buyerId });
+    //   if (buyerWallet) {
+    //     const transaction = buyerWallet.transactions.find(
+    //       (tx) => tx.description === "Funds held for new job request" && tx.status === "pending" && tx.amount === jobPrice
+    //     );
+    //     if (transaction) {
+    //       transaction.orderId = newJob._id;
+    //       await buyerWallet.save();
+    //     }
+    //   }
+    // }
 
     // 👇 Notify seller about new job request
     await sendNotification(
@@ -276,6 +265,37 @@ export const acceptJob = async (req, res) => {
     job.acceptedAt = new Date();
     await job.save();
 
+    // 💰 Handle fund holding for accepted job
+    if (job.price > 0) {
+      const buyerWallet = await Wallet.findOne({ userId: job.buyerId });
+      if (!buyerWallet) {
+        console.error(`Buyer wallet not found for accepted order ${job._id}. Funds cannot be held.`);
+        return res.status(500).json({ error: "Buyer wallet not found, cannot hold funds." });
+      }
+
+      // Check if funds are still sufficient (though already checked at creation, this is a safety)
+      // Note: At this point, balance is just a numeric value, and we are trusting the initial check.
+      // If the balance could have changed externally, a re-check here would be prudent.
+      if (buyerWallet.balance < job.price) {
+        // This scenario should ideally not happen if initial check was strong and no external debits occurred
+        console.error(`Insufficient funds in buyer wallet for accepted order ${job._id}. Balance: ${buyerWallet.balance}, Price: ${job.price}`);
+        // Consider reverting job status or marking as payment_failed, but for now, throw error.
+        return res.status(402).json({ error: "Insufficient funds in wallet for holding." });
+      }
+
+
+      buyerWallet.balance -= job.price;
+      buyerWallet.onHoldBalance += job.price;
+      buyerWallet.transactions.push({
+        type: "order_paid",
+        amount: job.price,
+        status: "pending",
+        orderId: job._id,
+        description: "Funds held for accepted job request",
+      });
+      await buyerWallet.save();
+    }
+
     // 👇 Notify buyer that seller accepted the job
     await sendNotification(
       job.buyerId,
@@ -354,8 +374,8 @@ export const cancelOrder = async (req, res) => {
         .json({ error: "You can only cancel your own order" });
     }
 
-    // ✅ Allow cancel only if open/pending
-    if (!["open", "pending"].includes(order.status)) {
+    // ✅ Allow cancel only if open/pending/accepted
+    if (!["open", "pending", "accepted"].includes(order.status)) {
       return res
         .status(400)
         .json({ error: "Order cannot be canceled at this stage" });
@@ -366,8 +386,8 @@ export const cancelOrder = async (req, res) => {
     order.canceledAt = new Date();
     await order.save();
 
-    // 💰 Release held funds if the order had a price
-    if (order.price > 0) {
+    // 💰 Release held funds if the order was accepted and had a price
+    if (order.price > 0 && order.status === "accepted") { // Check if funds were actually put on hold
       const buyerWallet = await Wallet.findOne({ userId: buyerId });
       if (buyerWallet) {
         const buyerTransaction = buyerWallet.transactions.find(
@@ -380,11 +400,13 @@ export const cancelOrder = async (req, res) => {
           buyerTransaction.status = "cancelled"; // Mark buyer's transaction as cancelled
           await buyerWallet.save();
         } else {
-          console.warn(`Pending transaction not found for cancelled order ${order._id}. Funds not released.`);
+          console.warn(`Pending transaction not found for cancelled order ${order._id} (status: ${order.status}). Funds not released.`);
         }
       } else {
-        console.warn(`Buyer wallet not found for cancelled order ${order._id}. Funds not released.`);
+        console.warn(`Buyer wallet not found for cancelled order ${order._id} (status: ${order.status}). Funds not released.`);
       }
+    } else if (order.price > 0 && !["accepted"].includes(order.status)) {
+        console.log(`Order ${order._id} was cancelled before acceptance. No funds were held.`);
     }
 
     // ✅ Notify seller (if any)
