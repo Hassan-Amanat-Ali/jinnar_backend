@@ -46,13 +46,35 @@ profilePicture: {
     match: [/^\+[1-9]\d{1,14}$/, 'Mobile number must be in E.164 format (e.g., +1234567890)']
   },
   role: { 
-    type: String, 
-    enum: ['seller', 'buyer'], 
-    required: true 
+    type: String,
+    enum: ['buyer', 'seller', 'support', 'supervisor', 'regional_manager', 'super_admin'],
+    required: true,
+    default: 'buyer'
   },
   isVerified: { 
     type: Boolean, 
     default: false 
+  },
+  // NEW: Detailed verification status
+  verificationStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending'
+  },
+  // NEW: To hold URLs of uploaded ID documents
+  identityDocuments: [{
+    url: String,
+    publicId: String,
+    uploadedAt: { type: Date, default: Date.now }
+  }],
+  // NEW: For suspending users
+  isSuspended: {
+    type: Boolean,
+    default: false
+  },
+  suspensionDetails: {
+    reason: String,
+    suspendedAt: Date
   },
   verificationCode: {
     type: String,
