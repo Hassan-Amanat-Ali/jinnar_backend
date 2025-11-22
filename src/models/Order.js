@@ -57,6 +57,10 @@ const orderSchema = new mongoose.Schema(
       default: null,
       max: 480,
     },
+    price: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true },
 );

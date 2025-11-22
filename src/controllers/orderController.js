@@ -3,6 +3,7 @@ import Order from "../models/Order.js";
 import Gig from "../models/Gig.js";
 import User from "../models/User.js";
 import { getUserWallet } from "./walletController.js";
+import Wallet from "../models/Wallet.js"; // Import Wallet model
 import { sendNotification } from "./notificationController.js";
 
 // ───────────────────────────────────────
@@ -38,19 +39,36 @@ export const createJobRequest = async (req, res) => {
         .status(400)
         .json({ error: "You cannot create a job request for your own gig" });
 
+    let jobPrice = 0;
     // ✅ Check for sufficient funds if the gig has a price
     if (
       gig.pricing &&
       gig.pricing.method !== "negotiable" &&
       gig.pricing.price > 0
     ) {
-      const buyerWallet = await getUserWallet(buyerId);
-      if (buyerWallet.balance < gig.pricing.price) {
+      jobPrice = gig.pricing.price;
+      const buyerWallet = await Wallet.findOne({ userId: buyerId }); // Use Wallet model directly
+      if (!buyerWallet) {
+        return res.status(404).json({ error: "Buyer wallet not found" });
+      }
+
+      if (buyerWallet.balance < jobPrice) {
         return res.status(402).json({
           error: "Insufficient funds in wallet.",
-          message: `Your balance is ${buyerWallet.balance}, but the job requires ${gig.pricing.price}. Please top up your wallet.`,
+          message: `Your balance is ${buyerWallet.balance}, but the job requires ${jobPrice}. Please top up your wallet.`,
         });
       }
+
+      // Deduct from balance and add to onHoldBalance
+      buyerWallet.balance -= jobPrice;
+      buyerWallet.onHoldBalance += jobPrice;
+      buyerWallet.transactions.push({
+        type: "order_paid",
+        amount: jobPrice,
+        status: "pending",
+        description: "Funds held for new job request",
+      });
+      await buyerWallet.save();
     }
 
     const newJob = await Order.create({
@@ -63,7 +81,22 @@ export const createJobRequest = async (req, res) => {
       image: image || null,
       location: { lat, lng },
       emergency: emergency || false,
+      price: jobPrice, // Store the job price with the order
     });
+
+    // Update the transaction with the newJob's ID
+    if (jobPrice > 0) {
+      const buyerWallet = await Wallet.findOne({ userId: buyerId });
+      if (buyerWallet) {
+        const transaction = buyerWallet.transactions.find(
+          (tx) => tx.description === "Funds held for new job request" && tx.status === "pending" && tx.amount === jobPrice
+        );
+        if (transaction) {
+          transaction.orderId = newJob._id;
+          await buyerWallet.save();
+        }
+      }
+    }
 
     // 👇 Notify seller about new job request
     await sendNotification(
@@ -333,6 +366,27 @@ export const cancelOrder = async (req, res) => {
     order.canceledAt = new Date();
     await order.save();
 
+    // 💰 Release held funds if the order had a price
+    if (order.price > 0) {
+      const buyerWallet = await Wallet.findOne({ userId: buyerId });
+      if (buyerWallet) {
+        const buyerTransaction = buyerWallet.transactions.find(
+          (tx) => tx.orderId && tx.orderId.toString() === orderId.toString() && tx.type === "order_paid" && tx.status === "pending"
+        );
+
+        if (buyerTransaction) {
+          buyerWallet.onHoldBalance -= order.price; // Deduct from onHoldBalance
+          buyerWallet.balance += order.price; // Return to available balance
+          buyerTransaction.status = "cancelled"; // Mark buyer's transaction as cancelled
+          await buyerWallet.save();
+        } else {
+          console.warn(`Pending transaction not found for cancelled order ${order._id}. Funds not released.`);
+        }
+      } else {
+        console.warn(`Buyer wallet not found for cancelled order ${order._id}. Funds not released.`);
+      }
+    }
+
     // ✅ Notify seller (if any)
     if (order.sellerId) {
       await sendNotification(
@@ -592,6 +646,41 @@ export const completeOrder = async (req, res) => {
     order.status = "completed";
     order.completedAt = new Date();
     await order.save();
+
+    // 💰 Handle fund transfer from buyer's onHoldBalance to seller's balance
+    if (order.price > 0) {
+      const buyerWallet = await Wallet.findOne({ userId: buyerId });
+      const sellerWallet = await Wallet.findOne({ userId: order.sellerId });
+
+      if (buyerWallet && sellerWallet) {
+        // Find and update buyer's pending transaction
+        const buyerTransaction = buyerWallet.transactions.find(
+          (tx) => tx.orderId && tx.orderId.toString() === order._id.toString() && tx.type === "order_paid" && tx.status === "pending"
+        );
+
+        if (buyerTransaction) {
+          buyerWallet.onHoldBalance -= order.price; // Deduct from onHoldBalance
+          buyerTransaction.status = "completed"; // Mark buyer's transaction as completed
+        }
+
+        sellerWallet.balance += order.price; // Add to seller's balance
+        sellerWallet.transactions.push({
+          type: "order_earned",
+          amount: order.price,
+          status: "completed",
+          orderId: order._id,
+          description: "Funds received for completed job",
+        });
+
+        await buyerWallet.save();
+        await sellerWallet.save();
+      } else {
+        console.warn(`Wallets not found for order ${order._id}. Funds not transferred.`);
+      }
+    }
+    else {
+      console.log(`Order ${order._id} has no price. No fund transfer needed.`);
+    }
 
     // Notify seller
     await sendNotification(
