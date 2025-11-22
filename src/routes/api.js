@@ -14,7 +14,7 @@ import uploadRoutes from "./uploadRoutes.js";
 import workerRoutes from "./workers.js";
 import chatRoutes from "./chat.js";
 import { getSkills } from "../controllers/gigController.js";
-import adminRoutes from "./admin.js"; // Import admin routes
+// import adminRoutes from "./admin.js"; 
 
 const router = express.Router();
 
@@ -32,7 +32,7 @@ router.use("/workers", workerRoutes);
 router.use("/checkout", chatRoutes);
 router.use("/pawapay", pawapayCallbackRoutes);
 router.use("/chat", chatRoutes);
-router.use("/admin", adminRoutes); // Register admin routes
+// router.use("/admin", adminRoutes); 
 
 router.use("/categories", getSkills);
 
