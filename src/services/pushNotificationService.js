@@ -7,6 +7,7 @@ dotenv.config();
 
 const FCM_URL = 'https://fcm.googleapis.com/fcm/send';
 const FCM_API_KEY = process.env.FCM_API_KEY;
+console.log('FCM_API_KEY:', FCM_API_KEY);
 
 /**
  * Sends a push notification using Firebase Cloud Messaging
@@ -26,14 +27,12 @@ export const sendPushNotification = async (token, title, body, data = {}) => {
       data,
     };
 
-    await axios.post(FCM_URL, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `key=${FCM_API_KEY}`,
-      },
-    });
+        const response = await admin.messaging().send(payload);
 
-    console.log('✅ Push notification sent:', title);
+
+   
+
+    console.log('✅ Push notification sent:', response);
   } catch (error) {
     console.error('❌ Error sending FCM push:', error.response?.data || error.message);
   }
