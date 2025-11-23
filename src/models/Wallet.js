@@ -39,6 +39,7 @@ const walletSchema = new mongoose.Schema(
       unique: true,
     },
     balance: { type: Number, default: 0 },
+    onHoldBalance: { type: Number, default: 0 },
     transactions: [walletTransactionSchema],
   },
   { timestamps: true },
