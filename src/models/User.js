@@ -88,8 +88,8 @@ const userSchema = new mongoose.Schema(
     // NEW: Detailed verification status
     verificationStatus: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
-      default: "pending",
+      enum: ["unsubmitted","pending", "approved", "rejected"],
+      default: "unsubmitted",
     },
     // NEW: To hold URLs of uploaded ID documents
     identityDocuments: [
