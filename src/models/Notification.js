@@ -16,6 +16,7 @@ const notificationSchema = new mongoose.Schema(
         "availability",
         "other",
         "rating",
+        "system"
       ],
       required: true,
     },

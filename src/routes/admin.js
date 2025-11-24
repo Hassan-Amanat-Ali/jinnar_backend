@@ -1,99 +1,227 @@
 import express from "express";
 import AdminController from "../controllers/adminController.js";
-// Ensure you are importing this correctly based on your previous fix
 import * as AdminAuthController from "../controllers/AdminAuthController.js";
-import { protect } from "../middleware/auth.js";
-import { authorize } from "../middleware/authorize.js";
+import { 
+  getAllTickets, 
+  getTicketById, 
+  replyToTicket,
+  updateTicketStatus,
+  assignTicket
+} from "../controllers/SupportTicketController.js";
+
+import { protect, authorize } from "../middleware/auth.js"; // Assuming this handles strings
+import { 
+  getAllReports, 
+  getReportDetails, 
+  updateReportStatus 
+} from "../controllers/ReportController.js";
 
 const router = express.Router();
 
-// --- Auth Routes ---
-router.post("/login", AdminAuthController.login);
+// =============================================================================
+// Support Ticket System
+// =============================================================================
+router.get(
+  "/tickets", 
+  protect, 
+  authorize("support", "supervisor", "super_admin"), 
+  getAllTickets
+);
+
+router.get(
+  "/tickets/:id",
+  protect,
+  authorize("support", "supervisor", "super_admin"),
+  getTicketById
+);
+
+router.post(
+  "/tickets/:id/reply", 
+  protect, 
+  authorize("support", "supervisor", "super_admin"), 
+  replyToTicket
+);
+
+router.put(
+  "/tickets/:id/status",
+  protect,
+  authorize("support", "supervisor", "super_admin"),
+  updateTicketStatus
+);
+
+router.put(
+  "/tickets/:id/assign",
+  protect,
+  authorize("supervisor", "super_admin"),
+  assignTicket
+);
+
+
+// =============================================================================
+// 0. Report/Complaint System (Public/Self)
+// =============================================================================
+
+
+router.get(
+  "/reports",
+  protect, // Make sure these are imported
+  authorize("support"), 
+  getAllReports
+);
+
+router.get(
+  "/reports/:id",
+  protect,
+  authorize("support"),
+  getReportDetails
+);
+
+router.patch(
+  "/reports/:id",
+  protect,
+  authorize("supervisor"), // Only Supervisors can close reports
+  updateReportStatus
+);
+
+// =============================================================================
+// 1. AUTHENTICATION (Public/Self)
+// =============================================================================
+
+router.post("/login", AdminAuthController.adminLogin); // Make sure to use the new adminLogin we made!
+
+// Get My Profile
 router.get(
   "/me",
   protect,
   authorize(["support", "supervisor", "super_admin"]),
-  AdminAuthController.getMe,
+  AdminAuthController.getMe
 );
 
-// --- Protected Routes ---
-router.use(protect); // Apply authentication to everything below
+// =============================================================================
+// 2. SUPER ADMIN: TEAM MANAGEMENT (NEW!)
+// =============================================================================
+router.use(protect); // Apply protect to everything below
 
-// 1. DASHBOARD STATS (This was missing!)
-// We allow all admin levels (support, supervisor, super_admin) to view stats
+// Create a new Admin User (Invite)
+router.post(
+  "/create-admin",
+  authorize("super_admin"), // Strict: Only Owner can do this
+  AdminController.createSubAdmin
+);
+
+// Reset any user's password
+router.patch(
+  "/users/:id/reset-password",
+  authorize("super_admin"),
+  AdminController.forceResetPassword
+);
+
+// =============================================================================
+// 3. DASHBOARD & STATS
+// =============================================================================
 router.get(
   "/stats",
   authorize(["support", "supervisor", "super_admin"]),
-  AdminController.getDashboardStats,
+  AdminController.getDashboardStats
 );
 
-// 2. User Management
-router.get("/users", authorize("support"), AdminController.getAllUsers);
-router.get(
-  "/user-activity/:userId",
-  authorize("support"),
-  AdminController.viewUserActivity,
-);
-router.post(
-  "/verify-user",
-  authorize("supervisor"),
-  AdminController.verifyUser,
-);
-router.post(
-  "/suspend-user",
-  authorize("supervisor"),
-  AdminController.suspendUser,
-);
-
-// 3. Super Admin Features
-router.post(
-  "/settings",
-  authorize("super_admin"),
-  AdminController.updatePlatformSettings,
-);
 router.get(
   "/financial-logs",
   authorize("super_admin"),
-  AdminController.viewFinancialLogs,
+  AdminController.viewFinancialLogs
 );
 
-// --- GIG MANAGEMENT ---
-// Support can view gigs
+// =============================================================================
+// 4. USER MANAGEMENT (Buyers/Sellers)
+// =============================================================================
+router.get(
+  "/users", 
+  authorize("support"), // Support+ can view
+  AdminController.getAllUsers
+);
+
+router.get(
+  "/user-activity/:userId",
+  authorize("support"),
+  AdminController.viewUserActivity
+);
+
+router.patch( // Changed from POST to PATCH for semantic correctness
+  "/verify-user",
+  authorize("supervisor"), // Supervisor+ can verify
+  AdminController.verifyUser
+);
+
+router.patch( // Changed from POST to PATCH
+  "/suspend-user",
+  authorize("supervisor"),
+  AdminController.suspendUser
+);
+
+// =============================================================================
+// 5. CONTENT MANAGEMENT (Skills/Categories)
+// =============================================================================
+router.post(
+  "/categories",
+  authorize("super_admin"),
+  AdminController.createCategory
+);
+
+router.get(
+  "/categories",
+  authorize(["support", "supervisor", "super_admin"]),
+  AdminController.getCategories
+);
+
+// =============================================================================
+// 6. GIG MANAGEMENT
+// =============================================================================
 router.get(
   "/gigs",
   authorize(["support", "supervisor", "super_admin"]),
-  AdminController.getAllGigs,
+  AdminController.getAllGigs
 );
 
-// Supervisors can approve/reject gigs
 router.patch(
   "/gigs/:id/status",
   authorize(["supervisor", "super_admin"]),
-  AdminController.updateGigStatus,
+  AdminController.updateGigStatus
 );
 
-// Super Admin can permanently delete gigs
-router.delete("/gigs/:id", authorize("super_admin"), AdminController.deleteGig);
+router.delete(
+  "/gigs/:id",
+  authorize("super_admin"),
+  AdminController.deleteGig
+);
 
-// --- ORDER MANAGEMENT (DISPUTES) ---
-// View all orders (Support+)
+// =============================================================================
+// 7. ORDER MANAGEMENT
+// =============================================================================
 router.get(
   "/orders",
   authorize(["support", "supervisor", "super_admin"]),
-  AdminController.getAllOrders,
+  AdminController.getAllOrders
 );
 
-// View specific order details (Support+)
 router.get(
   "/orders/:id",
   authorize(["support", "supervisor", "super_admin"]),
-  AdminController.getOrderDetails,
+  AdminController.getOrderDetails
 );
 
-// Force Cancel Order (Supervisor+) - Used when a seller scams or goes missing
 router.patch(
   "/orders/:id/cancel",
   authorize(["supervisor", "super_admin"]),
-  AdminController.adminCancelOrder,
+  AdminController.adminCancelOrder
 );
+
+// =============================================================================
+// 8. PLATFORM SETTINGS
+// =============================================================================
+router.post( // Or PATCH
+  "/settings",
+  authorize("super_admin"),
+  AdminController.updatePlatformSettings
+);
+
 export default router;

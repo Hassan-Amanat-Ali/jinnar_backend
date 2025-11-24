@@ -12,22 +12,25 @@ dotenv.config();
  */
 export const sendPushNotification = async (token, title, body, data = {}) => {
   try {
+    const stringData = {};
+    Object.keys(data).forEach(key => {
+      stringData[key] = data[key] === null ? "" : String(data[key]);
+    });
+
     const message = {
       token,
-      notification: {
-        title,
-        body,
-      },
-      data, // optional custom key-value data
+      notification: { title, body },
+      data: stringData,
     };
 
     const response = await admin.messaging().send(message);
-
     console.log("✅ Push notification sent:", response);
+
   } catch (error) {
     console.error("❌ Error sending FCM push:", error);
   }
 };
+
 
 export const sendTestNotification = async (fcmToken) => {
   try {

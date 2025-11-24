@@ -3,6 +3,107 @@ import User from "../models/User.js";
 import asyncHandler from "express-async-handler";
 import Order from "../models/Order.js";
 
+export const searchGigs = async (req, res) => {
+  try {
+    const { 
+      search,       
+      category,     
+      minPrice, 
+      maxPrice, 
+      pricingMethod,
+      // NEW: Location Parameters
+      latitude,
+      longitude,
+      radius // in Kilometers
+    } = req.query;
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // 1. Build Base Query
+    const query = { status: "active" }; 
+
+    // ---------------------------------------------------------
+    // 2. LOCATION FILTER (The Logic Change)
+    // ---------------------------------------------------------
+    if (latitude && longitude) {
+      const lat = parseFloat(latitude);
+      const lng = parseFloat(longitude);
+      const dist = parseFloat(radius) || 10; // Default to 10km if not sent
+
+      // We must find SELLERS who are within the range first.
+      // We query the 'User' collection because that is where 'selectedAreas' lives.
+      const sellersInArea = await User.find({
+        selectedAreas: {
+          $near: {
+            $geometry: {
+              type: "Point",
+              coordinates: [lng, lat] // MongoDB expects [Longitude, Latitude]
+            },
+            $maxDistance: dist * 1000 // Convert km to meters
+          }
+        }
+      }).select('_id'); // We only need their IDs
+
+      // Extract IDs into a simple array
+      const sellerIds = sellersInArea.map(user => user._id);
+
+      // Add to Gig Query: "Only show gigs where the seller is in this list"
+      query.sellerId = { $in: sellerIds };
+    }
+    // ---------------------------------------------------------
+
+    // 3. Text Search
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // 4. Category Filter 
+    if (category) {
+      query.category = category;
+    }
+
+    // 5. Price Filter
+    if (minPrice || maxPrice) {
+      query["pricing.price"] = {};
+      if (minPrice) query["pricing.price"].$gte = Number(minPrice);
+      if (maxPrice) query["pricing.price"].$lte = Number(maxPrice);
+    }
+    
+    // 6. Pricing Method Filter
+    if (pricingMethod) {
+      query["pricing.method"] = pricingMethod;
+    }
+
+    // Execute Query
+    const gigs = await Gig.find(query)
+      .populate("sellerId", "name profilePicture rating") 
+      .populate("category", "name icon") 
+      .sort({ createdAt: -1 }) 
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Gig.countDocuments(query);
+
+    res.json({
+      gigs,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: "Search failed", details: error.message });
+  }
+};
+
 export const createGig = async (req, res, next) => {
   try {
     const { id, role } = req.user; // From JWT middleware

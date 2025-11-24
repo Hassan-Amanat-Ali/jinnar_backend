@@ -11,7 +11,7 @@ import apiRoutes from './routes/api.js';
 import cors from 'cors';   // ✅ ADD THIS
 import path from 'path';
 import http from "http";
-
+import { botService } from "./services/BotService.js";
 import setupSocket from "./socket.js";
 import { errorHandler } from './middleware/errorHandler.js';
 import mongoose from 'mongoose';
@@ -26,7 +26,12 @@ const limiter = rateLimit({
   max: 100, // Limit each IP to 100 requests
 });
 
-connectDb();
+connectDb().then(async() => {
+  console.log('Connected to MongoDB');
+  await botService.train(); // Use load() for faster startup
+}).catch((err) => {
+  console.error('Error connecting to MongoDB:', err);
+});
 app.use(cors());
 const server = http.createServer(app);
 setupSocket(server); // This activates Socket.IO
@@ -131,6 +136,3 @@ process.on('SIGTERM', async () => {
     process.exit(1);
   }
 });
-
-
-

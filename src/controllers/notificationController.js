@@ -28,8 +28,11 @@ export const sendNotification = async (
       await sendPushNotification(fcmToken, "New Notification", content, {
         type: type.toString(),
         relatedId: relatedId ? relatedId.toString() : null, // Convert ObjectId to string
-        relatedModel: relatedModel.toString(),
+        relatedModel:relatedModel? relatedModel.toString() : null,
       });
+    }
+    else {
+      console.log(`No FCM token found for user: ${user.fcmTokens}`, recipientId);
     }
   } catch (error) {
     console.error("Error sending notification:", error);
