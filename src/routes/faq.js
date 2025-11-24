@@ -1,11 +1,11 @@
 import express from "express";
 import { protect, authorize, ROLES } from "../middleware/auth.js";
-import { 
-  createFAQ, 
-  updateFAQ, 
+import {
+  createFAQ,
+  updateFAQ,
   deleteFAQ,
-  getAllFAQsAdmin,   // ← ADD
-  bulkCreateFAQs     // ← ADD
+  getAllFAQsAdmin, // ← ADD
+  bulkCreateFAQs, // ← ADD
 } from "../controllers/FaqController.js";
 
 const router = express.Router();
@@ -32,12 +32,7 @@ router.post(
 );
 
 // UPDATE
-router.patch(
-  "/help/:id",
-  protect,
-  authorize(ROLES.SUPPORT),
-  updateFAQ
-);
+router.patch("/help/:id", protect, authorize(ROLES.SUPPORT), updateFAQ);
 
 // DELETE (Only supervisors and above)
 router.delete(
@@ -48,11 +43,6 @@ router.delete(
 );
 
 // GET ALL (Admin table view)
-router.get(
-  "/help",
-  protect,
-  authorize(ROLES.SUPPORT),
-  getAllFAQsAdmin
-);
+router.get("/help", authorize(ROLES.SUPPORT), getAllFAQsAdmin);
 
 export default router;
