@@ -1,6 +1,6 @@
-import FAQ from "../models/FAQ.js";
 import { NlpManager } from "node-nlp";
 import Fuse from "fuse.js"; // For fuzzy search
+import FAQ from "../models/FAQ.js";
 import fs from "fs";
 
 
