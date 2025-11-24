@@ -1,4 +1,4 @@
-import FAQ from "../models/FAQ.js";
+import FAQ from "../models/Faq.js";
 import { botService } from "../services/BotService.js";
 
 // ───────────────────────────────────────
@@ -14,7 +14,9 @@ export const createFAQ = async (req, res) => {
     const { question, answer, category, targetAudience, priority } = req.body;
 
     if (!question || !answer) {
-      return res.status(400).json({ error: "Question and Answer are required" });
+      return res
+        .status(400)
+        .json({ error: "Question and Answer are required" });
     }
 
     const faq = await FAQ.create({
@@ -22,12 +24,14 @@ export const createFAQ = async (req, res) => {
       answer,
       category,
       targetAudience,
-      priority: priority || 0
+      priority: priority || 0,
     });
     botService.train(); // <--- Retrain the bot with the new FAQ
     res.status(201).json({ message: "FAQ created successfully", faq });
   } catch (error) {
-    res.status(500).json({ error: "Failed to create FAQ", details: error.message });
+    res
+      .status(500)
+      .json({ error: "Failed to create FAQ", details: error.message });
   }
 };
 
@@ -48,7 +52,9 @@ export const updateFAQ = async (req, res) => {
 
     res.json({ message: "FAQ updated successfully", faq });
   } catch (error) {
-    res.status(500).json({ error: "Failed to update FAQ", details: error.message });
+    res
+      .status(500)
+      .json({ error: "Failed to update FAQ", details: error.message });
   }
 };
 
@@ -67,7 +73,9 @@ export const deleteFAQ = async (req, res) => {
 
     res.json({ message: "FAQ deleted successfully" });
   } catch (error) {
-    res.status(500).json({ error: "Failed to delete FAQ", details: error.message });
+    res
+      .status(500)
+      .json({ error: "Failed to delete FAQ", details: error.message });
   }
 };
 
@@ -110,12 +118,13 @@ export const getPublicFAQs = async (req, res) => {
       query.category = category;
     }
 
-    const faqs = await FAQ.find(query)
-      .sort({ priority: -1, createdAt: -1 }); // Show high priority first
+    const faqs = await FAQ.find(query).sort({ priority: -1, createdAt: -1 }); // Show high priority first
 
     res.json(faqs);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch FAQs", details: error.message });
+    res
+      .status(500)
+      .json({ error: "Failed to fetch FAQs", details: error.message });
   }
 };
 
@@ -132,13 +141,13 @@ export const bulkCreateFAQs = async (req, res) => {
     }
 
     // Ensure each FAQ has required fields
-    const cleanedFAQs = faqs.map(f => ({
+    const cleanedFAQs = faqs.map((f) => ({
       question: f.question,
       answer: f.answer,
       category: f.category || null,
       targetAudience: f.targetAudience || "all",
       priority: f.priority || 0,
-      isActive: f.isActive !== undefined ? f.isActive : true
+      isActive: f.isActive !== undefined ? f.isActive : true,
     }));
 
     const created = await FAQ.insertMany(cleanedFAQs);
@@ -147,9 +156,11 @@ export const bulkCreateFAQs = async (req, res) => {
 
     res.status(201).json({
       message: `${created.length} FAQs created successfully`,
-      faqs: created
+      faqs: created,
     });
   } catch (error) {
-    res.status(500).json({ error: "Failed to bulk create FAQs", details: error.message });
+    res
+      .status(500)
+      .json({ error: "Failed to bulk create FAQs", details: error.message });
   }
 };
