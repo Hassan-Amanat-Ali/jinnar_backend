@@ -39,7 +39,7 @@ router.use("/chat", chatRoutes);
 router.use("/chatbot", chatbotRoutes);
 router.use("/support", supportRoutes);
 router.use("/r", recommendationRoutes);
-
+router.use("/support", supportRoutes);
 router.use("/admin", adminRoutes);
 
 router.use("/categories", getSkills);

@@ -123,7 +123,7 @@ export const replyToTicket = async (req, res) => {
       return res.status(404).json({ message: "Ticket not found." });
     }
 
-    const isUserOwner = ticket.user.toString() === req.user.id;
+    const isUserOwner = ticket.user?.toString() === req.user.id;
     const isAdmin = req.user.role === "admin" || req.user.role === "super_admin";
 
     if (!isUserOwner && !isAdmin) {

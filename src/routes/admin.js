@@ -116,6 +116,38 @@ router.patch(
   AdminController.forceResetPassword
 );
 
+// --- Full Admin Management ---
+
+// Get all admins
+router.get(
+  "/admins",
+  authorize("super_admin"),
+  AdminController.getAdmins
+);
+
+// Get a single admin by ID
+router.get(
+  "/admins/:id",
+  authorize("super_admin"),
+  AdminController.getAdminById
+);
+
+// Update an admin's role or status
+router.patch(
+  "/admins/:id",
+  authorize("super_admin"),
+  AdminController.updateAdmin
+);
+
+// Delete an admin
+router.delete(
+  "/admins/:id",
+  authorize("super_admin"),
+  AdminController.deleteAdmin
+);
+
+
+
 // =============================================================================
 // 3. DASHBOARD & STATS
 // =============================================================================

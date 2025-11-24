@@ -220,6 +220,81 @@ class AdminController {
     }
   }
 
+  // --- NEW: Get All Admins ---
+  static async getAdmins(req, res) {
+    try {
+      const admins = await User.find({
+        role: { $in: ["support", "supervisor", "super_admin"] },
+      }).select("-password");
+      res.json(admins);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // --- NEW: Get Single Admin ---
+  static async getAdminById(req, res) {
+    try {
+      const { id } = req.params;
+      const admin = await User.findById(id).select("-password");
+
+      if (!admin || !["support", "supervisor", "super_admin"].includes(admin.role)) {
+        return res.status(404).json({ error: "Admin user not found" });
+      }
+
+      res.json(admin);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // --- NEW: Update Admin ---
+  static async updateAdmin(req, res) {
+    try {
+      const { id } = req.params;
+      const { name, role, isSuspended } = req.body;
+
+      const allowedRoles = ["support", "supervisor", "super_admin"];
+      if (role && !allowedRoles.includes(role)) {
+        return res.status(400).json({ error: "Invalid role specified" });
+      }
+
+      const admin = await User.findById(id);
+      if (!admin || !["support", "supervisor", "super_admin"].includes(admin.role)) {
+        return res.status(404).json({ error: "Admin user not found" });
+      }
+
+      if (name) admin.name = name;
+      if (role) admin.role = role;
+      if (typeof isSuspended === "boolean") admin.isSuspended = isSuspended;
+
+      await admin.save();
+      res.json({ message: "Admin user updated successfully", user: admin });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // --- NEW: Delete Admin ---
+  static async deleteAdmin(req, res) {
+    try {
+      const { id } = req.params;
+      const admin = await User.findById(id);
+
+      if (!admin || !["support", "supervisor", "super_admin"].includes(admin.role)) {
+        return res.status(404).json({ error: "Admin user not found" });
+      }
+
+      // Soft delete or some other logic might be better here in a real app
+      await User.findByIdAndDelete(id);
+
+      res.status(200).json({ message: "Admin user deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+
   // ===========================================================================
   // 4. CATEGORY MANAGEMENT (Skills)
   // ===========================================================================
