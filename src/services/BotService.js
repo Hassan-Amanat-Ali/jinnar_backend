@@ -3,12 +3,15 @@ import { NlpManager } from "node-nlp";
 import Fuse from "fuse.js"; // For fuzzy search
 import fs from "fs";
 
-
 const MODEL_PATH = "./model.nlp";
 
 class BotService {
   constructor() {
-    this.manager = new NlpManager({ languages: ["en"], forceNER: true, nlu: { log: false } });
+    this.manager = new NlpManager({
+      languages: ["en"],
+      forceNER: true,
+      nlu: { log: false },
+    });
     this.isTrained = false;
     this.fuse = null; // Fuse.js instance
     this.faqs = []; // Cache FAQs for fuzzy search
@@ -48,10 +51,10 @@ class BotService {
     const variations = new Set([question]);
     const words = question.toLowerCase().split(/\s+/);
 
-    words.forEach(word => {
+    words.forEach((word) => {
       for (const key in this.synonyms) {
         if (this.synonyms[key].includes(word)) {
-          this.synonyms[key].forEach(synonym => {
+          this.synonyms[key].forEach((synonym) => {
             if (synonym !== word) {
               variations.add(question.toLowerCase().replace(word, synonym));
             }
@@ -78,15 +81,27 @@ class BotService {
       this.manager.load(MODEL_PATH);
     } else {
       // Reset manager for a clean train
-      this.manager = new NlpManager({ languages: ["en"], forceNER: true, nlu: { log: false } });
+      this.manager = new NlpManager({
+        languages: ["en"],
+        forceNER: true,
+        nlu: { log: false },
+      });
 
       // Add "Small Talk"
       console.log("🧠 Adding small talk...");
       this.manager.addDocument("en", "hello", "greetings.hello");
       this.manager.addDocument("en", "hi", "greetings.hello");
-      this.manager.addAnswer("en", "greetings.hello", "Hi there! I'm the Jinnar Assistant. How can I help?");
+      this.manager.addAnswer(
+        "en",
+        "greetings.hello",
+        "Hi there! I'm the Jinnar Assistant. How can I help?"
+      );
       this.manager.addDocument("en", "bye", "greetings.bye");
-      this.manager.addAnswer("en", "greetings.bye", "Goodbye! Have a great day.");
+      this.manager.addAnswer(
+        "en",
+        "greetings.bye",
+        "Goodbye! Have a great day."
+      );
 
       // Feed FAQ data
       console.log(`🧠 Feeding ${this.faqs.length} FAQs to the NLP model...`);
@@ -95,11 +110,15 @@ class BotService {
 
         // A. Train with question and its variations
         const variations = this._generateVariations(faq.question);
-        variations.forEach(variation => this.manager.addDocument("en", variation, intentLabel));
+        variations.forEach((variation) =>
+          this.manager.addDocument("en", variation, intentLabel)
+        );
 
         // B. Train with tags
         if (faq.tags && faq.tags.length > 0) {
-          faq.tags.forEach(tag => this.manager.addDocument("en", tag, intentLabel));
+          faq.tags.forEach((tag) =>
+            this.manager.addDocument("en", tag, intentLabel)
+          );
         }
 
         // C. Add the answer
@@ -108,9 +127,11 @@ class BotService {
 
       await this.manager.train();
       this.manager.save(MODEL_PATH);
-      console.log(`✅ NLP model trained on ${this.faqs.length} FAQs and saved.`);
+      console.log(
+        `✅ NLP model trained on ${this.faqs.length} FAQs and saved.`
+      );
     }
-    
+
     // 3. Train Fuzzy Search Model (Fuse.js)
     const fuseOptions = {
       keys: ["question", "tags"],
@@ -118,8 +139,10 @@ class BotService {
       threshold: 0.4, // Adjust as needed (lower is more strict)
     };
     this.fuse = new Fuse(this.faqs, fuseOptions);
-    console.log(`✅ Fuzzy search index created with ${this.faqs.length} documents.`);
-    
+    console.log(
+      `✅ Fuzzy search index created with ${this.faqs.length} documents.`
+    );
+
     this.isTrained = true;
     console.log("✅ Bot engine is fully trained and ready.");
   }
@@ -141,32 +164,41 @@ class BotService {
         confidence: score,
       };
     }
-    
+
     // Handle greetings specifically if they don't return an answer object
-    if (intent && intent.startsWith('greetings.') && score > 0.7) {
-        return {
-            type: "direct_answer",
-            answer: nlpResult.answer || (intent === 'greetings.hello' ? "Hi there! How can I help?" : "Goodbye!"),
-            confidence: score,
-        };
+    if (intent && intent.startsWith("greetings.") && score > 0.7) {
+      return {
+        type: "direct_answer",
+        answer:
+          nlpResult.answer ||
+          (intent === "greetings.hello"
+            ? "Hi there! How can I help?"
+            : "Goodbye!"),
+        confidence: score,
+      };
     }
 
     // 2. Secondary Engine: Fuzzy Search (for low NLP confidence)
     const fuzzyResults = this.fuse.search(query);
 
     // If NLP has a medium-confidence answer AND it matches the best fuzzy result, it's likely correct.
-    if (answer && score > 0.5 && fuzzyResults.length > 0 && fuzzyResults[0].item.answer === answer) {
-        return {
-            type: "direct_answer",
-            answer: answer,
-            suggestions: [],
-            confidence: score,
-        };
+    if (
+      answer &&
+      score > 0.5 &&
+      fuzzyResults.length > 0 &&
+      fuzzyResults[0].item.answer === answer
+    ) {
+      return {
+        type: "direct_answer",
+        answer: answer,
+        suggestions: [],
+        confidence: score,
+      };
     }
 
     // 3. Fallback: Use fuzzy search results to suggest related questions
     if (fuzzyResults.length > 0) {
-      const suggestions = fuzzyResults.slice(0, 3).map(result => ({
+      const suggestions = fuzzyResults.slice(0, 3).map((result) => ({
         question: result.item.question,
         answer: result.item.answer,
       }));
@@ -182,7 +214,8 @@ class BotService {
     // 4. Final Fallback: No results from either engine
     return {
       type: "fallback",
-      answer: "I'm not exactly sure how to help with that. Would you like to rephrase your question or contact support?",
+      answer:
+        "I'm not exactly sure how to help with that. Would you like to rephrase your question or contact support?",
       suggestions: [],
       confidence: 0,
     };
