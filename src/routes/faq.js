@@ -43,6 +43,6 @@ router.delete(
 );
 
 // GET ALL (Admin table view)
-router.get("/help", authorize(ROLES.SUPPORT), getAllFAQsAdmin);
+router.get("/help", getAllFAQsAdmin);
 
 export default router;
