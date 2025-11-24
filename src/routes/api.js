@@ -14,7 +14,7 @@ import uploadRoutes from "./uploadRoutes.js";
 import workerRoutes from "./workers.js";
 import chatRoutes from "./chat.js";
 import { getSkills } from "../controllers/gigController.js";
-import faqRoutes from "./FAQ.js";
+import faqRoutes from "./faq.js";
 import adminRoutes from "./admin.js";
 import chatbotRoutes from "./chatbot.js";
 import supportRoutes from "./support.js";

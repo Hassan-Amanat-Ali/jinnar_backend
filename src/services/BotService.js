@@ -1,6 +1,6 @@
 import { NlpManager } from "node-nlp";
 import Fuse from "fuse.js"; // For fuzzy search
-import FAQ from "../models/FAQ.js";
+import FAQ from "../models/Faq.js";
 import fs from "fs";
 
 const MODEL_PATH = "./model.nlp";
