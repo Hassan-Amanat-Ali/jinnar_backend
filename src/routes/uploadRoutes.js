@@ -6,6 +6,7 @@ import {
   uploadVideos,
   uploadCertificates,
   uploadGigImage,
+  uploadIdentityDocument,
 } from "../controllers/uploadController.js";
 
 import {
@@ -15,6 +16,7 @@ import {
   uploadVideosMW,
   uploadCertificatesMW,
   uploadGigImageMW,
+  uploadIdentityDocumentMW,
 } from "../middleware/upload.js";
 
 import { protect } from "../middleware/auth.js";
@@ -48,5 +50,13 @@ router.post(
   uploadCertificates,
 );
 router.post("/gig-image", protect, ...uploadGigImageMW, uploadGigImage);
+
+// --- NEW: Identity Document Upload ---
+router.post(
+  "/identity-document",
+  protect,
+  ...uploadIdentityDocumentMW,
+  uploadIdentityDocument
+);
 
 export default router;

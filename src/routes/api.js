@@ -37,7 +37,6 @@ router.use("/checkout", chatRoutes);
 router.use("/pawapay", pawapayCallbackRoutes);
 router.use("/chat", chatRoutes);
 router.use("/chatbot", chatbotRoutes);
-router.use("/support", supportRoutes);
 router.use("/r", recommendationRoutes);
 router.use("/support", supportRoutes);
 router.use("/admin", adminRoutes);

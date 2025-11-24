@@ -5,6 +5,7 @@ import {
   getMyProfile,
   updateFcmToken,
   getSellerReviews,
+  submitForVerification,
 } from "../controllers/userController.js";
 import { protect } from "../middleware/auth.js";
 import { createReport, getMyReports } from "../controllers/ReportController.js";
@@ -20,4 +21,8 @@ router.post("/fcm-token", protect, updateFcmToken);
 router.post("/reports/create", protect, createReport);
 router.get("/reports/me", protect, getMyReports);
 
+// --- NEW: Identity Verification ---
+router.post("/submit-verification", protect, submitForVerification);
+
 export default router;
+

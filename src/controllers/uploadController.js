@@ -218,7 +218,64 @@ export const uploadGigImage = async (req, res) => {
       userId: id,
     });
   } catch (error) {
-    console.error("Upload Gig Image Error:", error.message, error.stack);
+    return res
+      .status(500)
+      .json({ error: "Internal Server Error", details: error.message });
+  }
+};
+
+// --- NEW: Upload Identity Document ---
+export const uploadIdentityDocument = async (req, res) => {
+  try {
+    const { id } = req.user;
+    const { documentType } = req.body;
+
+    // 1. Validate input
+    const allowedTypes = ["passport", "national_id", "drivers_license", "other"];
+    if (!documentType || !allowedTypes.includes(documentType)) {
+      return res.status(400).json({ error: "A valid documentType is required." });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded." });
+    }
+
+    // 2. Find user and check status
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+    if (user.verificationStatus === 'approved' || user.verificationStatus === 'pending') {
+        return res.status(400).json({ error: `Cannot upload new documents while status is '${user.verificationStatus}'.` });
+    }
+
+
+    // 3. Upload to Cloudinary
+    const resourceType = req.file.mimetype === "application/pdf" ? "raw" : "image";
+    const result = await uploadToCloudinary(
+      req.file,
+      id,
+      "identity_documents",
+      resourceType
+    );
+
+    // 4. Create and save document reference
+    const newDocument = {
+      documentType,
+      url: result.url,
+      publicId: result.publicId,
+    };
+
+    user.identityDocuments.push(newDocument);
+    await user.save();
+
+    // 5. Respond
+    return res.status(200).json({
+      message: "Identity document uploaded successfully.",
+      file: newDocument,
+      userId: id,
+    });
+  } catch (error) {
+    console.error("Upload Identity Document Error:", error.message, error.stack);
     return res
       .status(500)
       .json({ error: "Internal Server Error", details: error.message });

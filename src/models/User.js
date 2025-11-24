@@ -94,6 +94,11 @@ const userSchema = new mongoose.Schema(
     // NEW: To hold URLs of uploaded ID documents
     identityDocuments: [
       {
+        documentType: {
+          type: String,
+          required: true,
+          enum: ["passport", "national_id", "drivers_license", "other"],
+        },
         url: String,
         publicId: String,
         uploadedAt: { type: Date, default: Date.now },

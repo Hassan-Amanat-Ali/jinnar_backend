@@ -36,6 +36,7 @@ const fileFilter = (req, file, cb) => {
     videos: ["video/mp4", "video/mpeg", "video/quicktime"],
     certificates: ["application/pdf"],
     gigImage: ["image/jpeg", "image/png", "image/gif"],
+    identityDocument: ["image/jpeg", "image/png", "application/pdf"],
   };
 
   if (allowedTypes[file.fieldname]?.includes(file.mimetype)) {
@@ -119,6 +120,12 @@ export const compressFiles = async (req, res, next) => {
         await compressVideo(originalPath, compressedPath);
       } else if (fieldName === "certificates") {
         await compressPDF(originalPath, compressedPath);
+      } else if (fieldName === "identityDocument") {
+        if (file.mimetype.startsWith("image/")) {
+          await compressImage(originalPath, compressedPath);
+        } else if (file.mimetype === "application/pdf") {
+          await compressPDF(originalPath, compressedPath);
+        }
       }
 
       file.path = compressedPath;
@@ -188,5 +195,9 @@ export const uploadGigImageMW = [upload.single("gigImage"), compressFiles];
 // Add this line with your other exports
 export const uploadChatAttachmentMW = [
   upload.single("attachment"),
+  compressFiles,
+];
+export const uploadIdentityDocumentMW = [
+  upload.single("identityDocument"),
   compressFiles,
 ];
