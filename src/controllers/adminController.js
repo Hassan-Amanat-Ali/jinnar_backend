@@ -393,7 +393,7 @@ class AdminController {
   const { status, reason } = req.body;
 
   // Allow full status transitions
-  const allowedStatuses = ["pending", "approved", "rejected", "suspended"];
+  const allowedStatuses = ["pending", "active", "rejected", "suspended"];
 
   if (!allowedStatuses.includes(status)) {
     return res.status(400).json({ error: "Invalid status." });
