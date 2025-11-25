@@ -52,7 +52,7 @@ const gigSchema = new mongoose.Schema(
         type: Number,
         min: [0, "Price cannot be negative"],
         required: function () {
-          return this.method !== "negotiable";
+          return this.pricing?.method !== "negotiable";
         },
       },
     },
