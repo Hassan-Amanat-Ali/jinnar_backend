@@ -5,6 +5,7 @@ import asyncHandler from "express-async-handler";
 import { calculateDistance } from "../utils/helpers.js";
 import Order from "../models/Order.js";
 import SupportTicket from "../models/SupportTicket.js";
+import Wallet from "../models/Wallet.js";
 import Report from "../models/Report.js";
 
 /**
@@ -1087,6 +1088,9 @@ export const getUserDetailsForAdmin = asyncHandler(async (req, res) => {
     createdAt: -1,
   });
 
+  // Fetch Wallet details
+  const wallet = await Wallet.findOne({ userId: id });
+
   // 6. Assemble the response
   const userDetails = {
     user: user.toObject(),
@@ -1096,7 +1100,8 @@ export const getUserDetailsForAdmin = asyncHandler(async (req, res) => {
     },
     earnings: {
       total: totalEarnings,
-      walletBalance: user.wallet?.balance || 0,
+      walletBalance: wallet?.balance || 0,
+      onHoldBalance: wallet?.onHoldBalance || 0,
     },
     supportTickets,
     complaints: {

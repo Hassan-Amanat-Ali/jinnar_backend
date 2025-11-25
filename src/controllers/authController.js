@@ -111,7 +111,7 @@ export const registerUser = async (req, res) => {
 
     return res
       .status(201)
-      .json({ message: "Verification code sent to mobile number" });
+      .json({ message: "Verification code sent to mobile number"  , verificationCode});
   } catch (error) {
     console.error("Register User Error:", error.message);
     return res
