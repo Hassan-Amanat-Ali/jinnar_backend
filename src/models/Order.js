@@ -23,7 +23,7 @@ const orderSchema = new mongoose.Schema(
     },
     timeSlot: {
       type: String, // e.g. "10:00 AM - 12:00 PM"
-      required: true,
+      required: false,
     },
     jobDescription: {
       type: String,
@@ -34,8 +34,8 @@ const orderSchema = new mongoose.Schema(
       default: null,
     },
     location: {
-      lat: { type: Number, required: true },
-      lng: { type: Number, required: true },
+      lat: { type: Number, required: false },
+      lng: { type: Number, required: false },
     },
     emergency: {
       type: Boolean,

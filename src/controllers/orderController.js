@@ -110,41 +110,63 @@ export const createJobRequest = async (req, res) => {
  */
 export const createCustomOffer = async (req, res) => {
   try {
-    const { id: sellerId, name: sellerName } = req.user;
-    const { orderId, price } = req.body;
+    const { id: sellerId, name: sellerName } = req.user; // Seller creating the offer
+    const {
+      gigId,
+      buyerId,
+      date,
+      timeSlot,
+      jobDescription,
+      lat,
+      lng,
+      price,
+      emergency,
+      image,
+    } = req.body;
 
-    if (!orderId || !price) {
-      return res.status(400).json({ error: "orderId and price are required" });
+    // 1. Validate required fields for creating a new job offer
+    if (!gigId || !buyerId || !date || !jobDescription || !price) {
+      return res.status(400).json({ error: "gigId, buyerId, date, jobDescription, and price are required" });
     }
+
+    // 2. Validate price
     if (isNaN(price) || price <= 0) {
       return res.status(400).json({ error: "Price must be a positive number" });
     }
 
-    const order = await Order.findById(orderId);
-    if (!order) {
-      return res.status(404).json({ error: "Order not found" });
-    }
-    if (order.sellerId.toString() !== sellerId) {
-      return res.status(403).json({ error: "You are not authorized to make an offer on this order" });
-    }
-    if (order.status !== 'pending') {
-      return res.status(400).json({ error: "An offer can only be made on a 'pending' order" });
+    // 3. Verify the gig exists and belongs to the seller
+    const gig = await Gig.findById(gigId);
+    if (!gig) return res.status(404).json({ error: "Gig not found" });
+    if (gig.sellerId.toString() !== sellerId) {
+      return res.status(403).json({ error: "You can only create offers for your own gigs" });
     }
 
-    order.price = price;
-    order.status = 'offer_pending';
-    await order.save();
+    // 4. Create the new order with 'offer_pending' status
+    const newOfferOrder = await Order.create({
+      gigId,
+      sellerId,
+      buyerId,
+      date,
+      timeSlot: timeSlot || null,
+      jobDescription,
+      image: image || null,
+      location: (lat && lng) ? { lat, lng } : null,
+      emergency: emergency || false,
+      price,
+      status: 'offer_pending', // This is a seller's offer waiting for buyer's action
+      offerFrom: sellerId, // Mark that this order originated as a custom offer
+    });
 
-    // Notify buyer about the new custom offer
+    // 5. Notify buyer about the new custom offer
     await sendNotification(
-      order.buyerId,
+      buyerId,
       "booking",
-      `${sellerName} has sent you a custom offer of ${price}.`,
-      order._id,
+      `${sellerName} has sent you a custom offer of ${price} for "${gig.title}".`,
+      newOfferOrder._id,
       "Order"
     );
 
-    res.json({ message: "Custom offer sent to the buyer successfully", order });
+    res.status(201).json({ message: "Custom offer sent to the buyer successfully", order: newOfferOrder });
   } catch (error) {
     console.error("Error creating custom offer:", error);
     res.status(500).json({ error: "Failed to create custom offer", details: error.message });
@@ -176,16 +198,40 @@ export const acceptCustomOffer = async (req, res) => {
       return res.status(400).json({ error: "This offer is not pending acceptance" });
     }
 
-    // The logic here is similar to acceptJob, but specific to the buyer's action.
-    // Re-using acceptJob is problematic as the user roles are swapped.
+    // Check buyer's wallet for sufficient funds before accepting
+    const buyerWallet = await Wallet.findOne({ userId: buyerId });
+    if (!buyerWallet) {
+      return res.status(404).json({ error: "Buyer wallet not found" });
+    }
+    if (buyerWallet.balance < order.price) {
+      return res.status(402).json({
+        error: "Insufficient funds to accept the offer.",
+        message: `Your balance is ${buyerWallet.balance}, but the offer requires ${order.price}. Please top up your wallet.`,
+      });
+    }
+
+    // Hold funds from buyer's wallet
+    buyerWallet.balance -= order.price;
+    buyerWallet.onHoldBalance += order.price;
+    buyerWallet.transactions.push({
+      type: "order_paid",
+      amount: order.price,
+      status: "pending",
+      orderId: order._id,
+      description: "Funds held for accepted custom offer",
+    });
+    await buyerWallet.save();
+
+    // Update order status to 'accepted'
     order.status = "accepted";
+    order.acceptedAt = new Date();
     await order.save();
 
     // Notify the seller that their offer was accepted.
     await sendNotification(
       order.sellerId._id,
       "booking",
-      `Your custom offer for order #${order._id.toString().slice(-6)} has been accepted.`,
+      `Your custom offer for "${order.gigId.title}" has been accepted.`,
       order._id,
       "Order"
     );
@@ -221,7 +267,7 @@ export const rejectCustomOffer = async (req, res) => {
       return res.status(400).json({ error: "This offer is not pending rejection" });
     }
 
-    order.status = 'rejected';
+    order.status = 'rejected'; // The entire order is now rejected.
     await order.save();
 
     await sendNotification(order.sellerId._id, "booking", `Your custom offer for order #${order._id.toString().slice(-6)} was rejected by the buyer.`, order._id, "Order");
@@ -262,8 +308,9 @@ export const cancelCustomOffer = async (req, res) => {
       return res.status(400).json({ error: "Only an offer that is pending can be cancelled" });
     }
 
-    // 3. Revert status to 'pending'
-    order.status = 'pending';
+    // 3. Change status to 'cancelled' as the offer is withdrawn
+    order.status = 'cancelled';
+    order.canceledAt = new Date();
     await order.save();
 
     // 4. Notify buyer
