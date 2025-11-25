@@ -33,7 +33,7 @@ router.use("/wallet", walletRoutes);
 router.use("/upload", uploadRoutes);
 // router.use('/payout' , payoutRoutes)
 router.use("/workers", workerRoutes);
-router.use("/checkout", chatRoutes);
+// router.use("/checkout", chatRoutes);
 router.use("/pawapay", pawapayCallbackRoutes);
 router.use("/chat", chatRoutes);
 router.use("/chatbot", chatbotRoutes);

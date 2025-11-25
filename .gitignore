@@ -5,6 +5,7 @@ node_modules/
 uploads/
 temp/
 logs/
+model.nlp
 
 # macOS
 .DS_Store
