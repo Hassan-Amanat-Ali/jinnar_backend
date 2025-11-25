@@ -2,6 +2,7 @@ import Gig from "../models/Gig.js";
 import User from "../models/User.js";
 import asyncHandler from "express-async-handler";
 import Order from "../models/Order.js";
+import { sendNotification } from "./notificationController.js";
 
 export const searchGigs = async (req, res) => {
   try {
@@ -374,6 +375,18 @@ export const deleteGig = async (req, res, next) => {
       return res.status(403).json({ error: "Only sellers can delete gigs" });
     }
 
+    // ✅ Check for active orders before deleting
+    const activeOrders = await Order.find({
+      gigId: req.params.id,
+      sellerId: id,
+      status: { $in: ["pending", "offer_pending", "accepted"] },
+    });
+
+    if (activeOrders.length > 0) {
+      return res
+        .status(400)
+        .json({ error: "Cannot delete a gig with active orders. Please resolve or cancel them first." });
+    }
     const gig = await Gig.findOneAndDelete({
       _id: req.params.id,
       sellerId: id,

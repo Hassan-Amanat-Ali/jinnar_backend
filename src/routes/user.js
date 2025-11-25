@@ -6,8 +6,9 @@ import {
   updateFcmToken,
   getSellerReviews,
   submitForVerification,
+  getUserDetailsForAdmin,
 } from "../controllers/userController.js";
-import { protect } from "../middleware/auth.js";
+import { protect, authorize } from "../middleware/auth.js";
 import { createReport, getMyReports } from "../controllers/ReportController.js";
 
 const router = express.Router();
@@ -24,5 +25,7 @@ router.get("/reports/me", protect, getMyReports);
 // --- NEW: Identity Verification ---
 router.post("/submit-verification", protect, submitForVerification);
 
-export default router;
+// --- NEW: Admin route to get full user details ---
+router.get("/details/:id", protect, authorize("super_admin"),getUserDetailsForAdmin);
 
+export default router;

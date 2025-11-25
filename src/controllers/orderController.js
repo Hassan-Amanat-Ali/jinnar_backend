@@ -176,11 +176,20 @@ export const acceptCustomOffer = async (req, res) => {
       return res.status(400).json({ error: "This offer is not pending acceptance" });
     }
 
-    // This re-uses the logic from the original `acceptJob` function for fund handling
-    req.body.id = orderId; // a bit of a hack to reuse the function
-    req.user.name = order.sellerId.name; // for notification text
-    return acceptJob(req, res);
+    // The logic here is similar to acceptJob, but specific to the buyer's action.
+    // Re-using acceptJob is problematic as the user roles are swapped.
+    order.status = "accepted";
+    await order.save();
 
+    // Notify the seller that their offer was accepted.
+    await sendNotification(
+      order.sellerId._id,
+      "booking",
+      `Your custom offer for order #${order._id.toString().slice(-6)} has been accepted.`,
+      order._id,
+      "Order"
+    );
+    res.json({ message: "Custom offer accepted successfully.", order });
   } catch (error) {
     console.error("Error accepting custom offer:", error);
     res.status(500).json({ error: "Failed to accept offer", details: error.message });
@@ -675,7 +684,7 @@ export const uploadDeliverable = async (req, res) => {
       description,
       uploadedBy: sellerId,
     });
-    job.status = "completed";
+    job.status = "delivered";
     await job.save();
 
     // 👇 Notify buyer that work is delivered

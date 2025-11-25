@@ -37,15 +37,16 @@ export const createTicket = async (req, res) => {
 
     // Notify admins
     const admins = await User.find({ role: { $in: ["admin", "super_admin"] } });
-    const notificationPromises = admins.map((admin) => {
-      const notification = {
-        title: "New Support Ticket",
-        body: `A new ticket has been created by ${user.name}.`,
-        data: {
-          ticketId: createdTicket._id.toString(),
-        },
-      };
-      return sendPushNotification(admin.fcmToken, notification);
+    const notificationPromises = admins.flatMap((admin) => {
+      if (!admin.fcmTokens || admin.fcmTokens.length === 0) return [];
+      return admin.fcmTokens.map(tokenInfo => {
+        const notification = {
+          title: "New Support Ticket",
+          body: `A new ticket has been created by ${user.name}.`,
+          data: { ticketId: createdTicket._id.toString() },
+        };
+        return sendPushNotification(tokenInfo.token, notification);
+      });
     });
 
     await Promise.all(notificationPromises);
@@ -152,17 +153,45 @@ export const replyToTicket = async (req, res) => {
     const updatedTicket = await ticket.save();
 
     // Notify the other party
-    const recipient = isAdmin ? await User.findById(ticket.user) : (ticket.assignedTo ? await User.findById(ticket.assignedTo) : null);
-    
-    if (recipient && recipient.fcmToken) {
+    if (isAdmin) {
+      // Admin is replying, notify the user who created the ticket
+      const user = await User.findById(ticket.user);
+      if (user && user.fcmTokens && user.fcmTokens.length > 0) {
+        const notificationPromises = user.fcmTokens.map(tokenInfo => {
+          const notification = {
+            title: `New Reply on Ticket #${ticket.ticketId}`,
+            body: `An admin has replied to your support ticket.`,
+            data: { ticketId: ticket._id.toString() },
+          };
+          return sendPushNotification(tokenInfo.token, notification);
+        });
+        await Promise.all(notificationPromises);
+      }
+    } else {
+      // User is replying
+      const senderUser = await User.findById(req.user.id);
       const notification = {
         title: `New Reply on Ticket #${ticket.ticketId}`,
-        body: `A new reply has been posted on your support ticket.`,
-        data: {
-          ticketId: ticket._id.toString(),
-        },
+        body: `${senderUser.name} has replied to a support ticket.`,
+        data: { ticketId: ticket._id.toString() },
       };
-      await sendPushNotification(recipient.fcmToken, notification);
+
+      if (ticket.assignedTo) {
+        // Notify the assigned admin
+        const assignedAdmin = await User.findById(ticket.assignedTo);
+        if (assignedAdmin && assignedAdmin.fcmTokens && assignedAdmin.fcmTokens.length > 0) {
+          const notificationPromises = assignedAdmin.fcmTokens.map(tokenInfo => 
+            sendPushNotification(tokenInfo.token, notification)
+          );
+          await Promise.all(notificationPromises);
+        }
+      } else {
+        // If not assigned, notify all admins
+        const admins = await User.find({ role: { $in: ["admin", "super_admin"] } });
+        const notificationPromises = admins.flatMap(admin => 
+          admin.fcmTokens.map(tokenInfo => sendPushNotification(tokenInfo.token, notification)));
+        await Promise.all(notificationPromises);
+      }
     }
 
     const populatedTicket = await SupportTicket.findById(updatedTicket._id)
@@ -243,7 +272,7 @@ export const updateTicketStatus = async (req, res) => {
     if (user && user.fcmToken) {
       const notification = {
         title: `Ticket #${ticket.ticketId} Status Updated`,
-        body: `The status of your support ticket has been updated to "${status}".`,
+        body: `The status of your support ticket has been updated to "${status.replace("_", " ")}".`,
         data: {
           ticketId: ticket._id.toString(),
         },
@@ -295,15 +324,32 @@ export const assignTicket = async (req, res) => {
     const updatedTicket = await ticket.save();
 
     // Notify the assigned admin
-    if (assignee.fcmToken) {
-      const notification = {
-        title: "You've Been Assigned a Ticket",
-        body: `You have been assigned support ticket #${ticket.ticketId}.`,
-        data: {
-          ticketId: ticket._id.toString(),
-        },
-      };
-      await sendPushNotification(assignee.fcmToken, notification);
+    if (assignee.fcmTokens && assignee.fcmTokens.length > 0) {
+      const notificationPromises = assignee.fcmTokens.map(tokenInfo => {
+        const notification = {
+          title: "You've Been Assigned a Ticket",
+          body: `You have been assigned support ticket #${ticket.ticketId}.`,
+          data: {
+            ticketId: ticket._id.toString(),
+          },
+        };
+        return sendPushNotification(tokenInfo.token, notification);
+      });
+      await Promise.all(notificationPromises);
+    }
+
+    // Also notify the user that their ticket has been assigned
+    const user = await User.findById(ticket.user);
+    if (user && user.fcmTokens && user.fcmTokens.length > 0) {
+      const notificationPromises = user.fcmTokens.map(tokenInfo => {
+        const userNotification = {
+          title: `Ticket #${ticket.ticketId} Assigned`,
+          body: `Your support ticket has been assigned to an agent.`,
+          data: { ticketId: ticket._id.toString() },
+        };
+        return sendPushNotification(tokenInfo.token, userNotification);
+      });
+      await Promise.all(notificationPromises);
     }
     
     const populatedTicket = await SupportTicket.findById(updatedTicket._id)

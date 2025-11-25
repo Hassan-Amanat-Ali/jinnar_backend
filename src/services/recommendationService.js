@@ -121,7 +121,7 @@ export const calculateFairnessRotationScore = (worker) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const recommendWorkers = async (jobRequest) => {
-  console.log("Starting worker recommendation process for job request:", jobRequest);
+  console.log("🚀 Starting worker recommendation process for job request:", jobRequest);
   // 1. PRE-FILTERING (Database Level)
   // Only fetch sellers who are somewhat relevant to save memory
   // (e.g. match category or within broad radius)
@@ -136,7 +136,7 @@ export const recommendWorkers = async (jobRequest) => {
   const workers = await User.find(query)
     .select('name email skills availability selectedAreas rating averageResponseTime lastRecommendedAt')
     .limit(100); // Safety cap
-  console.log(`Found ${workers.length} potential workers.`);
+  console.log(`✅ Found ${workers.length} potential workers from database.`);
 
   // 2. SCORING LOOP
   const scoredWorkers = await Promise.all(workers.map(async (worker) => {
@@ -155,16 +155,16 @@ export const recommendWorkers = async (jobRequest) => {
       finalScore += (scores[key] || 0) * weights[key];
     }
     
-    console.log(`\nScoring worker: ${worker.name} (${worker._id})`);
-    console.log('------------------------------------');
-    console.log(`- Skill Match: ${scores.skillMatch.toFixed(2)} (Weight: ${weights.skillMatch}) -> Contribution: ${(scores.skillMatch * weights.skillMatch).toFixed(2)}`);
-    console.log(`- Distance: ${scores.distance.toFixed(2)} (Weight: ${weights.distance}) -> Contribution: ${(scores.distance * weights.distance).toFixed(2)}`);
-    console.log(`- Rating: ${scores.rating.toFixed(2)} (Weight: ${weights.rating}) -> Contribution: ${(scores.rating * weights.rating).toFixed(2)}`);
-    console.log(`- Response Speed: ${scores.responseSpeed.toFixed(2)} (Weight: ${weights.responseSpeed}) -> Contribution: ${(scores.responseSpeed * weights.responseSpeed).toFixed(2)}`);
-    console.log(`- Availability: ${scores.availability.toFixed(2)} (Weight: ${weights.availability}) -> Contribution: ${(scores.availability * weights.availability).toFixed(2)}`);
-    console.log(`- Fairness: ${scores.fairnessRotation.toFixed(2)} (Weight: ${weights.fairnessRotation}) -> Contribution: ${(scores.fairnessRotation * weights.fairnessRotation).toFixed(2)}`);
-    console.log('------------------------------------');
-    console.log(`=> Final Score: ${finalScore.toFixed(2)}`);
+    // console.log(`\n🤖 Scoring worker: ${worker.name} (${worker._id})`);
+    // console.log('------------------------------------');
+    // console.log(`- Skill Match:    ${scores.skillMatch.toFixed(2)} (Weight: ${weights.skillMatch}) -> Contribution: ${(scores.skillMatch * weights.skillMatch).toFixed(3)}`);
+    // console.log(`- Distance:       ${scores.distance.toFixed(2)} (Weight: ${weights.distance}) -> Contribution: ${(scores.distance * weights.distance).toFixed(3)}`);
+    // console.log(`- Rating:         ${scores.rating.toFixed(2)} (Weight: ${weights.rating}) -> Contribution: ${(scores.rating * weights.rating).toFixed(3)}`);
+    // console.log(`- Response Speed: ${scores.responseSpeed.toFixed(2)} (Weight: ${weights.responseSpeed}) -> Contribution: ${(scores.responseSpeed * weights.responseSpeed).toFixed(3)}`);
+    // console.log(`- Availability:   ${scores.availability.toFixed(2)} (Weight: ${weights.availability}) -> Contribution: ${(scores.availability * weights.availability).toFixed(3)}`);
+    // console.log(`- Fairness:       ${scores.fairnessRotation.toFixed(2)} (Weight: ${weights.fairnessRotation}) -> Contribution: ${(scores.fairnessRotation * weights.fairnessRotation).toFixed(3)}`);
+    // console.log('------------------------------------');
+    // console.log(`=> Final Score: ${finalScore.toFixed(3)}`);
 
 
     return { worker, scores, finalScore };
@@ -173,9 +173,9 @@ export const recommendWorkers = async (jobRequest) => {
   // 3. RANKING
   scoredWorkers.sort((a, b) => b.finalScore - a.finalScore);
   
-  console.log("\n--- Top 10 Recommended Workers ---");
+  console.log("\n🏆 --- Top 10 Recommended Workers --- 🏆");
   scoredWorkers.slice(0, 10).forEach((w, index) => {
-    console.log(`${index + 1}. ${w.worker.name} (Score: ${w.finalScore.toFixed(2)})`);
+    console.log(`${index + 1}. ${w.worker.name} (Score: ${w.finalScore.toFixed(3)}) | Details: Skill=${w.scores.skillMatch.toFixed(2)}, Dist=${w.scores.distance.toFixed(2)}, Rating=${w.scores.rating.toFixed(2)}`);
   });
 
 

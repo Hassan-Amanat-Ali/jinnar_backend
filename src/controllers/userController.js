@@ -4,6 +4,8 @@ import cloudinary from "cloudinary";
 import asyncHandler from "express-async-handler";
 import { calculateDistance } from "../utils/helpers.js";
 import Order from "../models/Order.js";
+import SupportTicket from "../models/SupportTicket.js";
+import Report from "../models/Report.js";
 
 /**
  * GET /api/workers/find
@@ -1050,3 +1052,61 @@ export const submitForVerification = async (req, res) => {
     res.status(500).json({ error: "Failed to submit for verification." });
   }
 };
+
+// --- NEW: Get User Details for Admin ---
+export const getUserDetailsForAdmin = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // 1. Fetch user details
+  const user = await User.findById(id).select("-password");
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  // 2. Fetch Orders (as buyer and seller)
+  const ordersAsBuyer = await Order.find({ buyerId: id }).sort({ createdAt: -1 });
+  const ordersAsSeller = await Order.find({ sellerId: id }).sort({
+    createdAt: -1,
+  });
+
+  // 3. Calculate Earnings (from completed seller orders)
+  const totalEarnings = ordersAsSeller
+    .filter((order) => order.status === "completed")
+    .reduce((sum, order) => sum + (order.price || 0), 0);
+
+  // 4. Fetch Support Tickets
+  const supportTickets = await SupportTicket.find({ userId: id }).sort({
+    createdAt: -1,
+  });
+
+  // 5. Fetch Complaints/Reports (made by and against the user)
+  const reportsMade = await Report.find({ reporterId: id }).sort({
+    createdAt: -1,
+  });
+  const reportsAgainst = await Report.find({ reportedUserId: id }).sort({
+    createdAt: -1,
+  });
+
+  // 6. Assemble the response
+  const userDetails = {
+    user: user.toObject(),
+    orders: {
+      asBuyer: ordersAsBuyer,
+      asSeller: ordersAsSeller,
+    },
+    earnings: {
+      total: totalEarnings,
+      walletBalance: user.wallet?.balance || 0,
+    },
+    supportTickets,
+    complaints: {
+      made: reportsMade,
+      against: reportsAgainst,
+    },
+  };
+
+  res.status(200).json({
+    success: true,
+    data: userDetails,
+  });
+});
