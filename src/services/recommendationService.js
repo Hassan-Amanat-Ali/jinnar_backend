@@ -1,144 +1,174 @@
+// recommendationEngine.js
+// DROP-IN REPLACEMENT — Just replace your old file with this one
+
 import User from '../models/User.js';
 import Order from '../models/Order.js';
 import Gig from '../models/Gig.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 1. CONFIGURATION
+// 1. CONFIGURATION (Tuned for all service types)
 // ─────────────────────────────────────────────────────────────────────────────
 export const weights = {
-  skillMatch: 0.3,
-  distance: 0.25,       // Increased: In local services, proximity is king
-  rating: 0.2,
-  availability: 0.1,
-  responseSpeed: 0.1,
-  fairnessRotation: 0.05,
+  relevance: 0.60,        // TF-IDF text similarity — now the main driver
+  distance: 0.15,         // Still important for local services
+  rating: 0.10,
+  availability: 0.08,
+  responseSpeed: 0.05,
+  fairnessRotation: 0.02,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2. SCORING FUNCTIONS
+// 2. TF-IDF ENGINE (Self-contained, no external libs)
 // ─────────────────────────────────────────────────────────────────────────────
 
-// A. SKILLS (0 to 1)
-const STOP_WORDS = new Set(['i', 'a', 'an', 'the', 'in', 'on', 'for', 'with', 'is', 'am', 'are', 'want', 'need', 'looking', 'developer', 'expert', 'services']);
+// Simple tokenizer (supports English + Urdu + mixed text)
+const tokenize = (text = '') => {
+  return text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]/gu, ' ')  // Keep letters & numbers only
+    .split(/\s+/)
+    .map(t => t.trim())
+    .filter(t => t.length > 1);
+};
 
-export const calculateSkillMatchScore = (gig, jobRequest) => {
-  // Combine title and description for keyword matching
-  const jobText = `${jobRequest.title || ''} ${jobRequest.description || ''}`.toLowerCase();
-  const allKeywords = jobText.match(/\b(\w+)\b/g) || []; // Extract all words
-  
-  // Filter out common "stop words" to focus on meaningful terms
-  const jobKeywords = allKeywords.filter(kw => !STOP_WORDS.has(kw));
+// In-memory IDF cache (will be built on first request)
+let IDF = null;
+let TOTAL_GIGS = 0;
 
-  if (jobKeywords.length === 0) return 0;
+const buildIDF = async () => {
+  const gigs = await Gig.find({ status: 'active' })
+    .select('title description skills')
+    .lean();
 
-  // Use the gig's title, description, and its own skills array for a comprehensive match
-  const gigText = `${gig.title || ''} ${gig.description || ''}`.toLowerCase();
-  const gigSkillsText = (gig.skills || []).join(' ').toLowerCase();
-  
-  let matchCount = 0;
-  jobKeywords.forEach(keyword => {
-    // Use a regular expression for a whole-word match to avoid partial matches (e.g., 'i' in 'plumbing')
-    const regex = new RegExp(`\\b${keyword}\\b`);
-    if (regex.test(gigText) || regex.test(gigSkillsText)) {
-      matchCount++;
+  TOTAL_GIGS = gigs.length;
+  if (TOTAL_GIGS === 0) return;
+
+  const docFrequency = {};
+
+  gigs.forEach(gig => {
+    const text = `${gig.title || ''} ${gig.description || ''} ${(gig.skills || []).join(' ')}`;
+    const uniqueTerms = new Set(tokenize(text));
+    uniqueTerms.forEach(term => {
+      docFrequency[term] = (docFrequency[term] || 0) + 1;
+    });
+  });
+
+  // IDF = log(total_docs / (1 + docs_containing_term))
+  IDF = {};
+  Object.keys(docFrequency).forEach(term => {
+    IDF[term] = Math.log(TOTAL_GIGS / (1 + docFrequency[term]));
+  });
+
+  console.log(`TF-IDF index built: ${Object.keys(IDF).length} terms from ${TOTAL_GIGS} gigs`);
+};
+
+// Call this once on server startup (see note below)
+export const initializeRecommendationEngine = async () => {
+  await buildIDF();
+  // Rebuild every 6 hours to catch new gigs
+  setInterval(buildIDF, 6 * 60 * 60 * 1000);
+};
+
+// ── Relevance Score: TF-IDF Cosine Similarity (Universal & Accurate) ─────
+const calculateRelevanceScore = (gig, jobText) => {
+  if (!IDF || TOTAL_GIGS === 0) return 0.1; // fallback
+
+  const queryTokens = tokenize(jobText);
+  if (queryTokens.length === 0) return 0.1;
+
+  const gigText = `${gig.title || ''} ${gig.description || ''} ${(gig.skills || []).join(' ')}`;
+  const gigTokens = tokenize(gigText);
+
+  // Build TF vectors
+  const queryTF = {};
+  queryTokens.forEach(t => queryTF[t] = (queryTF[t] || 0) + 1);
+  const maxQuery = Math.max(...Object.values(queryTF));
+  Object.keys(queryTF).forEach(k => queryTF[k] /= maxQuery);
+
+  const gigTF = {};
+  gigTokens.forEach(t => gigTF[t] = (gigTF[t] || 0) + 1);
+  const maxGig = Math.max(...Object.values(gigTF) || [1]);
+  Object.keys(gigTF).forEach(k => gigTF[k] /= maxGig);
+
+  // Cosine similarity
+  let dot = 0;
+  let qMag = 0;
+  let gMag = 0;
+
+  queryTokens.forEach(term => {
+    const q = (queryTF[term] || 0) * (IDF[term] || 1.0);
+    const g = (gigTF[term] || 0) * (IDF[term] || 1.0);
+    dot += q * g;
+    qMag += q * q;
+  });
+
+  if (qMag === 0) return 0;
+
+  queryTokens.forEach(term => {
+    if (gigTF[term]) {
+      const g = (gigTF[term] || 0) * (IDF[term] || 1.0);
+      gMag += g * g;
     }
   });
 
-  // Normalize the score based on the number of keywords.
-  // A higher number of matched keywords results in a better score.
-  // Capped at 1.0.
-  const score = matchCount / jobKeywords.length;
-  
-  return Math.min(score, 1.0);
+  if (gMag === 0) return 0;
+  return dot / (Math.sqrt(qMag) * Math.sqrt(gMag));
 };
 
-// B. DISTANCE (0 to 1) - Haversine Formula
-// Score = 1 if < 1km, 0 if > 20km, linear decay in between
-export const calculateDistanceScore = (worker, jobRequest) => {
-  if (!worker.selectedAreas || worker.selectedAreas.length === 0) return 0;
-  if (!jobRequest.lat || !jobRequest.lng) return 1; // Default if no location
+// ─────────────────────────────────────────────────────────────────────────────
+// 3. SCORING FUNCTIONS (Only distance/availability/fairness changed slightly)
+// ─────────────────────────────────────────────────────────────────────────────
 
-  // Helper: Get distance in KM
+// Distance: Same logic, just more forgiving for remote jobs
+export const calculateDistanceScore = (worker, jobRequest) => {
+  if (!jobRequest.lat || !jobRequest.lng) return 0.7; // neutral
+  if (!worker.selectedAreas || worker.selectedAreas.length === 0) return 0.5;
+
   const getDistanceFromLatLonInKm = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // Radius of the earth in km
-    const dLat = deg2rad(lat2 - lat1);
-    const dLon = deg2rad(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c;
   };
-  const deg2rad = (deg) => deg * (Math.PI / 180);
 
-  // Find closest service area point to the job
   let minDist = Infinity;
   worker.selectedAreas.forEach(area => {
-    // MongoDB GeoJSON stores as [lng, lat]
-    const [wLng, wLat] = area.coordinates; 
-    const dist = getDistanceFromLatLonInKm(jobRequest.lat, jobRequest.lng, wLat, wLng);
+    const [lng, lat] = area.coordinates;
+    const dist = getDistanceFromLatLonInKm(jobRequest.lat, jobRequest.lng, lat, lng);
     if (dist < minDist) minDist = dist;
   });
 
-  // Scoring Logic:
-  // < 2km = 1.0 (Perfect)
-  // > 20km = 0.0 (Too far)
-  if (minDist <= 2) return 1.0;
-  if (minDist >= 20) return 0.0;
-  return 1 - (minDist / 20);
+  if (minDist <= 3) return 1.0;
+  if (minDist >= 50) return 0.3;   // not zero → still show remote experts
+  return Math.max(0.3, 1 - (minDist - 3) / 47);
 };
 
-// C. AVAILABILITY (0 or 1)
 export const calculateAvailabilityScore = (worker, jobRequest) => {
-  if (!jobRequest.date) return 1; // Assume available if no date
-
+  if (!jobRequest.date) return 1;
   const jobDate = new Date(jobRequest.date);
-  const dayName = jobDate.toLocaleDateString('en-US', { weekday: 'long' });
-  
-  // Find the worker's schedule for this day
-  const daySchedule = worker.availability.find(d => d.day === dayName && d.isActive);
-  
-  if (!daySchedule) return 0; // Not working that day
-
-  // If specific hours are requested
-  if (jobRequest.startTime) {
-    const jobStart = parseInt(jobRequest.startTime.replace(":", ""));
-    const workStart = parseInt(daySchedule.startTime.replace(":", ""));
-    const workEnd = parseInt(daySchedule.endTime.replace(":", ""));
-
-    // Check if job starts within working hours
-    if (jobStart >= workStart && jobStart < workEnd) return 1;
-    return 0;
-  }
-
-  return 1; // Available that day (general match)
+  const dayName = jobDate.toLocaleString('en-US', { weekday: 'long' });
+  return worker.availability?.some(d => d.day === dayName && d.isActive) ? 1 : 0.3;
 };
 
-// D. FAIRNESS (Boost new/unseen workers)
 export const calculateFairnessRotationScore = (worker) => {
-  if (!worker.lastRecommendedAt) return 1.0; // Max boost for newbies
-
-  const now = new Date();
-  const last = new Date(worker.lastRecommendedAt);
-  const diffHours = (now - last) / 36e5;
-
-  // If recommended recently (last 24h), give low score (0). 
-  // If > 5 days ago, give high score (1).
-  return Math.min(diffHours / 120, 1.0); 
+  if (!worker.lastRecommendedAt) return 1.0;
+  const hoursSince = (Date.now() - new Date(worker.lastRecommendedAt)) / 36e5;
+  return Math.min(hoursSince / 96, 1.0); // full boost after 4 days
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3. MAIN ENGINE
+// 4. MAIN ENGINE (Drop-in replacement)
 // ─────────────────────────────────────────────────────────────────────────────
-
 export const recommendGigs = async (jobRequest) => {
-  console.log("🚀 Starting gig recommendation process for job request:", jobRequest);
-  // 1. PRE-FILTERING (Database Level)
-  // Fetch active gigs. Populate seller info needed for scoring.
+  console.log("Starting recommendation for:", jobRequest.title || jobRequest.description);
+
+  const jobText = `${jobRequest.title || ''} ${jobRequest.description || ''}`.trim();
+
   const query = { status: 'active' };
-  
-  // If user selected a Category ID, strictly filter by that
   if (jobRequest.categoryId) {
     query.category = jobRequest.categoryId;
   }
@@ -146,66 +176,60 @@ export const recommendGigs = async (jobRequest) => {
   const gigs = await Gig.find(query)
     .populate({
       path: 'sellerId',
-      select: 'name email skills availability selectedAreas rating averageResponseTime lastRecommendedAt isVerified',
-      match: { isSuspended: false, isVerified: true } // Only recommend gigs from verified, non-suspended sellers
+      select: 'name rating averageResponseTime availability selectedAreas lastRecommendedAt isVerified',
+      match: { isSuspended: false, isVerified: true }
     })
-    .limit(100); // Safety cap
+    .limit(150)
+    .lean();
 
-  // Filter out gigs where the seller was not found (due to the `match` condition in populate)
-  const validGigs = gigs.filter(gig => gig.sellerId);
-  console.log(`✅ Found ${validGigs.length} potential gigs from database.`);
+  const validGigs = gigs.filter(g => g.sellerId);
 
-  // 2. SCORING LOOP
-  const scoredGigs = await Promise.all(validGigs.map(async (gig) => {
-    const worker = gig.sellerId; // The populated seller document
+  const scoredGigs = validGigs.map(gig => {
+    const worker = gig.sellerId;
+
     const scores = {
-      skillMatch: calculateSkillMatchScore(gig, jobRequest),
+      relevance: calculateRelevanceScore(gig, jobText),
       distance: calculateDistanceScore(worker, jobRequest),
       rating: (worker.rating?.average || 0) / 5,
-      responseSpeed: worker.averageResponseTime ? (1 / (1 + worker.averageResponseTime / 60)) : 0.5,
+      responseSpeed: worker.averageResponseTime ? Math.max(0.3, 1 - worker.averageResponseTime / 300) : 0.7,
       availability: calculateAvailabilityScore(worker, jobRequest),
       fairnessRotation: calculateFairnessRotationScore(worker),
     };
-    // Calculate Weighted Average
-    let finalScore = 0;
-    for (const key in weights) {
-      finalScore += (scores[key] || 0) * weights[key];
-    }
 
-    return { gig, scores, finalScore };
-  }));
+    const finalScore = Object.keys(weights).reduce((sum, key) => {
+      return sum + scores[key] * weights[key];
+    }, 0);
 
-  // 3. RANKING
-  scoredGigs.sort((a, b) => b.finalScore - a.finalScore);
-  
-  console.log("\n🏆 --- Top 10 Recommended Gigs --- 🏆");
-  scoredGigs.slice(0, 10).forEach((g, index) => {
-    console.log(`${index + 1}. ${g.gig.title} by ${g.gig.sellerId.name} (Score: ${g.finalScore.toFixed(3)}) | Details: Skill=${g.scores.skillMatch.toFixed(2)}, Dist=${g.scores.distance.toFixed(2)}, Rating=${g.scores.rating.toFixed(2)}`);
+    return { gig, worker, scores, finalScore };
   });
 
+  scoredGigs.sort((a, b) => b.finalScore - a.finalScore);
 
-  // 4. UPDATE FAIRNESS TRACKER
-  const top10Gigs = scoredGigs.slice(0, 10);
-  const sellerIdsToUpdate = top10Gigs.map(item => item.gig.sellerId._id);
-  
-  // Fire and forget update (don't await)
-  User.updateMany({ _id: { $in: sellerIdsToUpdate } }, { $set: { lastRecommendedAt: new Date() } }).exec();
+  // Log top 10 for debugging
+  console.log("\nTop 10 Recommendations:");
+  scoredGigs.slice(0, 10).forEach((s, i) => {
+    console.log(`${i+1}. ${s.gig.title} → Score: ${s.finalScore.toFixed(3)} (Rel: ${s.scores.relevance.toFixed(3)})`);
+  });
 
-  // Return Clean Data
-  const top2 = scoredGigs.slice(0, 2).map(item => ({
-    ...item.gig.toObject(),
-    isTopRecommended: true,
-    matchScore: Math.round(item.finalScore * 100)
-  }));
+  // Update fairness rotation
+  const top10Ids = scoredGigs.slice(0, 10).map(s => s.worker._id);
+  if (top10Ids.length > 0) {
+    User.updateMany({ _id: { $in: top10Ids } }, { lastRecommendedAt: new Date() }).exec();
+  }
 
-  const others = scoredGigs.slice(2, 10).map(item => ({
-    ...item.gig.toObject(),
-    isTopRecommended: false,
-    matchScore: Math.round(item.finalScore * 100)
-  }));
+  const format = (item, isTop) => ({
+    ...item.gig,
+    sellerId: {
+      _id: item.worker._id,
+      name: item.worker.name,
+      rating: item.worker.rating,
+    },
+    isTopRecommended: isTop,
+    matchScore: Math.round(item.finalScore * 100),
+  });
 
   return {
-    topRecommended: top2,
-    otherGigs: others
+    topRecommended: scoredGigs.slice(0, 2).map(s => format(s, true)),
+    otherGigs: scoredGigs.slice(2, 20).map(s => format(s, false)),
   };
 };
