@@ -224,6 +224,49 @@ export const rejectCustomOffer = async (req, res) => {
   }
 };
 
+/**
+ * @description Seller cancels/withdraws a custom offer they previously made.
+ * @route POST /api/orders/cancel-offer
+ * @access Seller
+ */
+export const cancelCustomOffer = async (req, res) => {
+  try {
+    const { id: sellerId } = req.user;
+    const { orderId } = req.body;
+
+    if (!orderId) {
+      return res.status(400).json({ error: "orderId is required" });
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    // 1. Verify ownership
+    if (order.sellerId.toString() !== sellerId) {
+      return res.status(403).json({ error: "You are not authorized to cancel this offer" });
+    }
+
+    // 2. Verify status
+    if (order.status !== 'offer_pending') {
+      return res.status(400).json({ error: "Only an offer that is pending can be cancelled" });
+    }
+
+    // 3. Revert status to 'pending'
+    order.status = 'pending';
+    await order.save();
+
+    // 4. Notify buyer
+    await sendNotification(order.buyerId, "booking", `The seller has withdrawn their custom offer for order #${order._id.toString().slice(-6)}.`, order._id, "Order");
+
+    res.json({ message: "Custom offer has been successfully withdrawn.", order });
+  } catch (error) {
+    console.error("Error cancelling custom offer:", error);
+    res.status(500).json({ error: "Failed to cancel offer", details: error.message });
+  }
+};
+
 // ───────────────────────────────────────
 // 2.  JOB REQUESTS (Buyer)
 // ───────────────────────────────────────
@@ -501,13 +544,14 @@ export const cancelOrder = async (req, res) => {
         .json({ error: "Order cannot be canceled at this stage" });
     }
 
+    const statusBeforeCancel = order.status; // Store the status before changing it
     // ✅ Update order
     order.status = "cancelled";
     order.canceledAt = new Date();
     await order.save();
 
     // 💰 Release held funds if the order was accepted and had a price
-    if (order.price > 0 && order.status === "accepted") { // Check if funds were actually put on hold
+    if (order.price > 0 && statusBeforeCancel === "accepted") { // Use the old status for the check
       const buyerWallet = await Wallet.findOne({ userId: buyerId });
       if (buyerWallet) {
         const buyerTransaction = buyerWallet.transactions.find(

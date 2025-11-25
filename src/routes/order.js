@@ -19,6 +19,7 @@ import {
   getCompletedJobRequests,
   createCustomOffer,
   acceptCustomOffer,
+  cancelCustomOffer,
   rejectCustomOffer,
   getSellerQuickStats,
 } from "../controllers/orderController.js";
@@ -47,6 +48,7 @@ router.post("/decline", protect, declineJob);
 router.get("/declined", protect, getDeclinedJobRequests);
 router.post("/custom-offer", protect, createCustomOffer); // Seller makes an offer
 router.post("/accept-offer", protect, acceptCustomOffer); // Buyer accepts
+router.post("/cancel-offer", protect, cancelCustomOffer); // Seller withdraws an offer
 router.post("/reject-offer", protect, rejectCustomOffer); // Buyer rejects
 
 // Chat
