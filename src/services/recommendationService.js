@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import Order from '../models/Order.js';
+import Gig from '../models/Gig.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. CONFIGURATION
@@ -18,26 +19,37 @@ export const weights = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // A. SKILLS (0 to 1)
-export const calculateSkillMatchScore = (worker, jobRequest) => {
+const STOP_WORDS = new Set(['i', 'a', 'an', 'the', 'in', 'on', 'for', 'with', 'is', 'am', 'are', 'want', 'need', 'looking', 'developer', 'expert', 'services']);
+
+export const calculateSkillMatchScore = (gig, jobRequest) => {
   // Combine title and description for keyword matching
   const jobText = `${jobRequest.title || ''} ${jobRequest.description || ''}`.toLowerCase();
-  const jobKeywords = jobText.match(/\b(\w+)\b/g) || []; // Extract words
+  const allKeywords = jobText.match(/\b(\w+)\b/g) || []; // Extract all words
   
+  // Filter out common "stop words" to focus on meaningful terms
+  const jobKeywords = allKeywords.filter(kw => !STOP_WORDS.has(kw));
+
   if (jobKeywords.length === 0) return 0;
 
-  // Workers store skills as categories (e.g., "Plumbing")
-  // We check if the worker's skills appear in the job description
-  const workerSkills = worker.skills || []; // Assuming array of strings or objects
+  // Use the gig's title, description, and its own skills array for a comprehensive match
+  const gigText = `${gig.title || ''} ${gig.description || ''}`.toLowerCase();
+  const gigSkillsText = (gig.skills || []).join(' ').toLowerCase();
   
   let matchCount = 0;
-  workerSkills.forEach(skill => {
-    // If skill is object, extract name, else use string
-    const skillName = (typeof skill === 'object' ? skill.name : skill).toLowerCase();
-    if (jobText.includes(skillName)) matchCount++;
+  jobKeywords.forEach(keyword => {
+    // Use a regular expression for a whole-word match to avoid partial matches (e.g., 'i' in 'plumbing')
+    const regex = new RegExp(`\\b${keyword}\\b`);
+    if (regex.test(gigText) || regex.test(gigSkillsText)) {
+      matchCount++;
+    }
   });
 
-  // Cap at 1.0 (if they match 1 relevant skill, that's usually good enough)
-  return matchCount > 0 ? 1.0 : 0.0; 
+  // Normalize the score based on the number of keywords.
+  // A higher number of matched keywords results in a better score.
+  // Capped at 1.0.
+  const score = matchCount / jobKeywords.length;
+  
+  return Math.min(score, 1.0);
 };
 
 // B. DISTANCE (0 to 1) - Haversine Formula
@@ -120,75 +132,80 @@ export const calculateFairnessRotationScore = (worker) => {
 // 3. MAIN ENGINE
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const recommendWorkers = async (jobRequest) => {
-  console.log("🚀 Starting worker recommendation process for job request:", jobRequest);
+export const recommendGigs = async (jobRequest) => {
+  console.log("🚀 Starting gig recommendation process for job request:", jobRequest);
   // 1. PRE-FILTERING (Database Level)
-  // Only fetch sellers who are somewhat relevant to save memory
-  // (e.g. match category or within broad radius)
-  const query = { role: 'seller', isSuspended: false, isVerified: true };
+  // Fetch active gigs. Populate seller info needed for scoring.
+  const query = { status: 'active' };
   
   // If user selected a Category ID, strictly filter by that
   if (jobRequest.categoryId) {
-    // Assuming you link Gigs or Users to Categories
-    // For now, we fetch all valid sellers
+    query.category = jobRequest.categoryId;
   }
 
-  const workers = await User.find(query)
-    .select('name email skills availability selectedAreas rating averageResponseTime lastRecommendedAt')
+  const gigs = await Gig.find(query)
+    .populate({
+      path: 'sellerId',
+      select: 'name email skills availability selectedAreas rating averageResponseTime lastRecommendedAt isVerified',
+      match: { isSuspended: false, isVerified: true } // Only recommend gigs from verified, non-suspended sellers
+    })
     .limit(100); // Safety cap
-  console.log(`✅ Found ${workers.length} potential workers from database.`);
+
+  // Filter out gigs where the seller was not found (due to the `match` condition in populate)
+  const validGigs = gigs.filter(gig => gig.sellerId);
+  console.log(`✅ Found ${validGigs.length} potential gigs from database.`);
 
   // 2. SCORING LOOP
-  const scoredWorkers = await Promise.all(workers.map(async (worker) => {
+  const scoredGigs = await Promise.all(validGigs.map(async (gig) => {
+    const worker = gig.sellerId; // The populated seller document
     const scores = {
-      skillMatch: calculateSkillMatchScore(worker, jobRequest),
+      skillMatch: calculateSkillMatchScore(gig, jobRequest),
       distance: calculateDistanceScore(worker, jobRequest),
       rating: (worker.rating?.average || 0) / 5,
       responseSpeed: worker.averageResponseTime ? (1 / (1 + worker.averageResponseTime / 60)) : 0.5,
       availability: calculateAvailabilityScore(worker, jobRequest),
       fairnessRotation: calculateFairnessRotationScore(worker),
     };
-
     // Calculate Weighted Average
     let finalScore = 0;
     for (const key in weights) {
       finalScore += (scores[key] || 0) * weights[key];
     }
-    
-    // console.log(`\n🤖 Scoring worker: ${worker.name} (${worker._id})`);
-    // console.log('------------------------------------');
-    // console.log(`- Skill Match:    ${scores.skillMatch.toFixed(2)} (Weight: ${weights.skillMatch}) -> Contribution: ${(scores.skillMatch * weights.skillMatch).toFixed(3)}`);
-    // console.log(`- Distance:       ${scores.distance.toFixed(2)} (Weight: ${weights.distance}) -> Contribution: ${(scores.distance * weights.distance).toFixed(3)}`);
-    // console.log(`- Rating:         ${scores.rating.toFixed(2)} (Weight: ${weights.rating}) -> Contribution: ${(scores.rating * weights.rating).toFixed(3)}`);
-    // console.log(`- Response Speed: ${scores.responseSpeed.toFixed(2)} (Weight: ${weights.responseSpeed}) -> Contribution: ${(scores.responseSpeed * weights.responseSpeed).toFixed(3)}`);
-    // console.log(`- Availability:   ${scores.availability.toFixed(2)} (Weight: ${weights.availability}) -> Contribution: ${(scores.availability * weights.availability).toFixed(3)}`);
-    // console.log(`- Fairness:       ${scores.fairnessRotation.toFixed(2)} (Weight: ${weights.fairnessRotation}) -> Contribution: ${(scores.fairnessRotation * weights.fairnessRotation).toFixed(3)}`);
-    // console.log('------------------------------------');
-    // console.log(`=> Final Score: ${finalScore.toFixed(3)}`);
 
-
-    return { worker, scores, finalScore };
+    return { gig, scores, finalScore };
   }));
 
   // 3. RANKING
-  scoredWorkers.sort((a, b) => b.finalScore - a.finalScore);
+  scoredGigs.sort((a, b) => b.finalScore - a.finalScore);
   
-  console.log("\n🏆 --- Top 10 Recommended Workers --- 🏆");
-  scoredWorkers.slice(0, 10).forEach((w, index) => {
-    console.log(`${index + 1}. ${w.worker.name} (Score: ${w.finalScore.toFixed(3)}) | Details: Skill=${w.scores.skillMatch.toFixed(2)}, Dist=${w.scores.distance.toFixed(2)}, Rating=${w.scores.rating.toFixed(2)}`);
+  console.log("\n🏆 --- Top 10 Recommended Gigs --- 🏆");
+  scoredGigs.slice(0, 10).forEach((g, index) => {
+    console.log(`${index + 1}. ${g.gig.title} by ${g.gig.sellerId.name} (Score: ${g.finalScore.toFixed(3)}) | Details: Skill=${g.scores.skillMatch.toFixed(2)}, Dist=${g.scores.distance.toFixed(2)}, Rating=${g.scores.rating.toFixed(2)}`);
   });
 
 
   // 4. UPDATE FAIRNESS TRACKER
-  const top10 = scoredWorkers.slice(0, 10);
-  const idsToUpdate = top10.map(i => i.worker._id);
+  const top10Gigs = scoredGigs.slice(0, 10);
+  const sellerIdsToUpdate = top10Gigs.map(item => item.gig.sellerId._id);
   
   // Fire and forget update (don't await)
-  User.updateMany({ _id: { $in: idsToUpdate } }, { $set: { lastRecommendedAt: new Date() } }).exec();
+  User.updateMany({ _id: { $in: sellerIdsToUpdate } }, { $set: { lastRecommendedAt: new Date() } }).exec();
 
   // Return Clean Data
-  return top10.map(item => ({
-    ...item.worker.toObject(),
-    matchScore: Math.round(item.finalScore * 100) // Return percentage for UI
+  const top2 = scoredGigs.slice(0, 2).map(item => ({
+    ...item.gig.toObject(),
+    isTopRecommended: true,
+    matchScore: Math.round(item.finalScore * 100)
   }));
+
+  const others = scoredGigs.slice(2, 10).map(item => ({
+    ...item.gig.toObject(),
+    isTopRecommended: false,
+    matchScore: Math.round(item.finalScore * 100)
+  }));
+
+  return {
+    topRecommended: top2,
+    otherGigs: others
+  };
 };
