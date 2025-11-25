@@ -2,6 +2,8 @@
 import Message from "../models/Message.js";
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs/promises";
+import Order from "../models/Order.js"; // For creating the order
+import Gig from "../models/Gig.js"; // For validation
 import mongoose from "mongoose";
 
 // Make sure this path matches where you put the notification code you showed me
@@ -120,6 +122,100 @@ class ChatController {
         .json({ success: false, message: "Failed to send message" });
     }
   }
+
+  // 1.5. Send Custom Offer in Chat (Seller's Action)
+  static async sendCustomOffer(req, res) {
+    try {
+      const { id: sellerId, name: sellerName } = req.user;
+      const {
+        receiverId, // This is the buyerId
+        gigId,
+        price,
+        jobDescription,
+        date,
+      } = req.body;
+
+      // 1. Validation
+      if (!receiverId || !gigId || !price || !jobDescription || !date) {
+        return res.status(400).json({
+          success: false,
+          message: "receiverId, gigId, price, jobDescription, and date are required.",
+        });
+      }
+
+      if (isNaN(price) || price <= 0) {
+        return res.status(400).json({ success: false, message: "Price must be a positive number." });
+      }
+
+      // 2. Verify Gig
+      const gig = await Gig.findById(gigId);
+      if (!gig) {
+        return res.status(404).json({ success: false, message: "Gig not found." });
+      }
+      if (gig.sellerId.toString() !== sellerId) {
+        return res.status(403).json({ success: false, message: "You can only create offers for your own gigs." });
+      }
+
+      // 3. Create the Order document with 'offer_pending' status
+      const newOrder = await Order.create({
+        gigId,
+        sellerId,
+        buyerId: receiverId,
+        price,
+        jobDescription,
+        date,
+        status: 'offer_pending',
+        offerFrom: sellerId, // Mark as a seller-initiated offer
+      });
+
+      // 4. Create the special Message document
+      const offerMessage = await Message.create({
+        sender: sellerId,
+        receiver: receiverId,
+        message: `Custom Offer: ${jobDescription}`, // Fallback text
+        customOffer: {
+          orderId: newOrder._id,
+          price: price,
+          description: jobDescription,
+          status: 'pending',
+        },
+      });
+
+      const populatedMessage = await Message.findById(offerMessage._id)
+        .populate("sender", "name profilePicture")
+        .populate("receiver", "name profilePicture");
+
+      // 5. Emit Socket.IO event for real-time update
+      if (global.io) {
+        global.io.to(receiverId).emit("newMessage", populatedMessage);
+        global.io.to(sellerId).emit("newMessage", populatedMessage);
+      }
+
+      // 6. Send Push Notification to the buyer
+      await sendNotification(
+        receiverId,
+        "booking",
+        `${sellerName} sent you a custom offer of ${price} for "${gig.title}".`,
+        newOrder._id,
+        "Order"
+      );
+
+      return res.status(201).json({
+        success: true,
+        message: "Custom offer sent successfully.",
+        data: populatedMessage,
+      });
+
+    } catch (error) {
+      console.error("Send Custom Offer Error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send custom offer.",
+        details: error.message,
+      });
+    }
+  }
+
 
   // 2. Get Conversation
   static async getConversation(req, res) {

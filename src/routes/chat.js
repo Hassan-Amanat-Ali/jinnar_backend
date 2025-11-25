@@ -9,6 +9,7 @@ router.use(protect);
 
 // Routes
 router.post("/send", uploadChatAttachmentMW, ChatController.sendMessage);
+router.post("/custom-offer", ChatController.sendCustomOffer);
 router.get("/with/:otherUserId", ChatController.getConversation);
 router.get("/list", ChatController.getChatList);
 
