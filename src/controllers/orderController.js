@@ -38,14 +38,10 @@ export const createJobRequest = async (req, res) => {
       return res
         .status(400)
         .json({ error: "You cannot create a job request for your own gig" });
-
+    
     let jobPrice = 0;
-    // ✅ Check for sufficient funds if the gig has a price
-    if (
-      gig.pricing &&
-      gig.pricing.method !== "negotiable" &&
-      gig.pricing.price > 0
-    ) {
+    // For fixed-price gigs, check funds and set the price. For negotiable, price remains 0.
+    if (gig.pricing && gig.pricing.method === "fixed") {
       jobPrice = gig.pricing.price;
       const buyerWallet = await Wallet.findOne({ userId: buyerId }); // Use Wallet model directly
       if (!buyerWallet) {
@@ -104,6 +100,127 @@ export const createJobRequest = async (req, res) => {
   } catch (error) {
     console.error("Error creating job request:", error);
     res.status(500).json({ error: "Server error", details: error.message });
+  }
+};
+
+/**
+ * @description Seller creates a custom price offer for a negotiable job.
+ * @route POST /api/orders/custom-offer
+ * @access Seller
+ */
+export const createCustomOffer = async (req, res) => {
+  try {
+    const { id: sellerId, name: sellerName } = req.user;
+    const { orderId, price } = req.body;
+
+    if (!orderId || !price) {
+      return res.status(400).json({ error: "orderId and price are required" });
+    }
+    if (isNaN(price) || price <= 0) {
+      return res.status(400).json({ error: "Price must be a positive number" });
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+    if (order.sellerId.toString() !== sellerId) {
+      return res.status(403).json({ error: "You are not authorized to make an offer on this order" });
+    }
+    if (order.status !== 'pending') {
+      return res.status(400).json({ error: "An offer can only be made on a 'pending' order" });
+    }
+
+    order.price = price;
+    order.status = 'offer_pending';
+    await order.save();
+
+    // Notify buyer about the new custom offer
+    await sendNotification(
+      order.buyerId,
+      "booking",
+      `${sellerName} has sent you a custom offer of ${price}.`,
+      order._id,
+      "Order"
+    );
+
+    res.json({ message: "Custom offer sent to the buyer successfully", order });
+  } catch (error) {
+    console.error("Error creating custom offer:", error);
+    res.status(500).json({ error: "Failed to create custom offer", details: error.message });
+  }
+};
+
+/**
+ * @description Buyer accepts a custom offer from a seller.
+ * @route POST /api/orders/accept-offer
+ * @access Buyer
+ */
+export const acceptCustomOffer = async (req, res) => {
+  try {
+    const { id: buyerId } = req.user;
+    const { orderId } = req.body;
+
+    if (!orderId) {
+      return res.status(400).json({ error: "orderId is required" });
+    }
+
+    const order = await Order.findById(orderId).populate('sellerId', 'name');
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+    if (order.buyerId.toString() !== buyerId) {
+      return res.status(403).json({ error: "You are not authorized to accept this offer" });
+    }
+    if (order.status !== 'offer_pending') {
+      return res.status(400).json({ error: "This offer is not pending acceptance" });
+    }
+
+    // This re-uses the logic from the original `acceptJob` function for fund handling
+    req.body.id = orderId; // a bit of a hack to reuse the function
+    req.user.name = order.sellerId.name; // for notification text
+    return acceptJob(req, res);
+
+  } catch (error) {
+    console.error("Error accepting custom offer:", error);
+    res.status(500).json({ error: "Failed to accept offer", details: error.message });
+  }
+};
+
+/**
+ * @description Buyer rejects a custom offer from a seller.
+ * @route POST /api/orders/reject-offer
+ * @access Buyer
+ */
+export const rejectCustomOffer = async (req, res) => {
+  try {
+    const { id: buyerId } = req.user;
+    const { orderId } = req.body;
+
+    if (!orderId) {
+      return res.status(400).json({ error: "orderId is required" });
+    }
+
+    const order = await Order.findById(orderId).populate('sellerId', 'name');
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+    if (order.buyerId.toString() !== buyerId) {
+      return res.status(403).json({ error: "You are not authorized to reject this offer" });
+    }
+    if (order.status !== 'offer_pending') {
+      return res.status(400).json({ error: "This offer is not pending rejection" });
+    }
+
+    order.status = 'rejected';
+    await order.save();
+
+    await sendNotification(order.sellerId._id, "booking", `Your custom offer for order #${order._id.toString().slice(-6)} was rejected by the buyer.`, order._id, "Order");
+
+    res.json({ message: "Custom offer has been rejected", order });
+  } catch (error) {
+    console.error("Error rejecting custom offer:", error);
+    res.status(500).json({ error: "Failed to reject offer", details: error.message });
   }
 };
 
@@ -257,8 +374,11 @@ export const acceptJob = async (req, res) => {
     const { id: sellerId, name } = req.user;
     const { id } = req.body;
     const job = await Order.findById(id);
-    if (!job || job.status !== "pending")
-      return res.status(400).json({ error: "Job not available" });
+
+    // Allow accepting a 'pending' job (for fixed price) or an 'offer_pending' job (for custom offers)
+    if (!job || !['pending', 'offer_pending'].includes(job.status)) {
+      return res.status(400).json({ error: "Job not available for acceptance" });
+    }
 
     job.status = "accepted";
     job.acceptedBy = sellerId;

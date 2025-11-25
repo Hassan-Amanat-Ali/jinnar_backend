@@ -51,9 +51,7 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       // Make password required if the role is an admin role
-      required: function () {
-        return ["support", "supervisor", "super_admin"].includes(this.role);
-      },
+      required: false, // Not strictly required to allow migration of old accounts
       minlength: [6, "Password must be at least 6 characters long"],
       select: false, // Do not return password by default
     },

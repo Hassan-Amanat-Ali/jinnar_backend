@@ -2,8 +2,9 @@ import express from "express";
 import {
   registerUser,
   verifyCode,
-  signIn,
-  verifySignIn,
+  login,
+  forgotPassword,
+  resetPassword,
 } from "../controllers/authController.js";
 // import { ussdHandler } from '../controllers/ussdController.js';
 import { body, validationResult } from "express-validator";
@@ -31,8 +32,9 @@ router.post(
 );
 
 router.post("/verify", verifyCode);
-router.post("/signin", signIn);
-router.post("/verify-signin", verifySignIn);
+router.post("/login", login);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
 
 // router.post('/ussd', ussdHandler);
 

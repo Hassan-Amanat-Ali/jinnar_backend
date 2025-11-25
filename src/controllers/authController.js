@@ -28,13 +28,14 @@ if (accountSid && authToken) {
 // Register user with mobile number
 export const registerUser = async (req, res) => {
   try {
-    const { mobileNumber, role, name = "" } = req.body;
+    const { mobileNumber, role, name = "", password } = req.body;
 
     // Validate inputs
-    if (!mobileNumber || !role) {
+
+    if (!mobileNumber || !role || !password) {
       return res
         .status(400)
-        .json({ error: "Mobile number and role are required" });
+        .json({ error: "Mobile number, role, and password are required" });
     }
     if (!["buyer", "seller"].includes(role)) {
       return res.status(400).json({ error: "Role must be buyer or seller" });
@@ -65,6 +66,7 @@ export const registerUser = async (req, res) => {
       mobileNumber,
       role,
       name: name.trim(),
+      password,
       wallet: { balance: 0, transactions: [] },
       notifications: [],
       orderHistory: [],
@@ -142,12 +144,7 @@ export const verifyCode = async (req, res, next) => {
     user.verificationCodeExpires = null;
     await user.save();
 
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" },
-    );
-    return res.json({ message: "Mobile number verified", token });
+    return res.json({ message: "Mobile number verified successfully. You can now log in." });
   } catch (error) {
     console.error("Verify Code Error:", error.message);
     return next(error);
@@ -155,86 +152,33 @@ export const verifyCode = async (req, res, next) => {
 };
 
 // Sign-in (request code)
-export const signIn = async (req, res, next) => {
+export const login = async (req, res, next) => {
   try {
-    const { mobileNumber } = req.body;
-    if (!mobileNumber)
-      return res.status(400).json({ error: "Mobile number is required" });
-    if (!/^\+[1-9]\d{1,14}$/.test(mobileNumber))
-      return res
-        .status(400)
-        .json({ error: "Invalid mobile number format. Use E.164" });
-
-    const user = await User.findOne({ mobileNumber });
-    if (!user)
-      return res
-        .status(404)
-        .json({ error: "User not found. Please register first." });
-
-    const verificationCode = generateVerificationCode();
-    user.verificationCode = verificationCode;
-    user.verificationCodeExpires = Date.now() + 10 * 60 * 1000;
-    user.lastLogin = new Date();
-    await user.save();
-
-    console.log(
-      `Sign-in verification code for ${mobileNumber}: ${verificationCode}`,
-    );
-
-    // Send SMS verification (if Twilio configured)
-    if (client && twilioPhone && process.env.ENABLE_TWILIO_SMS === 'true') {
-      try {
-        const msg = await client.messages.create({
-          body: `Jinnar Services App. Your sign-in verification code is: ${verificationCode}`,
-          from: "+17064802072",
-          to: mobileNumber,
-        });
-        console.log(`Sign-in SMS sent to ${mobileNumber}`, {
-          sid: msg.sid,
-          status: msg.status,
-        });
-      } catch (smsError) {
-        console.error("Twilio SMS Error:", {
-          message: smsError.message,
-          code: smsError.code,
-          status: smsError.status,
-          moreInfo: smsError.moreInfo,
-        });
-      }
-    } else {
-      console.log("Twilio not configured; skipping SMS send");
+    const { mobileNumber, password } = req.body;
+    if (!mobileNumber || !password) {
+      return res.status(400).json({ error: "Mobile number and password are required" });
     }
 
-    return res.json({
-      message: "Sign-in verification code sent to mobile number : ",
-      verificationCode,
-    });
-  } catch (error) {
-    console.error("Sign-In Error:", error.message);
-    return next(error);
-  }
-};
+    const user = await User.findOne({ mobileNumber }).select("+password");
+    if (!user) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
 
-// Verify sign-in code
-export const verifySignIn = async (req, res, next) => {
-  try {
-    const { mobileNumber, code } = req.body;
-    if (!mobileNumber || !code)
-      return res
-        .status(400)
-        .json({ error: "Mobile number and code are required" });
+    if (!user.isVerified) {
+      return res.status(403).json({ error: "Mobile number not verified. Please verify your mobile number first." });
+    }
+    if (!user.password) {
+  return res.status(403).json({
+    error: "You have not set a password yet. Please reset your password to continue."
+  });
+}
 
-    const user = await User.findOne({ mobileNumber });
-    if (!user) return res.status(404).json({ error: "User not found" });
 
-    if (
-      user.verificationCode !== code ||
-      user.verificationCodeExpires < Date.now()
-    )
-      return res.status(400).json({ error: "Invalid or expired code" });
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
 
-    user.verificationCode = null;
-    user.verificationCodeExpires = null;
     user.lastLogin = new Date();
     await user.save();
 
@@ -243,9 +187,108 @@ export const verifySignIn = async (req, res, next) => {
       process.env.JWT_SECRET,
       { expiresIn: "7d" },
     );
-    return res.json({ message: "Sign-in successful", token });
+    return res.json({ message: "Login successful", token });
   } catch (error) {
-    console.error("Verify Sign-In Error:", error.message);
+    console.error("Login Error:", error.message);
+    return next(error);
+  }
+};
+
+/**
+ * @description Request a password reset OTP for an existing user.
+ * @route POST /api/auth/forgot-password
+ */
+export const forgotPassword = async (req, res, next) => {
+  try {
+    const { mobileNumber } = req.body;
+    if (!mobileNumber) {
+      return res.status(400).json({ error: "Mobile number is required" });
+    }
+
+    const user = await User.findOne({ mobileNumber });
+    if (!user) {
+      return res.status(404).json({ error: "User with this mobile number does not exist." });
+    }
+
+    // Generate and send OTP
+    const verificationCode = generateVerificationCode();
+    user.verificationCode = verificationCode;
+    user.verificationCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    await user.save();
+
+    // Send SMS via Twilio (if configured)
+    if (client && twilioPhone && process.env.ENABLE_TWILIO_SMS === 'true') {
+      try {
+        await client.messages.create({
+          body: `Jinnar Services App. Your password reset code is: ${verificationCode}`,
+          from: "+17064802072",
+          to: mobileNumber.toString(),
+        });
+        console.log(`Password reset SMS sent to ${mobileNumber}`);
+      } catch (smsError) {
+        console.error("Twilio SMS Error on password reset:", smsError.message);
+        // Don't block the flow if SMS fails, user can still use the logged code in dev
+      }
+    } else {
+      console.log("Twilio not configured; skipping SMS send for password reset.");
+    }
+
+    console.log(`Password reset code for ${mobileNumber}: ${verificationCode}`);
+
+    res.status(200).json({ message: "Password reset code sent to your mobile number." });
+
+  } catch (error) {
+    console.error("Forgot Password Error:", error.message);
+    return next(error);
+  }
+};
+
+/**
+ * @description Reset user password using the OTP.
+ * @route POST /api/auth/reset-password
+ */
+export const resetPassword = async (req, res, next) => {
+  try {
+    const { mobileNumber, code, newPassword } = req.body;
+
+    if (!mobileNumber || !code || !newPassword) {
+      return res.status(400).json({ error: "Mobile number, code, and new password are required." });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: "Password must be at least 6 characters long." });
+    }
+
+    const user = await User.findOne({ mobileNumber });
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    // Check if the code is valid and not expired
+    if (user.verificationCode !== code || user.verificationCodeExpires < Date.now()) {
+      return res.status(400).json({ error: "Invalid or expired verification code." });
+    }
+
+    // Set the new password and clear the verification code fields
+    user.password = newPassword;
+    user.verificationCode = null;
+    user.verificationCodeExpires = null;
+    await user.save();
+
+    // Log the user in by issuing a new token
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" },
+    );
+
+    res.status(200).json({
+      message: "Password has been reset successfully. You are now logged in.",
+      token,
+    });
+
+  } catch (error) {
+    console.error("Reset Password Error:", error.message);
     return next(error);
   }
 };

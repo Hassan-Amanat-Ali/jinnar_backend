@@ -205,6 +205,18 @@ router.get(
   AdminController.getCategories
 );
 
+router.patch(
+  "/categories/:id",
+  authorize("super_admin"),
+  AdminController.updateCategory
+);
+
+router.delete(
+  "/categories/:id",
+  authorize("super_admin"),
+  AdminController.deleteCategory
+);
+
 // =============================================================================
 // 6. GIG MANAGEMENT
 // =============================================================================

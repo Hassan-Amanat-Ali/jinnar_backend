@@ -17,6 +17,9 @@ import {
   getDeclinedJobRequests,
   getCancelledJobRequests,
   getCompletedJobRequests,
+  createCustomOffer,
+  acceptCustomOffer,
+  rejectCustomOffer,
   getSellerQuickStats,
 } from "../controllers/orderController.js";
 import { protect } from "../middleware/auth.js";
@@ -42,6 +45,9 @@ router.get("/available", protect, getAvailableJobs);
 router.post("/accept", protect, acceptJob);
 router.post("/decline", protect, declineJob);
 router.get("/declined", protect, getDeclinedJobRequests);
+router.post("/custom-offer", protect, createCustomOffer); // Seller makes an offer
+router.post("/accept-offer", protect, acceptCustomOffer); // Buyer accepts
+router.post("/reject-offer", protect, rejectCustomOffer); // Buyer rejects
 
 // Chat
 router.post("/message", protect, sendMessage);

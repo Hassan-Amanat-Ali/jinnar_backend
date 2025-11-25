@@ -936,6 +936,7 @@ export const getMyProfile = async (req, res) => {
       mobileNumber: user.mobileNumber,
       role: user.role,
       isVerified: user.isVerified,
+      verificationStatus: user.verificationStatus, // <-- ADDED
       profilePicture: user.profilePicture,
       bio: user.bio || "",
       skills: user.skills || [],
