@@ -235,7 +235,7 @@ export const forgotPassword = async (req, res, next) => {
 
     console.log(`Password reset code for ${mobileNumber}: ${verificationCode}`);
 
-    res.status(200).json({ message: "Password reset code sent to your mobile number." });
+    res.status(200).json({ message: "Password reset code sent to your mobile number." , verificationCode });
 
   } catch (error) {
     console.error("Forgot Password Error:", error.message);
