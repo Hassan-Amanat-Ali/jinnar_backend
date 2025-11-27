@@ -43,14 +43,10 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
       match: [/\S+@\S+\.\S+/, "Invalid email address"],
-      // Make email required if the role is an admin role
-      required: function () {
-        return ["support", "supervisor", "super_admin"].includes(this.role);
-      },
+      required: [true, "Email is required"],
     },
     password: {
       type: String,
-      // Make password required if the role is an admin role
       required: false, // Not strictly required to allow migration of old accounts
       minlength: [6, "Password must be at least 6 characters long"],
       select: false, // Do not return password by default
@@ -58,8 +54,7 @@ const userSchema = new mongoose.Schema(
 
     mobileNumber: {
       type: String,
-      required: [true, "Mobile number is required"],
-      unique: true,
+      required: false,
       trim: true,
       match: [
         /^\+[1-9]\d{1,14}$/,

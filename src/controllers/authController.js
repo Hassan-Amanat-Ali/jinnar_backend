@@ -3,8 +3,25 @@ import jwt from "jsonwebtoken";
 import twilio from "twilio";
 import { generateVerificationCode } from "../utils/helpers.js";
 import { configDotenv } from "dotenv";
+import nodemailer from "nodemailer";
 
 configDotenv();
+
+// Nodemailer transporter using Gmail SMTP
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
+  auth: {
+    // It's highly recommended to use environment variables for security
+    user: process.env.GMAIL_USER, // Your Gmail address from .env file
+    pass: process.env.GMAIL_APP_PASSWORD, // Your Gmail app password from .env file
+  },
+});
+
+console.log("Nodemailer configured for Gmail.");
+
 // Initialize Twilio client from environment variables (safe for prod)
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -83,15 +100,30 @@ export const registerUser = async (req, res) => {
 
     await user.save();
 
-    // TODO: Send email verification (email service to be configured)
-    // For now, OTP is returned in response for testing/migration
-    console.log(`Verification code for ${email}: ${verificationCode}`);
+    // Send email verification using nodemailer
+    if (transporter) {
+      try {
+        const mailOptions = {
+          from: `"Jinnar Services" <${process.env.GMAIL_USER}>`,
+          to: user.email,
+          subject: "Your Verification Code",
+          html: `<p>Your verification code is: <b>${verificationCode}</b></p><p>This code will expire in 10 minutes.</p>`,
+        };
+        const info = await transporter.sendMail(mailOptions);
+        console.log("Message sent: %s", info.messageId);
+      } catch (emailError) {
+        console.error("Error sending verification email:", emailError);
+        // Decide if you want to fail the request or just log the error
+      }
+    } else {
+      console.log(`Verification code for ${email}: ${verificationCode}`);
+    }
 
     return res
       .status(201)
       .json({ message: "Verification code sent to email", verificationCode });
   } catch (error) {
-    console.error("Register User Error:", error.message);
+    console.error("Register User Error:", error);
     return res
       .status(500)
       .json({ error: "Internal Server Error", details: error.message });
@@ -193,11 +225,26 @@ export const forgotPassword = async (req, res, next) => {
     user.verificationCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
     await user.save();
 
-    // TODO: Send email with password reset code (email service to be configured)
-    // For now, OTP is returned in response for testing/migration
-    console.log(`Password reset code for ${email}: ${verificationCode}`);
+    // Send password reset email using nodemailer
+    if (transporter) {
+      try {
+        const mailOptions = {
+          from: `"Jinnar Services" <${process.env.GMAIL_USER}>`,
+          to: user.email,
+          subject: "Your Password Reset Code",
+          html: `<p>Your password reset code is: <b>${verificationCode}</b></p><p>This code will expire in 10 minutes.</p>`,
+        };
+        const info = await transporter.sendMail(mailOptions);
+        console.log("Password reset email sent: %s", info.messageId);
+      } catch (emailError) {
+        console.error("Error sending password reset email:", emailError);
+        // Even if email fails, for now, we don't fail the whole request
+      }
+    } else {
+      console.log(`Password reset code for ${email}: ${verificationCode}`);
+    }
 
-    res.status(200).json({ message: "Password reset code sent to your email.", verificationCode });
+    res.status(200).json({ message: "Password reset code sent to your email." });
 
   } catch (error) {
     console.error("Forgot Password Error:", error.message);

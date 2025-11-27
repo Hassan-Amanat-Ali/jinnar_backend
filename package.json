@@ -46,6 +46,7 @@
     "multer": "^2.0.2",
     "ngrok": "^5.0.0-beta.2",
     "node-nlp": "^5.0.0-alpha.5",
+    "nodemailer": "^7.0.11",
     "nodemon": "^3.1.10",
     "sharp": "^0.34.4",
     "socket.io": "^4.8.1",
