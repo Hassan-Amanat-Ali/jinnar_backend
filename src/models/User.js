@@ -251,7 +251,6 @@ const userSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-userSchema.index({ mobileNumber: 1 });
 userSchema.index({ "wallet.transactions.createdAt": -1 });
 userSchema.index({ "wallet.transactions.paymentMethod": 1 });
 userSchema.index({ "availability.day": 1 });
