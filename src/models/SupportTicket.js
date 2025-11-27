@@ -39,6 +39,49 @@ const supportTicketSchema = new mongoose.Schema(
       required: true,
     },
     conversation: [messageSchema],
+    category: {
+      type: String,
+      enum: ['billing', 'technical', 'dispute', 'general', 'spam'],
+      default: 'general',
+    },
+    internalNotes: [
+      {
+        agentId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+        note: {
+          type: String,
+          required: true,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    reopenedAt: {
+      type: Date,
+      default: null,
+    },
+    reopenedCount: {
+      type: Number,
+      default: 0,
+    },
+    aiAnalysis: {
+      isAnalyzed: { type: Boolean, default: false },
+      category: { 
+        type: String, 
+        enum: ['billing', 'technical', 'dispute', 'general', 'spam'],
+        default: 'general'
+      },
+      sentimentScore: { type: Number }, // 1 (Angry) to 10 (Happy)
+      priorityScore: { type: Number }, // 1 (Low) to 5 (Critical)
+      fraudFlag: { type: Boolean, default: false },
+      suggestedResponse: { type: String }, // The draft for your admin
+      analyzedAt: { type: Date }
+    },
     status: {
       type: String,
       enum: ["open", "in_progress", "resolved", "closed"],

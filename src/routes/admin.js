@@ -6,7 +6,9 @@ import {
   getTicketById, 
   replyToTicket,
   updateTicketStatus,
-  assignTicket
+  assignTicket,
+  addInternalNote,
+  getMyAssignedTickets
 } from "../controllers/SupportTicketController.js";
 
 import { protect, authorize } from "../middleware/auth.js"; // Assuming this handles strings
@@ -54,6 +56,20 @@ router.put(
   protect,
   authorize("supervisor", "super_admin"),
   assignTicket
+);
+
+router.get(
+  "/tickets/assigned",
+  protect,
+  authorize("support", "supervisor", "super_admin"),
+  getMyAssignedTickets
+);
+
+router.post(
+  "/tickets/:id/internal-note",
+  protect,
+  authorize("support", "supervisor", "super_admin"),
+  addInternalNote
 );
 
 

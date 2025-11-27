@@ -1,5 +1,6 @@
 import SupportTicket from "../models/SupportTicket.js";
 import User from "../models/User.js";
+import { analyzeTicket } from "../services/aiService.js";
 import { sendPushNotification } from "../services/pushNotificationService.js";
 import mongoose from "mongoose";
 
@@ -21,22 +22,33 @@ export const createTicket = async (req, res) => {
       return res.status(404).json({ message: "User not found." });
     }
 
-    const initialMessage = {
-      sender: req.user.id,
-      message,
-      attachments: attachments || [],
-    };
-
-    const ticket = new SupportTicket({
+    // Standard users cannot set priority or category - ignore if sent
+    const isAdmin = ['support', 'supervisor', 'super_admin'].includes(req.user.role);
+    const ticketData = {
       user: req.user.id,
       subject,
-      conversation: [initialMessage],
-    });
+      conversation: [{
+        sender: req.user.id,
+        message,
+        attachments: attachments || [],
+      }],
+    };
 
+    // Only allow admins to set priority and category
+    if (isAdmin && req.body.priority) {
+      ticketData.priority = req.body.priority;
+    }
+    if (isAdmin && req.body.category) {
+      ticketData.category = req.body.category;
+    }
+
+    const ticket = new SupportTicket(ticketData);
     const createdTicket = await ticket.save();
 
+    analyzeTicket(createdTicket._id);
+
     // Notify admins
-    const admins = await User.find({ role: { $in: ["admin", "super_admin"] } });
+    const admins = await User.find({ role: { $in: ["support", "supervisor", "super_admin"] } });
     const notificationPromises = admins.flatMap((admin) => {
       if (!admin.fcmTokens || admin.fcmTokens.length === 0) return [];
       return admin.fcmTokens.map(tokenInfo => {
@@ -84,7 +96,9 @@ export const getMyTickets = async (req, res) => {
  */
 export const getTicketById = async (req, res) => {
   try {
-    const ticket = await SupportTicket.findById(req.params.id)
+    const isAdmin = ['support', 'supervisor', 'super_admin'].includes(req.user.role);
+    
+    let ticket = await SupportTicket.findById(req.params.id)
       .populate("user", "name email")
       .populate("assignedTo", "name email")
       .populate("conversation.sender", "name email role");
@@ -94,8 +108,22 @@ export const getTicketById = async (req, res) => {
     }
 
     // Ensure regular users can only access their own tickets
-    if (req.user.role !== "admin" && req.user.role !== "super_admin" && ticket.user._id.toString() !== req.user.id) {
+    if (!isAdmin && ticket.user._id.toString() !== req.user.id) {
       return res.status(403).json({ message: "Not authorized to view this ticket." });
+    }
+
+    // Populate internalNotes for admins, filter out for non-admin users
+    if (isAdmin) {
+      ticket = await SupportTicket.findById(req.params.id)
+        .populate("user", "name email")
+        .populate("assignedTo", "name email")
+        .populate("internalNotes.agentId", "name email role")
+        .populate("conversation.sender", "name email role");
+    } else {
+      // Filter out internalNotes for non-admin users
+      ticket = ticket.toObject();
+      delete ticket.internalNotes;
+      ticket = JSON.parse(JSON.stringify(ticket));
     }
 
     res.status(200).json(ticket);
@@ -125,10 +153,15 @@ export const replyToTicket = async (req, res) => {
     }
 
     const isUserOwner = ticket.user?.toString() === req.user.id;
-    const isAdmin = req.user.role === "admin" || req.user.role === "super_admin";
+    const isAdmin = ['support', 'supervisor', 'super_admin'].includes(req.user.role);
 
     if (!isUserOwner && !isAdmin) {
       return res.status(403).json({ message: "Not authorized to reply to this ticket." });
+    }
+
+    // Users cannot reply to closed tickets
+    if (isUserOwner && ticket.status === "closed") {
+      return res.status(403).json({ message: "Cannot reply to a closed ticket." });
     }
 
     const reply = {
@@ -145,9 +178,12 @@ export const replyToTicket = async (req, res) => {
         ticket.status = "in_progress";
       }
     } else if (isUserOwner) {
-        if (ticket.status === "resolved") {
-            ticket.status = "open";
-        }
+      // User can re-open a resolved ticket
+      if (ticket.status === "resolved") {
+        ticket.status = "open";
+        ticket.reopenedAt = new Date();
+        ticket.reopenedCount = (ticket.reopenedCount || 0) + 1;
+      }
     }
 
     const updatedTicket = await ticket.save();
@@ -187,7 +223,7 @@ export const replyToTicket = async (req, res) => {
         }
       } else {
         // If not assigned, notify all admins
-        const admins = await User.find({ role: { $in: ["admin", "super_admin"] } });
+        const admins = await User.find({ role: { $in: ["support", "supervisor", "super_admin"] } });
         const notificationPromises = admins.flatMap(admin => 
           admin.fcmTokens.map(tokenInfo => sendPushNotification(tokenInfo.token, notification)));
         await Promise.all(notificationPromises);
@@ -230,6 +266,7 @@ export const getAllTickets = async (req, res) => {
     const tickets = await SupportTicket.find(query)
       .populate("user", "name email")
       .populate("assignedTo", "name email")
+      .populate("internalNotes.agentId", "name email role")
       .sort(sort);
 
     res.status(200).json(tickets);
@@ -269,7 +306,7 @@ export const updateTicketStatus = async (req, res) => {
 
     // Notify user of status change
     const user = await User.findById(ticket.user);
-    if (user && user.fcmToken) {
+    if (user && user.fcmTokens && user.fcmTokens.length > 0) {
       const notification = {
         title: `Ticket #${ticket.ticketId} Status Updated`,
         body: `The status of your support ticket has been updated to "${status.replace("_", " ")}".`,
@@ -277,7 +314,10 @@ export const updateTicketStatus = async (req, res) => {
           ticketId: ticket._id.toString(),
         },
       };
-      await sendPushNotification(user.fcmToken, notification);
+      const notificationPromises = user.fcmTokens.map(tokenInfo => 
+        sendPushNotification(tokenInfo.token, notification)
+      );
+      await Promise.all(notificationPromises);
     }
 
     const populatedTicket = await SupportTicket.findById(updatedTicket._id)
@@ -316,7 +356,7 @@ export const assignTicket = async (req, res) => {
         return res.status(404).json({ message: "Assignee user not found." });
     }
 
-    if (assignee.role !== "admin" && assignee.role !== "super_admin") {
+    if (!['support', 'supervisor', 'super_admin'].includes(assignee.role)) {
         return res.status(403).json({ message: "Can only assign tickets to administrators." });
     }
 
@@ -361,5 +401,66 @@ export const assignTicket = async (req, res) => {
   } catch (error) {
     console.error("Error assigning ticket:", error);
     res.status(500).json({ message: "Server error while assigning ticket." });
+  }
+};
+
+/**
+ * @description Add an internal note to a support ticket (for admins)
+ * @route POST /api/admin/support/tickets/:id/internal-note
+ * @access Private (Admin)
+ */
+export const addInternalNote = async (req, res) => {
+  const { note } = req.body;
+
+  if (!note || !note.trim()) {
+    return res.status(400).json({ message: "Note is required." });
+  }
+
+  try {
+    const ticket = await SupportTicket.findById(req.params.id);
+
+    if (!ticket) {
+      return res.status(404).json({ message: "Ticket not found." });
+    }
+
+    // Add internal note (separate from conversation)
+    ticket.internalNotes.push({
+      agentId: req.user.id,
+      note: note.trim(),
+      createdAt: new Date(),
+    });
+
+    const updatedTicket = await ticket.save();
+
+    const populatedTicket = await SupportTicket.findById(updatedTicket._id)
+      .populate("user", "name email")
+      .populate("assignedTo", "name email")
+      .populate("internalNotes.agentId", "name email role")
+      .populate("conversation.sender", "name email role");
+
+    res.status(200).json(populatedTicket);
+  } catch (error) {
+    console.error("Error adding internal note:", error);
+    res.status(500).json({ message: "Server error while adding internal note." });
+  }
+};
+
+/**
+ * @description Get all tickets assigned to the logged-in admin
+ * @route GET /api/admin/support/tickets/assigned
+ * @access Private (Admin)
+ */
+export const getMyAssignedTickets = async (req, res) => {
+  try {
+    const tickets = await SupportTicket.find({ assignedTo: req.user.id })
+      .populate("user", "name email")
+      .populate("assignedTo", "name email")
+      .populate("internalNotes.agentId", "name email role")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(tickets);
+  } catch (error) {
+    console.error("Error fetching assigned tickets:", error);
+    res.status(500).json({ message: "Server error while fetching assigned tickets." });
   }
 };
