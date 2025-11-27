@@ -25,17 +25,16 @@ if (accountSid && authToken) {
   console.log("Twilio credentials not set; SMS disabled");
 }
 
-// Register user with mobile number
+// Register user with email
 export const registerUser = async (req, res) => {
   try {
-    const { mobileNumber, role, name = "", password } = req.body;
+    const { email, role, name = "", password } = req.body;
 
     // Validate inputs
-
-    if (!mobileNumber || !role || !password) {
+    if (!email || !role || !password) {
       return res
         .status(400)
-        .json({ error: "Mobile number, role, and password are required" });
+        .json({ error: "Email, role, and password are required" });
     }
     if (!["buyer", "seller"].includes(role)) {
       return res.status(400).json({ error: "Role must be buyer or seller" });
@@ -45,25 +44,27 @@ export const registerUser = async (req, res) => {
         .status(400)
         .json({ error: "Name is required for seller role" });
     }
-    if (!/^\+[1-9]\d{1,14}$/.test(mobileNumber)) {
+    // Email validation
+    const emailRegex = /\S+@\S+\.\S+/;
+    if (!emailRegex.test(email)) {
       return res
         .status(400)
         .json({
-          error: "Invalid mobile number format. Use E.164 (e.g., +1234567890)",
+          error: "Invalid email format",
         });
     }
 
-    // Check if user exists
-    const existingUser = await User.findOne({ mobileNumber });
+    // Check if user exists by email
+    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
     if (existingUser) {
       return res
         .status(409)
-        .json({ error: "Mobile number already registered" });
+        .json({ error: "Email already registered" });
     }
 
     // Create user
     const user = new User({
-      mobileNumber,
+      email: email.toLowerCase().trim(),
       role,
       name: name.trim(),
       password,
@@ -82,36 +83,13 @@ export const registerUser = async (req, res) => {
 
     await user.save();
 
-    // Send SMS verification (if Twilio configured)
-    if (client && twilioPhone && process.env.ENABLE_TWILIO_SMS === 'true') {
-      try {
-        const msg = await client.messages.create({
-          body: `Jinnar Services App. Your verification code is: ${verificationCode}`,
-          from: "+17064802072",
-          to: mobileNumber.toString(),
-        });
-        console.log(`SMS sent to ${mobileNumber}`, {
-          sid: msg.sid,
-          status: msg.status,
-        });
-      } catch (smsError) {
-        console.error("Twilio SMS Error:", {
-          message: smsError.message,
-          code: smsError.code,
-          status: smsError.status,
-          moreInfo: smsError.moreInfo,
-        });
-      }
-    } else {
-      console.log("Twilio not configured; skipping SMS send");
-    }
-
-    // Also log the code for testing
-    console.log(`Verification code for ${mobileNumber}: ${verificationCode}`);
+    // TODO: Send email verification (email service to be configured)
+    // For now, OTP is returned in response for testing/migration
+    console.log(`Verification code for ${email}: ${verificationCode}`);
 
     return res
       .status(201)
-      .json({ message: "Verification code sent to mobile number"  , verificationCode});
+      .json({ message: "Verification code sent to email", verificationCode });
   } catch (error) {
     console.error("Register User Error:", error.message);
     return res
@@ -123,13 +101,13 @@ export const registerUser = async (req, res) => {
 // Verify code (registration)
 export const verifyCode = async (req, res, next) => {
   try {
-    const { mobileNumber, code } = req.body;
-    if (!mobileNumber || !code)
+    const { email, code } = req.body;
+    if (!email || !code)
       return res
         .status(400)
-        .json({ error: "Mobile number and code are required" });
+        .json({ error: "Email and code are required" });
 
-    const user = await User.findOne({ mobileNumber });
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) return res.status(404).json({ error: "User not found" });
 
     if (
@@ -144,35 +122,34 @@ export const verifyCode = async (req, res, next) => {
     user.verificationCodeExpires = null;
     await user.save();
 
-    return res.json({ message: "Mobile number verified successfully. You can now log in." });
+    return res.json({ message: "Email verified successfully. You can now log in." });
   } catch (error) {
     console.error("Verify Code Error:", error.message);
     return next(error);
   }
 };
 
-// Sign-in (request code)
+// Sign-in
 export const login = async (req, res, next) => {
   try {
-    const { mobileNumber, password } = req.body;
-    if (!mobileNumber || !password) {
-      return res.status(400).json({ error: "Mobile number and password are required" });
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
     }
 
-    const user = await User.findOne({ mobileNumber }).select("+password");
+    const user = await User.findOne({ email: email.toLowerCase().trim() }).select("+password");
     if (!user) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
     if (!user.isVerified) {
-      return res.status(403).json({ error: "Mobile number not verified. Please verify your mobile number first." });
+      return res.status(403).json({ error: "Email not verified. Please verify your email first." });
     }
     if (!user.password) {
-  return res.status(403).json({
-    error: "You have not set a password yet. Please reset your password to continue."
-  });
-}
-
+      return res.status(403).json({
+        error: "You have not set a password yet. Please reset your password to continue."
+      });
+    }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
@@ -200,14 +177,14 @@ export const login = async (req, res, next) => {
  */
 export const forgotPassword = async (req, res, next) => {
   try {
-    const { mobileNumber } = req.body;
-    if (!mobileNumber) {
-      return res.status(400).json({ error: "Mobile number is required" });
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
     }
 
-    const user = await User.findOne({ mobileNumber });
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
-      return res.status(404).json({ error: "User with this mobile number does not exist." });
+      return res.status(404).json({ error: "User with this email does not exist." });
     }
 
     // Generate and send OTP
@@ -216,26 +193,11 @@ export const forgotPassword = async (req, res, next) => {
     user.verificationCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
     await user.save();
 
-    // Send SMS via Twilio (if configured)
-    if (client && twilioPhone && process.env.ENABLE_TWILIO_SMS === 'true') {
-      try {
-        await client.messages.create({
-          body: `Jinnar Services App. Your password reset code is: ${verificationCode}`,
-          from: "+17064802072",
-          to: mobileNumber.toString(),
-        });
-        console.log(`Password reset SMS sent to ${mobileNumber}`);
-      } catch (smsError) {
-        console.error("Twilio SMS Error on password reset:", smsError.message);
-        // Don't block the flow if SMS fails, user can still use the logged code in dev
-      }
-    } else {
-      console.log("Twilio not configured; skipping SMS send for password reset.");
-    }
+    // TODO: Send email with password reset code (email service to be configured)
+    // For now, OTP is returned in response for testing/migration
+    console.log(`Password reset code for ${email}: ${verificationCode}`);
 
-    console.log(`Password reset code for ${mobileNumber}: ${verificationCode}`);
-
-    res.status(200).json({ message: "Password reset code sent to your mobile number." , verificationCode });
+    res.status(200).json({ message: "Password reset code sent to your email.", verificationCode });
 
   } catch (error) {
     console.error("Forgot Password Error:", error.message);
@@ -249,17 +211,17 @@ export const forgotPassword = async (req, res, next) => {
  */
 export const resetPassword = async (req, res, next) => {
   try {
-    const { mobileNumber, code, newPassword } = req.body;
+    const { email, code, newPassword } = req.body;
 
-    if (!mobileNumber || !code || !newPassword) {
-      return res.status(400).json({ error: "Mobile number, code, and new password are required." });
+    if (!email || !code || !newPassword) {
+      return res.status(400).json({ error: "Email, code, and new password are required." });
     }
 
     if (newPassword.length < 6) {
       return res.status(400).json({ error: "Password must be at least 6 characters long." });
     }
 
-    const user = await User.findOne({ mobileNumber });
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
       return res.status(404).json({ error: "User not found." });
     }

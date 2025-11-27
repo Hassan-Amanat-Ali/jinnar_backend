@@ -14,18 +14,16 @@ const router = express.Router();
 router.post(
   "/register",
   [
-    body("mobileNumber")
-      .isMobilePhone("any")
-      .withMessage("Invalid mobile number")
-      .matches(/^\+[1-9]\d{1,14}$/)
-      .withMessage("Mobile number must be in E.164 format"),
+    body("email")
+      .isEmail()
+      .withMessage("Invalid email address")
+      .normalizeEmail(),
   ],
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-    console.log("hello");
     next();
   },
   registerUser,
