@@ -62,18 +62,18 @@ export const searchGigs = async (req, res) => {
     if (pricingMethod) query["pricing.method"] = pricingMethod;
 
     // LOCATION FILTER
-    if (latitude && longitude) {
-      const sellers = await User.find({
-        selectedAreas: {
-          $near: {
-            $geometry: { type: "Point", coordinates: [Number(longitude), Number(latitude)] },
-            $maxDistance: (radius || 10) * 1000
-          }
-        }
-      }).select("_id");
+    // if (latitude && longitude) {
+    //   const sellers = await User.find({
+    //     selectedAreas: {
+    //       $near: {
+    //         $geometry: { type: "Point", coordinates: [Number(longitude), Number(latitude)] },
+    //         $maxDistance: (radius || 10) * 1000
+    //       }
+    //     }
+    //   }).select("_id");
 
-      query.sellerId = { $in: sellers.map(s => s._id) };
-    }
+    //   query.sellerId = { $in: sellers.map(s => s._id) };
+    // }
 
     if (orConditions.length > 0) query.$or = orConditions;
 

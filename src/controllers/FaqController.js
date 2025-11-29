@@ -29,6 +29,7 @@ export const createFAQ = async (req, res) => {
     botService.train(); // <--- Retrain the bot with the new FAQ
     res.status(201).json({ message: "FAQ created successfully", faq });
   } catch (error) {
+    console.log(error)
     res
       .status(500)
       .json({ error: "Failed to create FAQ", details: error.message });
