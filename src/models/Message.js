@@ -16,7 +16,6 @@ const messageSchema = new mongoose.Schema(
     message: { type: String, trim: true },
     attachment: {
       url: String,
-      public_id: String,
       type: { type: String, enum: ["image", "video"] },
     },
     isRead: { type: Boolean, default: false },

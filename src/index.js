@@ -46,7 +46,7 @@ app.use(
     })
 );
 app.use('/api/auth', limiter);
-app.use('/uploads', express.static('./uploads'));
+// app.use("/uploads", express.static("uploads")); // 🔴 CRITICAL: Removed for security. Files should be served via a protected route.
 // app.use(upload.array())
 app.use(morgan('dev'));
 if (process.env.NODE_ENV === 'production') {

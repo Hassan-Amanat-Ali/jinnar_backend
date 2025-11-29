@@ -1,11 +1,9 @@
 import express from "express";
 import pawapayCallbackRoutes from "./pawapayCallback.js";
+import { serveFile } from "../controllers/fileController.js"; // ✅ Import the new file server
 
 import authRoutes from "./auth.js";
-import gigRoutes from "./gig.js";
 import userRoutes from "./user.js";
-import imagesRoutes from "./image.js";
-import paymentRoutes from "./payment.js";
 import payoutRoutes from "./payout.js";
 import notificationRoutes from "./notification.js";
 import orderRoutes from "./order.js";
@@ -19,14 +17,17 @@ import chatbotRoutes from "./chatbot.js";
 import supportRoutes from "./support.js";
 import recommendationRoutes from "./recommendation.js";
 import categoryRoutes from "./category.js";
+import paymentRoutes from "./payment.js";
+import gigRoutes from "./gig.js";
+import imageRoutes from "./image.js"; // Import the refactored legacy image route
 
 const router = express.Router();
 
+// ✅ Add the new file serving route and protect it
+router.get("/files/:folder/:filename", serveFile);
+
 router.use("/auth", authRoutes);
-router.use("/gigs", gigRoutes);
 router.use("/user", userRoutes);
-router.use("/images", imagesRoutes);
-router.use("/payment", paymentRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/orders", orderRoutes);
 router.use("/wallet", walletRoutes);
@@ -40,8 +41,13 @@ router.use("/chatbot", chatbotRoutes);
 router.use("/r", recommendationRoutes);
 router.use("/support", supportRoutes);
 router.use("/admin", adminRoutes);
+router.use("/payment", paymentRoutes);
 
+router.use("/gigs", gigRoutes);
 router.use("/categories", categoryRoutes);
 router.use("/faq", faqRoutes);
+
+// Legacy route for backward compatibility
+router.use("/images", imageRoutes);
 
 export default router;

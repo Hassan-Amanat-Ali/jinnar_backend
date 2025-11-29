@@ -160,7 +160,6 @@ export const createGig = async (req, res, next) => {
       description,
       pricingMethod,
       price,
-      images,
       categoryId,
       primarySubcategory,
       extraSubcategories = [], // Default to empty array
@@ -237,9 +236,8 @@ export const createGig = async (req, res, next) => {
         method: pricingMethod,
         price: pricingMethod === "negotiable" ? undefined : price,
       },
-      images: Array.isArray(images)
-        ? images.map((url) => ({ url, publicId: null }))
-        : [],
+      // ✅ Use the URL from the uploaded file middleware
+      images: req.file ? [{ url: req.file.url }] : [],
       category: categoryId,
       primarySubcategory: primarySubcategory,
       extraSubcategories: extraSubcategories,
@@ -358,7 +356,6 @@ export const updateGig = async (req, res, next) => {
       description,
       pricingMethod,
       price,
-      images,
       primarySubcategory,
       extraSubcategories,
     } = req.body;
@@ -425,8 +422,9 @@ export const updateGig = async (req, res, next) => {
     }
 
     // ✅ IMAGES (raw JSON array of URLs)
-    if (Array.isArray(images)) {
-      gig.images = images.map((url) => ({ url, publicId: null }));
+    // ✅ Update image if a new one was uploaded
+    if (req.file) {
+      gig.images = [{ url: req.file.url }];
     }
 
     await gig.save();

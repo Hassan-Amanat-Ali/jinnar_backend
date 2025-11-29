@@ -33,7 +33,7 @@ const gigSchema = new mongoose.Schema(
     },
     // ---------------------------------------
     images: {
-      type: [{ url: String, publicId: String }],
+      type: [{ url: String }],
       default: [],
       validate: {
         validator: function (v) {

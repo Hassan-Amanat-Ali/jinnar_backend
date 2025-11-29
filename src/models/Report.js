@@ -45,7 +45,6 @@ const reportSchema = new mongoose.Schema(
     attachments: [
       {
         url: String,
-        publicId: String, // For Cloudinary or file storage reference
       },
     ],
 

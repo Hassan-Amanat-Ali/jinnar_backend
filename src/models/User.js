@@ -93,7 +93,6 @@ const userSchema = new mongoose.Schema(
           enum: ["passport", "national_id", "drivers_license", "other"],
         },
         url: String,
-        publicId: String,
         uploadedAt: { type: Date, default: Date.now },
       },
     ],
@@ -198,19 +197,16 @@ const userSchema = new mongoose.Schema(
     portfolioImages: [
       {
         url: String,
-        publicId: String,
       },
     ],
     videos: [
       {
         url: String,
-        publicId: String,
       },
     ],
     certificates: [
       {
         url: String,
-        publicId: String,
       },
     ],
     availability: {

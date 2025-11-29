@@ -1,283 +1,374 @@
-import cloudinary from "../config/cloudinary.js";
 import User from "../models/User.js";
+import Gig from "../models/Gig.js";
 import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
 
-const uploadToCloudinary = async (
-  file,
-  userId,
-  folder,
-  resourceType = "auto",
-) => {
+// ------------------------
+//    STORAGE HELPERS
+// ------------------------
+const deleteFileFromStorage = async (url) => {
+  if (!url) return;
+
   try {
-    const result = await cloudinary.uploader.upload(file.path, {
-      folder: `users/${userId}/${folder}`,
-      resource_type: resourceType,
-    });
-    await fs.unlink(file.path).catch(() => {}); // Clean up compressed file
-    return {
-      url: result.secure_url,
-      publicId: result.public_id,
-    };
-  } catch (error) {
-    console.error(`Error uploading to Cloudinary (${folder}):`, error);
-    await fs.unlink(file.path).catch(() => {}); // Clean up on error
-    throw error;
+    // The URL is assumed to be in the format: http://<host>:<port>/uploads/<filename>
+    // We need to extract the relative path '/uploads/<filename>'
+    const urlPath = new URL(url).pathname; // e.g., '/uploads/image-123.jpg'
+
+    // Construct the absolute path to the file on the server's local filesystem.
+    // This assumes your static files are served from a directory named 'uploads' at the project root.
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const filePath = path.join(__dirname, "..", "..", urlPath); // Go up two directories from src/controllers to the root
+
+    await fs.unlink(filePath);
+    console.log(`Successfully deleted file: ${filePath}`);
+  } catch (err) {
+    // If the file doesn't exist or another error occurs, log it but don't crash the request.
+    console.error(`Error deleting file for URL ${url}:`, err.message);
   }
 };
+// ------------------------
+//    HELPERS
+// ------------------------
+const ensureUserValid = async (req, res, requireSeller = false) => {
+  const { id, role } = req.user;
+  const user = await User.findById(id);
 
-// Upload Profile Picture (single file, all users)
+  if (!user) return { error: res.status(404).json({ error: "User not found" }) };
+  if (!user.isVerified)
+    return { error: res.status(403).json({ error: "User not verified" }) };
+
+  if (requireSeller && role !== "seller") {
+    return {
+      error: res
+        .status(403)
+        .json({ error: "Only sellers can perform this action" }),
+    };
+  }
+
+  return { user };
+};
+
+// ------------------------------------------------------------------
+// ⭐ 1. Upload Profile Picture (single)
+// ------------------------------------------------------------------
 export const uploadProfilePicture = async (req, res) => {
   try {
-    const { id } = req.user;
-    const user = await User.findById(id);
-    if (!user) return res.status(404).json({ error: "User not found" });
-    if (!user.isVerified)
-      return res.status(403).json({ error: "User not verified" });
-    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    const { error, user } = await ensureUserValid(req, res);
+    if (error) return;
 
-    const result = await uploadToCloudinary(
-      req.file,
-      id,
-      "profile_pictures",
-      "image",
-    );
+    if (!req.file)
+      return res.status(400).json({ error: "No file uploaded" });
 
-    // Save URL and publicId to user document
-    user.profilePicture = result.url;
-    console.log(result);
+    // Delete old profile picture if it exists
+    if (user.profilePicture) {
+      await deleteFileFromStorage(user.profilePicture);
+    }
 
-    await user.save(); // Save the user document
+    user.profilePicture = req.file.url;
+    await user.save();
 
     return res.status(200).json({
       message: "Profile picture uploaded successfully",
-      file: result,
-      userId: id,
+      file: {
+        url: req.file.url,
+        size: req.file.size,
+      },
+      userId: user._id,
     });
-  } catch (error) {
-    console.error("Upload Profile Picture Error:", error.message, error.stack);
-    return res
-      .status(500)
-      .json({ error: "Internal Server Error", details: error.message });
+  } catch (err) {
+    console.error("Upload Profile Picture Error:", err);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-// Upload Other Images (multiple, all users)
+// ------------------------------------------------------------------
+// ⭐ NEW: Upload Gig Image (single — seller only)
+// ------------------------------------------------------------------
+export const uploadGigImage = async (req, res) => {
+  try {
+    const { error } = await ensureUserValid(req, res, true); // requireSeller = true
+    if (error) return;
+
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    const { gigId } = req.params;
+    if (!gigId) {
+      return res.status(400).json({ error: "Gig ID is required in the URL." });
+    }
+
+    const gig = await Gig.findOne({ _id: gigId, sellerId: req.user.id });
+    if (!gig) {
+      return res.status(404).json({ error: "Gig not found or you are not the owner." });
+    }
+
+    // Delete old image if it exists
+    if (gig.images && gig.images.length > 0 && gig.images[0].url) {
+      await deleteFileFromStorage(gig.images[0].url);
+    }
+
+    gig.images = [{ url: req.file.url }];
+    await gig.save();
+
+    return res.status(200).json({
+      message: "Gig image uploaded successfully",
+      gig,
+    });
+  } catch (err) {
+    console.error("Upload Gig Image Error:", err);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+// ------------------------------------------------------------------
+// ⭐ 2. Upload Other Images (multiple)
+// ------------------------------------------------------------------
 export const uploadOtherImages = async (req, res) => {
   try {
-    const { id } = req.user;
-    const user = await User.findById(id);
-    if (!user) return res.status(404).json({ error: "User not found" });
-    if (!user.isVerified)
-      return res.status(403).json({ error: "User not verified" });
+    const { error, user } = await ensureUserValid(req, res);
+    if (error) return;
 
     if (!req.files || req.files.length === 0)
       return res.status(400).json({ error: "No files uploaded" });
 
-    const uploadPromises = req.files.map((file) =>
-      uploadToCloudinary(file, id, "other_images", "image"),
-    );
-    const results = await Promise.all(uploadPromises);
+    const OTHER_IMAGES_LIMIT = 10;
+    const currentImageCount = user.otherImages?.length || 0;
+    if (currentImageCount + req.files.length > OTHER_IMAGES_LIMIT) {
+      return res.status(400).json({
+        error: `You can upload a maximum of ${OTHER_IMAGES_LIMIT} other images.`,
+      });
+    }
+    const results = req.files.map((f) => ({
+      url: f.url,
+      size: f.size,
+    }));
+
+    user.otherImages = [...(user.otherImages || []), ...results.map(r => ({ url: r.url }))];
+    await user.save();
 
     return res.status(200).json({
       message: "Other images uploaded successfully",
       files: results,
-      userId: id,
+      userId: user._id,
     });
-  } catch (error) {
-    console.error("Upload Other Images Error:", error.message, error.stack);
-    return res
-      .status(500)
-      .json({ error: "Internal Server Error", details: error.message });
+  } catch (err) {
+    console.error("Upload Other Images Error:", err);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-// Upload Portfolio Images (multiple, sellers only)
+// ------------------------------------------------------------------
+// ⭐ 3. Upload Portfolio Images (multiple — seller only)
+// ------------------------------------------------------------------
 export const uploadPortfolioImages = async (req, res) => {
   try {
-    const { id, role } = req.user;
-    const user = await User.findById(id);
-    if (!user) return res.status(404).json({ error: "User not found" });
-    if (!user.isVerified)
-      return res.status(403).json({ error: "User not verified" });
-    if (role !== "seller")
-      return res
-        .status(403)
-        .json({ error: "Only sellers can upload portfolio images" });
+    const { error, user } = await ensureUserValid(req, res, true);
+    if (error) return;
 
     if (!req.files || req.files.length === 0)
       return res.status(400).json({ error: "No files uploaded" });
 
-    const uploadPromises = req.files.map((file) =>
-      uploadToCloudinary(file, id, "portfolio_images", "image"),
-    );
-    const results = await Promise.all(uploadPromises);
+    // Example: Limit portfolio images to 20
+    const PORTFOLIO_LIMIT = 20;
+    const currentImageCount = user.portfolioImages?.length || 0;
+    if (currentImageCount + req.files.length > PORTFOLIO_LIMIT) {
+      return res.status(400).json({
+        error: `You can upload a maximum of ${PORTFOLIO_LIMIT} portfolio images.`,
+      });
+    }
+    const results = req.files.map((f) => ({
+      url: f.url,
+      size: f.size,
+    }));
+
+    user.portfolioImages = [...(user.portfolioImages || []), ...results.map(r => ({ url: r.url }))];
+    await user.save();
 
     return res.status(200).json({
       message: "Portfolio images uploaded successfully",
       files: results,
-      userId: id,
+      userId: user._id,
     });
-  } catch (error) {
-    console.error("Upload Portfolio Images Error:", error.message, error.stack);
-    return res
-      .status(500)
-      .json({ error: "Internal Server Error", details: error.message });
+  } catch (err) {
+    console.error("Upload Portfolio Error:", err);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-// Upload Videos (multiple, sellers only)
+// ------------------------------------------------------------------
+// ⭐ 4. Upload Videos (multiple — seller only)
+// ------------------------------------------------------------------
 export const uploadVideos = async (req, res) => {
   try {
-    const { id, role } = req.user;
-    const user = await User.findById(id);
-    if (!user) return res.status(404).json({ error: "User not found" });
-    if (!user.isVerified)
-      return res.status(403).json({ error: "User not verified" });
-    if (role !== "seller")
-      return res.status(403).json({ error: "Only sellers can upload videos" });
+    const { error, user } = await ensureUserValid(req, res, true);
+    if (error) return;
 
     if (!req.files || req.files.length === 0)
       return res.status(400).json({ error: "No files uploaded" });
 
-    const uploadPromises = req.files.map((file) =>
-      uploadToCloudinary(file, id, "videos", "video"),
-    );
-    const results = await Promise.all(uploadPromises);
+    // Example: Limit videos to 5
+    const VIDEO_LIMIT = 5;
+    const currentVideoCount = user.videos?.length || 0;
+    if (currentVideoCount + req.files.length > VIDEO_LIMIT) {
+      return res
+        .status(400)
+        .json({ error: `You can upload a maximum of ${VIDEO_LIMIT} videos.` });
+    }
+    const results = req.files.map((f) => ({
+      url: f.url,
+      size: f.size,
+    }));
+
+    user.videos = [...(user.videos || []), ...results.map(r => ({ url: r.url }))];
+    await user.save();
 
     return res.status(200).json({
       message: "Videos uploaded successfully",
       files: results,
-      userId: id,
+      userId: user._id,
     });
-  } catch (error) {
-    console.error("Upload Videos Error:", error.message, error.stack);
-    return res
-      .status(500)
-      .json({ error: "Internal Server Error", details: error.message });
+  } catch (err) {
+    console.error("Upload Videos Error:", err);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-// Upload Certificates (multiple, sellers only)
+// ------------------------------------------------------------------
+// ⭐ 5. Upload Certificates (multiple — seller only)
+// ------------------------------------------------------------------
 export const uploadCertificates = async (req, res) => {
   try {
-    const { id, role } = req.user;
-    const user = await User.findById(id);
-    if (!user) return res.status(404).json({ error: "User not found" });
-    if (!user.isVerified)
-      return res.status(403).json({ error: "User not verified" });
-    if (role !== "seller")
-      return res
-        .status(403)
-        .json({ error: "Only sellers can upload certificates" });
+    const { error, user } = await ensureUserValid(req, res, true);
+    if (error) return;
 
     if (!req.files || req.files.length === 0)
       return res.status(400).json({ error: "No files uploaded" });
 
-    const uploadPromises = req.files.map((file) =>
-      uploadToCloudinary(file, id, "certificates", "raw"),
-    );
-    const results = await Promise.all(uploadPromises);
+    // Example: Limit certificates to 10
+    const CERTIFICATE_LIMIT = 10;
+    const currentCertificateCount = user.certificates?.length || 0;
+    if (currentCertificateCount + req.files.length > CERTIFICATE_LIMIT) {
+      return res.status(400).json({
+        error: `You can upload a maximum of ${CERTIFICATE_LIMIT} certificates.`,
+      });
+    }
+    const results = req.files.map((f) => ({
+      url: f.url,
+      size: f.size,
+    }));
+
+    user.certificates = [...(user.certificates || []), ...results.map(r => ({ url: r.url }))];
+    await user.save();
 
     return res.status(200).json({
       message: "Certificates uploaded successfully",
       files: results,
-      userId: id,
+      userId: user._id,
     });
-  } catch (error) {
-    console.error("Upload Certificates Error:", error.message, error.stack);
-    return res
-      .status(500)
-      .json({ error: "Internal Server Error", details: error.message });
+  } catch (err) {
+    console.error("Upload Certificates Error:", err);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-// Upload Gig Image (single, sellers only)
-export const uploadGigImage = async (req, res) => {
+// ------------------------------------------------------------------
+// ⭐ 8. Delete an Asset (Image, Video, Certificate)
+// ------------------------------------------------------------------
+export const deleteAsset = async (req, res) => {
   try {
-    const { id, role } = req.user;
-    const user = await User.findById(id);
-    if (!user) return res.status(404).json({ error: "User not found" });
-    if (!user.isVerified)
-      return res.status(403).json({ error: "User not verified" });
-    if (role !== "seller")
+    const { error, user } = await ensureUserValid(req, res);
+    if (error) return;
+
+    const { assetUrl, assetType } = req.body;
+
+    if (!assetUrl || !assetType) {
       return res
-        .status(403)
-        .json({ error: "Only sellers can upload gig images" });
+        .status(400)
+        .json({ error: "assetUrl and assetType are required." });
+    }
 
-    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    const validAssetTypes = [
+      "otherImages",
+      "portfolioImages",
+      "videos",
+      "certificates",
+      "identityDocuments",
+    ];
 
-    const result = await uploadToCloudinary(
-      req.file,
-      id,
-      "gig_images",
-      "image",
-    );
-    return res.status(200).json({
-      message: "Gig image uploaded successfully",
-      file: result,
-      userId: id,
-    });
-  } catch (error) {
-    return res
-      .status(500)
-      .json({ error: "Internal Server Error", details: error.message });
+    if (!validAssetTypes.includes(assetType)) {
+      return res.status(400).json({ error: "Invalid assetType." });
+    }
+
+    // Remove the asset from the user's document
+    const initialCount = user[assetType]?.length || 0;
+    user[assetType] = user[assetType]?.filter((asset) => asset.url !== assetUrl) || [];
+
+    if (user[assetType].length === initialCount) {
+      return res.status(404).json({ error: "Asset not found on user profile." });
+    }
+
+    await deleteFileFromStorage(assetUrl);
+    await user.save();
+
+    res.status(200).json({ message: "Asset deleted successfully." });
+  } catch (err) {
+    console.error("Delete Asset Error:", err);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-// --- NEW: Upload Identity Document ---
+// ------------------------------------------------------------------
+// ⭐ 7. Upload Identity Document (single)
+// ------------------------------------------------------------------
 export const uploadIdentityDocument = async (req, res) => {
   try {
     const { id } = req.user;
     const { documentType } = req.body;
 
-    // 1. Validate input
-    const allowedTypes = ["passport", "national_id", "drivers_license", "other"];
-    if (!documentType || !allowedTypes.includes(documentType)) {
-      return res.status(400).json({ error: "A valid documentType is required." });
-    }
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded." });
-    }
+    // validate
+    const allowed = ["passport", "national_id", "drivers_license", "other"];
+    if (!allowed.includes(documentType))
+      return res.status(400).json({ error: "Invalid documentType" });
 
-    // 2. Find user and check status
+    if (!req.file)
+      return res.status(400).json({ error: "No file uploaded" });
+
+    // find user
     const user = await User.findById(id);
-    if (!user) {
-      return res.status(404).json({ error: "User not found." });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    if (["approved", "pending"].includes(user.verificationStatus))
+      return res.status(400).json({
+        error: `Cannot upload documents while status is '${user.verificationStatus}'.`,
+      });
+
+    // If the user is re-submitting (e.g., after a 'rejected' status),
+    // delete all old identity documents first.
+    if (user.identityDocuments && user.identityDocuments.length > 0) {
+      for (const oldDoc of user.identityDocuments) {
+        await deleteFileFromStorage(oldDoc.url);
+      }
     }
-    if (user.verificationStatus === 'approved' || user.verificationStatus === 'pending') {
-        return res.status(400).json({ error: `Cannot upload new documents while status is '${user.verificationStatus}'.` });
-    }
-
-
-    // 3. Upload to Cloudinary
-    const resourceType = req.file.mimetype === "application/pdf" ? "raw" : "image";
-    const result = await uploadToCloudinary(
-      req.file,
-      id,
-      "identity_documents",
-      resourceType
-    );
-
-    // 4. Create and save document reference
-    const newDocument = {
+    // save
+    const doc = {
       documentType,
-      url: result.url,
-      publicId: result.publicId,
+      url: req.file.url, // publicId is removed from the model
+      uploadedAt: new Date(),
     };
 
-    user.identityDocuments.push(newDocument);
+    // Replace old documents with the new one.
+    user.identityDocuments = [doc];
     await user.save();
 
-    // 5. Respond
     return res.status(200).json({
-      message: "Identity document uploaded successfully.",
-      file: newDocument,
-      userId: id,
+      message: "Identity document uploaded successfully",
+      file: doc,
+      userId: user._id,
     });
-  } catch (error) {
-    console.error("Upload Identity Document Error:", error.message, error.stack);
-    return res
-      .status(500)
-      .json({ error: "Internal Server Error", details: error.message });
+  } catch (err) {
+    console.error("Upload Identity Document Error:", err);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };

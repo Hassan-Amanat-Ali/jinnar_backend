@@ -1,10 +1,17 @@
 import express from "express";
-import { uploadImages } from "../controllers/imageController.js";
 import { protect } from "../middleware/auth.js";
+import { uploadOtherImagesMW } from "../middleware/upload.js";
+import { uploadOtherImages } from "../controllers/uploadController.js";
 
 const router = express.Router();
 
-// Upload images (protected route)
-router.post("/upload", protect, uploadImages);
+// This route is maintained for backward compatibility.
+// It now uses the same local storage upload mechanism as the rest of the application.
+router.post(
+  "/upload",
+  protect,
+  ...uploadOtherImagesMW, // Uses the new local storage middleware
+  uploadOtherImages, // Uses the new local storage controller
+);
 
 export default router;

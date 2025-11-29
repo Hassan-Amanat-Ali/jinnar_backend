@@ -1,19 +1,11 @@
 // controllers/ChatController.js
 import Message from "../models/Message.js";
-import { v2 as cloudinary } from "cloudinary";
-import fs from "fs/promises";
 import Order from "../models/Order.js"; // For creating the order
 import Gig from "../models/Gig.js"; // For validation
 import mongoose from "mongoose";
 
 // Make sure this path matches where you put the notification code you showed me
 import { sendNotification } from "./notificationController.js";
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
 
 class ChatController {
   // 1. Send Message
@@ -38,18 +30,11 @@ class ChatController {
 
       // Handle File Upload
       if (req.file) {
-        const result = await cloudinary.uploader.upload(req.file.path, {
-          folder: "chat_attachments",
-          resource_type: req.file.mimetype.startsWith("video")
-            ? "video"
-            : "image",
-        });
+        // ✅ The upload middleware already processed the file
         attachment = {
-          url: result.secure_url,
-          public_id: result.public_id,
+          url: req.file.url,
           type: req.file.mimetype.startsWith("video") ? "video" : "image",
         };
-        await fs.unlink(req.file.path).catch(() => {});
       }
 
       // Create in DB
@@ -116,7 +101,6 @@ class ChatController {
       });
     } catch (error) {
       console.error("Chat send error:", error);
-      if (req.file) await fs.unlink(req.file.path).catch(() => {});
       return res
         .status(500)
         .json({ success: false, message: "Failed to send message" });

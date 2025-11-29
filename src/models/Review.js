@@ -36,10 +36,6 @@ const reviewSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
-    profileImage: {
-      url: String,
-      publicId: String,
-    },
     lastLogin: {
       type: Date,
     },

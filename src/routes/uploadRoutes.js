@@ -3,9 +3,9 @@ import {
   uploadProfilePicture,
   uploadOtherImages,
   uploadPortfolioImages,
+  uploadGigImage,
   uploadVideos,
   uploadCertificates,
-  uploadGigImage,
   uploadIdentityDocument,
 } from "../controllers/uploadController.js";
 
@@ -15,7 +15,6 @@ import {
   uploadPortfolioImagesMW,
   uploadVideosMW,
   uploadCertificatesMW,
-  uploadGigImageMW,
   uploadIdentityDocumentMW,
 } from "../middleware/upload.js";
 
@@ -43,13 +42,20 @@ router.post(
   uploadPortfolioImages,
 );
 router.post("/videos", protect, ...uploadVideosMW, uploadVideos);
+
+// --- NEW: Gig Image Upload ---
+router.post(
+  "/gig-image/:gigId",
+  protect,
+  ...uploadOtherImagesMW, // Re-using this middleware is fine for single image uploads
+  uploadGigImage
+);
 router.post(
   "/certificates",
   protect,
   ...uploadCertificatesMW,
   uploadCertificates,
 );
-router.post("/gig-image", protect, ...uploadGigImageMW, uploadGigImage);
 
 // --- NEW: Identity Document Upload ---
 router.post(

@@ -1,6 +1,5 @@
 import User from "../models/User.js";
 import Gig from "../models/Gig.js";
-import cloudinary from "cloudinary";
 import asyncHandler from "express-async-handler";
 import { calculateDistance } from "../utils/helpers.js";
 import Order from "../models/Order.js";
@@ -139,10 +138,10 @@ export const updateUser = async (req, res) => {
       preferredAreas,
       availability,
       gigs,
-      profileImage, // JSON-based image links (buyers and sellers)
-      portfolioImages, // JSON-based image links (sellers only)
-      videos, // JSON-based video links (sellers only)
-      certificates, // JSON-based certificate links (sellers only)
+      profilePicture, // ✅ Changed from profileImage to match schema
+      portfolioImages,
+      videos,
+      certificates,
     } = req.body;
 
     // Log request body for debugging
@@ -265,24 +264,13 @@ export const updateUser = async (req, res) => {
       user.email = email;
     }
 
-    // Handle profileImage (JSON-based, buyers and sellers)
-    if (profileImage) {
-      if (
-        !profileImage.url ||
-        !profileImage.publicId ||
-        typeof profileImage.url !== "string" ||
-        typeof profileImage.publicId !== "string"
-      ) {
-        console.log("Invalid profileImage:", profileImage);
-        return res.status(400).json({
-          error: "profileImage must have valid url and publicId strings",
-        });
+    // ✅ Handle profilePicture (now a simple URL string)
+    if (profilePicture) {
+      if (typeof profilePicture !== "string") {
+        return res.status(400).json({ error: "profilePicture must be a URL string" });
       }
-      user.profileImage = {
-        url: profileImage.url,
-        publicId: profileImage.publicId,
-      };
-      console.log("profileImage updated:", user.profileImage);
+      user.profilePicture = profilePicture;
+      console.log("profilePicture updated:", user.profilePicture);
     }
     if (parsedPreferredAreas !== undefined) {
       if (!Array.isArray(parsedPreferredAreas)) {
@@ -456,20 +444,14 @@ export const updateUser = async (req, res) => {
         }
         for (let i = 0; i < parsedPortfolioImages.length; i++) {
           const image = parsedPortfolioImages[i];
-          if (
-            !image.url ||
-            !image.publicId ||
-            typeof image.url !== "string" ||
-            typeof image.publicId !== "string"
-          ) {
+          // ✅ Simplified validation for an array of URL strings
+          if (typeof image !== "string") {
             console.log(`Invalid portfolioImages at index ${i}:`, image);
             return res.status(400).json({
-              error: `portfolioImages at index ${i} must have valid url and publicId strings`,
+              error: `portfolioImages at index ${i} must be a valid URL string`,
             });
           }
         }
-        user.portfolioImages = parsedPortfolioImages;
-        console.log("portfolioImages updated:", parsedPortfolioImages);
       }
       if (parsedVideos !== undefined) {
         if (!Array.isArray(parsedVideos)) {
@@ -478,20 +460,13 @@ export const updateUser = async (req, res) => {
         }
         for (let i = 0; i < parsedVideos.length; i++) {
           const video = parsedVideos[i];
-          if (
-            !video.url ||
-            !video.publicId ||
-            typeof video.url !== "string" ||
-            typeof video.publicId !== "string"
-          ) {
+          if (typeof video !== "string") {
             console.log(`Invalid videos at index ${i}:`, video);
             return res.status(400).json({
-              error: `videos at index ${i} must have valid url and publicId strings`,
+              error: `videos at index ${i} must be a valid URL string`,
             });
           }
         }
-        user.videos = parsedVideos;
-        console.log("videos updated:", parsedVideos);
       }
       if (parsedCertificates !== undefined) {
         if (!Array.isArray(parsedCertificates)) {
@@ -502,20 +477,20 @@ export const updateUser = async (req, res) => {
         }
         for (let i = 0; i < parsedCertificates.length; i++) {
           const certificate = parsedCertificates[i];
-          if (
-            !certificate.url ||
-            !certificate.publicId ||
-            typeof certificate.url !== "string" ||
-            typeof certificate.publicId !== "string"
-          ) {
+          if (typeof certificate !== "string") {
             console.log(`Invalid certificates at index ${i}:`, certificate);
             return res.status(400).json({
-              error: `certificates at index ${i} must have valid url and publicId strings`,
+              error: `certificates at index ${i} must be a valid URL string`,
             });
           }
         }
-        user.certificates = parsedCertificates;
-        console.log("certificates updated:", parsedCertificates);
+        // ✅ Assign the arrays of strings directly
+        user.portfolioImages = parsedPortfolioImages.map(url => ({ url }));
+        user.videos = parsedVideos.map(url => ({ url }));
+        user.certificates = parsedCertificates.map(url => ({ url }));
+        console.log("portfolioImages updated:", user.portfolioImages);
+        console.log("videos updated:", user.videos);
+        console.log("certificates updated:", user.certificates);
       }
       // Handle gigs (seller-only)
       if (parsedGigs && Array.isArray(parsedGigs)) {
@@ -567,18 +542,11 @@ export const updateUser = async (req, res) => {
             });
           }
           for (let j = 0; j < images.length; j++) {
-            if (
-              !images[j].url ||
-              !images[j].publicId ||
-              typeof images[j].url !== "string" ||
-              typeof images[j].publicId !== "string"
-            ) {
-              console.log(
-                `Invalid image data at index ${i}, image ${j}:`,
-                images[j],
-              );
+            // ✅ Simplified validation, only URL is needed now.
+            if (!images[j].url || typeof images[j].url !== "string") {
+              console.log(`Invalid image data at index ${i}, image ${j}:`, images[j]);
               return res.status(400).json({
-                error: `Gig at index ${i} has invalid image data at position ${j}; url and publicId are required`,
+                error: `Gig at index ${i} has invalid image data at position ${j}; a URL string is required`,
               });
             }
           }
@@ -710,88 +678,6 @@ export const updateUser = async (req, res) => {
     });
   } catch (error) {
     console.error("Update User Error:", error.message, error.stack);
-    return res
-      .status(500)
-      .json({ error: "Internal Server Error", details: error.message });
-  }
-};
-
-// Configure Cloudinary (should be in a config file)
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
-export const updateUserProfile = async (req, res) => {
-  try {
-    const { id } = req.user;
-    const {
-      profilePicture,
-      otherImages,
-      portfolioImages,
-      videos,
-      certificates,
-      gigImages,
-    } = req.body;
-
-    const user = await User.findById(id);
-    if (!user) return res.status(404).json({ error: "User not found" });
-    if (!user.isVerified)
-      return res.status(403).json({ error: "User not verified" });
-
-    // Update profile picture (all users)
-    if (profilePicture) {
-      user.profilePicture = profilePicture;
-    }
-
-    // Update other images (all users)
-    if (otherImages && Array.isArray(otherImages)) {
-      user.otherImages = [...(user.otherImages || []), ...otherImages];
-    }
-
-    // Update seller-specific fields
-    if (user.role === "seller") {
-      if (portfolioImages && Array.isArray(portfolioImages)) {
-        user.portfolio.images = [
-          ...(user.portfolio?.images || []),
-          ...portfolioImages,
-        ];
-      }
-      if (videos && Array.isArray(videos)) {
-        user.portfolio.videos = [...(user.portfolio?.videos || []), ...videos];
-      }
-      if (certificates && Array.isArray(certificates)) {
-        user.portfolio.certificates = [
-          ...(user.portfolio?.certificates || []),
-          ...certificates,
-        ];
-      }
-      if (gigImages && Array.isArray(gigImages)) {
-        user.portfolio.gigImages = [
-          ...(user.portfolio?.gigImages || []),
-          ...gigImages,
-        ];
-      }
-    } else if (portfolioImages || videos || certificates || gigImages) {
-      return res
-        .status(403)
-        .json({ error: "Only sellers can update portfolio fields" });
-    }
-
-    await user.save();
-
-    return res.status(200).json({
-      message: "Profile updated successfully",
-      user: {
-        id: user._id,
-        profilePicture: user.profilePicture,
-        otherImages: user.otherImages,
-        portfolio: user.portfolio,
-      },
-    });
-  } catch (error) {
-    console.error("Update User Profile Error:", error.message, error.stack);
     return res
       .status(500)
       .json({ error: "Internal Server Error", details: error.message });
