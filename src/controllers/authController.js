@@ -203,6 +203,54 @@ export const login = async (req, res, next) => {
   }
 };
 
+// Resend verification code
+export const resendVerificationCode = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ error: "This account is already verified." });
+    }
+
+    // Generate and set new verification code
+    const verificationCode = generateVerificationCode();
+    user.verificationCode = verificationCode;
+    user.verificationCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    await user.save({ validateBeforeSave: false }); // Skip password validation etc.
+
+    // Send email verification using nodemailer
+    if (transporter) {
+      try {
+        const mailOptions = {
+          from: `"Jinnar Services" <${process.env.GMAIL_USER}>`,
+          to: user.email,
+          subject: "Your New Verification Code",
+          html: `<p>Your new verification code is: <b>${verificationCode}</b></p><p>This code will expire in 10 minutes.</p>`,
+        };
+        await transporter.sendMail(mailOptions);
+      } catch (emailError) {
+        console.error("Error resending verification email:", emailError);
+      }
+    } else {
+      console.log(`New verification code for ${email}: ${verificationCode}`);
+    }
+
+    return res.status(200).json({ message: "A new verification code has been sent to your email." });
+  } catch (error) {
+    console.error("Resend Verification Code Error:", error);
+    return next(error);
+  }
+};
+
 /**
  * @description Request a password reset OTP for an existing user.
  * @route POST /api/auth/forgot-password

@@ -5,6 +5,7 @@ import {
   login,
   forgotPassword,
   resetPassword,
+  resendVerificationCode,
 } from "../controllers/authController.js";
 // import { ussdHandler } from '../controllers/ussdController.js';
 import { body, validationResult } from "express-validator";
@@ -30,6 +31,7 @@ router.post(
 );
 
 router.post("/verify", verifyCode);
+router.post("/resend-verification", resendVerificationCode);
 router.post("/login", login);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);

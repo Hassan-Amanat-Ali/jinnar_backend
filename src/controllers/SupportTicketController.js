@@ -1,6 +1,6 @@
 import SupportTicket from "../models/SupportTicket.js";
 import User from "../models/User.js";
-import { analyzeTicket } from "../services/aiService.js";
+import { analyzeTicket, autoAssignTicket } from "../services/aiService.js";
 import { sendPushNotification } from "../services/pushNotificationService.js";
 import mongoose from "mongoose";
 
@@ -11,9 +11,10 @@ import mongoose from "mongoose";
  */
 export const createTicket = async (req, res) => {
   const { subject, message, attachments } = req.body;
+  let ticketSubject = subject;
 
-  if (!subject || !message) {
-    return res.status(400).json({ message: "Subject and message are required." });
+  if (!message) {
+    return res.status(400).json({ message: "Message is required." });
   }
 
   try {
@@ -21,9 +22,13 @@ export const createTicket = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found." });
 
     // DUPLICATE CHECK: prevent user from creating multiple open tickets with same subject
+    if (!ticketSubject) {
+      ticketSubject = "Ticket from user message"; // Placeholder for AI to fill
+    }
+
     const existingTicket = await SupportTicket.findOne({
       user: req.user.id,
-      subject: subject.trim(),
+      subject: ticketSubject.trim(),
       status: { $in: ["open", "in_progress"] },
     });
     if (existingTicket) {
@@ -34,7 +39,7 @@ export const createTicket = async (req, res) => {
 
     const ticketData = {
       user: req.user.id,
-      subject,
+      subject: ticketSubject,
       conversation: [{ sender: req.user.id, message, attachments: attachments || [] }],
     };
 
@@ -44,7 +49,9 @@ export const createTicket = async (req, res) => {
     const ticket = new SupportTicket(ticketData);
     const createdTicket = await ticket.save();
 
+    // Trigger AI analysis and auto-assignment (these run in the background)
     analyzeTicket(createdTicket._id);
+    autoAssignTicket(createdTicket._id);
 
     // Notify admins
     const admins = await User.find({ role: { $in: ["support", "supervisor", "super_admin"] } });

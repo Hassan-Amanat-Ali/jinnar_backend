@@ -75,7 +75,7 @@ assignmentHistory: [
     assignedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false, // Make optional for system assignments
     },
     assignedTo: {
       type: mongoose.Schema.Types.ObjectId,
