@@ -233,6 +233,30 @@ router.delete(
   AdminController.deleteCategory
 );
 
+// --- NEW: SubCategory Management ---
+router.post(
+  "/subcategories",
+  authorize("super_admin"),
+  AdminController.createSubCategory
+);
+
+router.get(
+  "/subcategories",
+  authorize(["support", "supervisor", "super_admin"]),
+  AdminController.getSubCategories
+);
+
+router.patch(
+  "/subcategories/:id",
+  authorize("super_admin"),
+  AdminController.updateSubCategory
+);
+
+router.delete(
+  "/subcategories/:id",
+  authorize("super_admin"),
+  AdminController.deleteSubCategory
+);
 // =============================================================================
 // 6. GIG MANAGEMENT
 // =============================================================================

@@ -56,16 +56,22 @@ const gigSchema = new mongoose.Schema(
         },
       },
     },
-    //Replaced with Category reference
-    skills: {
-      type: [String],
-      default: [],
-    },
     category: {
       type: mongoose.Schema.Types.ObjectId, 
       ref: "Category", // Links to the model above
-      required: [false, "Please select a valid category"],
+      required: [true, "Please select a valid category"],
       index: true, // Crucial for Search Filters
+    },
+    primarySubcategory: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SubCategory",
+      required: [true, "A primary subcategory is required"],
+      index: true,
+    },
+    extraSubcategories: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: "SubCategory",
+      default: [],
     },
   },
   { timestamps: true },

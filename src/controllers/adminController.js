@@ -3,6 +3,7 @@ import Order from "../models/Order.js";
 import Gig from "../models/Gig.js";
 import Transaction from "../models/Transaction.js";
 import Category from "../models/Category.js";
+import SubCategory from "../models/SubCategory.js";
 import { sendNotification } from "./notificationController.js";
 
 class AdminController {
@@ -301,10 +302,10 @@ class AdminController {
 
   static async createCategory(req, res) {
     try {
-      const { name, icon } = req.body;
+      const { name } = req.body;
       if (!name) return res.status(400).json({ error: "Name required" });
 
-      const category = await Category.create({ name, icon });
+      const category = await Category.create({ name });
       res.status(201).json({ message: "Category created", category });
     } catch (error) {
       res.status(500).json({ error: error.message });
@@ -324,11 +325,11 @@ class AdminController {
   static async updateCategory(req, res) {
     try {
       const { id } = req.params;
-      const { name, icon, isActive } = req.body;
+      const { name, isActive } = req.body;
 
       const category = await Category.findByIdAndUpdate(
         id, 
-        { name, icon, isActive }, 
+        { name, isActive }, 
         { new: true }
       );
       if(!category) return res.status(404).json({ error: "Category not found" });
@@ -360,6 +361,63 @@ class AdminController {
     }
   }
 
+  // ===========================================================================
+  // SUBCATEGORY MANAGEMENT
+  // ===========================================================================
+
+  static async createSubCategory(req, res) {
+    try {
+      const { name, categoryId } = req.body;
+      if (!name || !categoryId) {
+        return res.status(400).json({ error: "Name and categoryId are required" });
+      }
+
+      const parentCategory = await Category.findById(categoryId);
+      if (!parentCategory) {
+        return res.status(404).json({ error: "Parent category not found" });
+      }
+
+      const subCategory = await SubCategory.create({ name, categoryId });
+      res.status(201).json({ message: "SubCategory created", subCategory });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async getSubCategories(req, res) {
+    try {
+      const filter = {};
+      if (req.query.categoryId) {
+        filter.categoryId = req.query.categoryId;
+      }
+      const subCategories = await SubCategory.find(filter).populate('categoryId', 'name').sort({ name: 1 });
+      res.json(subCategories);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async updateSubCategory(req, res) {
+    try {
+      const { id } = req.params;
+      const { name, isActive } = req.body;
+
+      const subCategory = await SubCategory.findByIdAndUpdate(id, { name, isActive }, { new: true });
+      if (!subCategory) return res.status(404).json({ error: "SubCategory not found" });
+
+      res.json({ message: "SubCategory updated", subCategory });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async deleteSubCategory(req, res) {
+    // Note: Add logic here to check if any gigs are using this subcategory before deleting
+    // For now, it's a direct delete.
+    const subCategory = await SubCategory.findByIdAndDelete(req.params.id);
+    if (!subCategory) return res.status(404).json({ error: "SubCategory not found" });
+    res.json({ message: "SubCategory deleted" });
+  }
   // ===========================================================================
   // 5. GIG MANAGEMENT
   // ===========================================================================

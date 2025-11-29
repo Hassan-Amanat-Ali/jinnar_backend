@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  searchGigs,
   getGigById,
   createGig,
   getAllGigs,
@@ -12,6 +13,7 @@ import { uploadGigImageMW } from "../middleware/upload.js";
 
 const router = express.Router();
 
+router.get("/search", searchGigs);
 router.post("/create", protect, uploadGigImageMW, createGig);
 router.get("/", getAllGigs);
 

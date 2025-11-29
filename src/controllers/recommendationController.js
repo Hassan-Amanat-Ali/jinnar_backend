@@ -2,7 +2,7 @@ import * as recommendationService from '../services/recommendationService.js';
 
 export const recommendWorkers = async (req, res) => {
   try {
-    // TODO: Get the actual job request from the request body
+    // The job request should contain details like title, description, categoryId, subcategoryId, etc.
     const jobRequest = req.body;
     const recommendedGigs = await recommendationService.recommendGigs(jobRequest);
     res.status(200).json(recommendedGigs);

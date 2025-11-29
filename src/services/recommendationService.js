@@ -168,9 +168,20 @@ export const recommendGigs = async (jobRequest) => {
 
   const jobText = `${jobRequest.title || ''} ${jobRequest.description || ''}`.trim();
 
-  const query = { status: 'active' };
+  const query = { 
+    status: 'active',
+  };
+
   if (jobRequest.categoryId) {
     query.category = jobRequest.categoryId;
+  }
+
+  // NEW: Filter by subcategory if provided
+  if (jobRequest.subcategoryId) {
+    query.$or = [
+      { primarySubcategory: jobRequest.subcategoryId },
+      { extraSubcategories: jobRequest.subcategoryId }
+    ];
   }
 
   const gigs = await Gig.find(query)
@@ -179,12 +190,20 @@ export const recommendGigs = async (jobRequest) => {
       select: 'name rating averageResponseTime availability selectedAreas lastRecommendedAt isVerified',
       match: { isSuspended: false, isVerified: true }
     })
+    .populate({
+      path: 'category', select: 'isActive'
+    })
     .limit(150)
     .lean();
 
   const validGigs = gigs.filter(g => g.sellerId);
 
   const scoredGigs = validGigs.map(gig => {
+    // NEW: Exclude gigs from inactive categories
+    if (gig.category && gig.category.isActive === false) {
+      return null;
+    }
+
     const worker = gig.sellerId;
 
     const scores = {
@@ -201,9 +220,9 @@ export const recommendGigs = async (jobRequest) => {
     }, 0);
 
     return { gig, worker, scores, finalScore };
-  });
+  }).filter(Boolean); // Filter out null (inactive category) entries
 
-  scoredGigs.sort((a, b) => b.finalScore - a.finalScore);
+  scoredGigs.sort((a, b) => (b.finalScore || 0) - (a.finalScore || 0));
 
   // Log top 10 for debugging
   console.log("\nTop 10 Recommendations:");

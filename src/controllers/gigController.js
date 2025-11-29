@@ -1,6 +1,7 @@
 import Gig from "../models/Gig.js";
 import User from "../models/User.js";
 import asyncHandler from "express-async-handler";
+import SubCategory from "../models/SubCategory.js";
 import Order from "../models/Order.js";
 import { sendNotification } from "./notificationController.js";
 
@@ -8,7 +9,8 @@ export const searchGigs = async (req, res) => {
   try {
     const { 
       search,       
-      category,     
+      category,
+      subcategory, // New filter
       minPrice, 
       maxPrice, 
       pricingMethod,
@@ -24,7 +26,7 @@ export const searchGigs = async (req, res) => {
 
     // 1. Build Base Query
     const query = { status: "active" }; 
-
+    const orConditions = [];
     // ---------------------------------------------------------
     // 2. LOCATION FILTER (The Logic Change)
     // ---------------------------------------------------------
@@ -57,16 +59,27 @@ export const searchGigs = async (req, res) => {
 
     // 3. Text Search
     if (search) {
-      query.$or = [
+      orConditions.push(
         { title: { $regex: search, $options: "i" } },
         { description: { $regex: search, $options: "i" } },
-      ];
+      );
     }
 
     // 4. Category Filter 
     if (category) {
       query.category = category;
     }
+
+    // New: Subcategory Filter
+    if (subcategory) {
+      orConditions.push(
+        { primarySubcategory: subcategory },
+        { extraSubcategories: subcategory }
+      );
+    }
+
+    // Combine OR conditions if any exist
+    if (orConditions.length > 0) query.$or = orConditions;
 
     // 5. Price Filter
     if (minPrice || maxPrice) {
@@ -84,6 +97,8 @@ export const searchGigs = async (req, res) => {
     const gigs = await Gig.find(query)
       .populate("sellerId", "name profilePicture rating") 
       .populate("category", "name icon") 
+      .populate("primarySubcategory", "name")
+      .populate("extraSubcategories", "name")
       .sort({ createdAt: -1 }) 
       .skip(skip)
       .limit(limit);
@@ -108,8 +123,16 @@ export const searchGigs = async (req, res) => {
 export const createGig = async (req, res, next) => {
   try {
     const { id, role } = req.user; // From JWT middleware
-    const { title, description, pricingMethod, price, images, skills } =
-      req.body;
+    const {
+      title,
+      description,
+      pricingMethod,
+      price,
+      images,
+      categoryId,
+      primarySubcategory,
+      extraSubcategories = [], // Default to empty array
+    } = req.body;
 
     // ✅ Validate role
     if (role !== "seller") {
@@ -126,15 +149,38 @@ export const createGig = async (req, res, next) => {
     }
 
     // ✅ Validate input
-    if (!title || !description || !pricingMethod) {
+    if (!title || !description || !pricingMethod || !categoryId || !primarySubcategory) {
       return res
         .status(400)
-        .json({ error: "Title, description, and pricing method are required" });
+        .json({ error: "Title, description, pricing method, category, and primary subcategory are required" });
     }
-    if (!skills || skills.length === 0) {
-      return res
-        .status(400)
-        .json({ error: "At least one skill/category is required" });
+
+    // ✅ Validate Subcategories belong to the main Category
+    const allSubcategoryIds = [primarySubcategory, ...extraSubcategories];
+    const uniqueSubcategoryIds = [...new Set(allSubcategoryIds)];
+
+    const subcategories = await SubCategory.find({
+      _id: { $in: uniqueSubcategoryIds },
+    }).select('categoryId');
+
+    if (subcategories.length !== uniqueSubcategoryIds.length) {
+      return res.status(400).json({ error: "One or more subcategories are invalid." });
+    }
+
+    const areSubcategoriesValid = subcategories.every(
+      (sub) => sub.categoryId.toString() === categoryId
+    );
+
+    if (!areSubcategoriesValid) {
+      return res.status(400).json({
+        error: "All selected subcategories must belong to the chosen main category.",
+      });
+    }
+
+    if (extraSubcategories.includes(primarySubcategory)) {
+      return res.status(400).json({
+        error: "Primary subcategory cannot also be in the extra subcategories list.",
+      });
     }
     if (!["fixed", "hourly", "negotiable"].includes(pricingMethod)) {
       return res
@@ -162,8 +208,10 @@ export const createGig = async (req, res, next) => {
       images: Array.isArray(images)
         ? images.map((url) => ({ url, publicId: null }))
         : [],
-      skills: skills,
-    });
+      category: categoryId,
+      primarySubcategory: primarySubcategory,
+      extraSubcategories: extraSubcategories,
+    }); 
 
     await gig.save();
     await gig.populate("sellerId", "name bio skills");
@@ -175,31 +223,6 @@ export const createGig = async (req, res, next) => {
   } catch (error) {
     console.error("Create Gig Error:", error.message);
     next(error);
-  }
-};
-
-export const getSkills = async (req, res) => {
-  try {
-    // Fetch only the "skills" field from all gigs
-    const gigs = await Gig.find({}, { skills: 1, _id: 0 });
-
-    // Flatten and dedupe skills
-    const result = [
-      ...new Set(
-        gigs
-          .filter((g) => Array.isArray(g.skills))
-          .flatMap((g) => g.skills.map((s) => s.trim().toLowerCase())),
-      ),
-    ];
-
-    res.json({
-      success: true,
-      count: result.length,
-      skills: result,
-    });
-  } catch (error) {
-    console.log("Error getting skills: ", error);
-    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -298,8 +321,15 @@ export const getMyGigs = async (req, res, next) => {
 export const updateGig = async (req, res, next) => {
   try {
     const { id, role } = req.user;
-    const { title, description, pricingMethod, price, images, skills } =
-      req.body;
+    const {
+      title,
+      description,
+      pricingMethod,
+      price,
+      images,
+      primarySubcategory,
+      extraSubcategories,
+    } = req.body;
 
     if (role !== "seller") {
       return res.status(403).json({ error: "Only sellers can update gigs" });
@@ -313,13 +343,42 @@ export const updateGig = async (req, res, next) => {
     // ✅ BASIC FIELDS
     if (title !== undefined) gig.title = title;
     if (description !== undefined) gig.description = description;
-    if (!skills || skills.length === 0) {
-      return res
-        .status(400)
-        .json({ error: "At least one skill/category is required" });
-    } else {
-      gig.skills = skills;
+
+    // ✅ SUBCATEGORY VALIDATION (if they are being updated)
+    if (primarySubcategory || extraSubcategories) {
+      const newPrimary = primarySubcategory || gig.primarySubcategory;
+      const newExtras = extraSubcategories || gig.extraSubcategories;
+
+      if (newExtras.includes(newPrimary.toString())) {
+        return res.status(400).json({
+          error: "Primary subcategory cannot also be in the extra subcategories list.",
+        });
+      }
+
+      const allSubcategoryIds = [...new Set([newPrimary, ...newExtras])];
+      const subcategories = await SubCategory.find({
+        _id: { $in: allSubcategoryIds },
+      }).select('categoryId');
+
+      if (subcategories.length !== allSubcategoryIds.length) {
+        return res.status(400).json({ error: "One or more subcategories are invalid." });
+      }
+
+      const areSubcategoriesValid = subcategories.every(
+        (sub) => sub.categoryId.toString() === gig.category.toString()
+      );
+
+      if (!areSubcategoriesValid) {
+        return res.status(400).json({
+          error: "All selected subcategories must belong to the gig's main category.",
+        });
+      }
+
+      // If validation passes, update the fields
+      if (primarySubcategory) gig.primarySubcategory = primarySubcategory;
+      if (extraSubcategories) gig.extraSubcategories = extraSubcategories;
     }
+
     // ✅ PRICING
     if (pricingMethod !== undefined) {
       gig.pricing.method = pricingMethod;

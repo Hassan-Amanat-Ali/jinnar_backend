@@ -13,12 +13,12 @@ import walletRoutes from "./wallet.js";
 import uploadRoutes from "./uploadRoutes.js";
 import workerRoutes from "./workers.js";
 import chatRoutes from "./chat.js";
-import { getSkills } from "../controllers/gigController.js";
 import faqRoutes from "./faq.js";
 import adminRoutes from "./admin.js";
 import chatbotRoutes from "./chatbot.js";
 import supportRoutes from "./support.js";
 import recommendationRoutes from "./recommendation.js";
+import categoryRoutes from "./category.js";
 
 const router = express.Router();
 
@@ -41,7 +41,7 @@ router.use("/r", recommendationRoutes);
 router.use("/support", supportRoutes);
 router.use("/admin", adminRoutes);
 
-router.use("/categories", getSkills);
+router.use("/categories", categoryRoutes);
 router.use("/faq", faqRoutes);
 
 export default router;
