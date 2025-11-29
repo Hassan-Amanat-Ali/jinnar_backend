@@ -13,10 +13,7 @@ const categorySchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
     },
-    icon: {
-      type: String, 
-      default: "https://via.placeholder.com/150", // Admin should upload this
-    },
+
     isActive: {
       type: Boolean,
       default: true,
