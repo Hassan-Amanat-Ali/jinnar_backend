@@ -885,24 +885,33 @@ export const getPublicProfile = async (req, res) => {
 
 export const updateFcmToken = async (req, res) => {
   try {
-    const { token, deviceInfo } = req.body;
+    const { token, deviceInfo = null } = req.body;
     const userId = req.user.id; // from JWT middleware
 
     if (!token) {
       return res.status(400).json({ message: "FCM token is required" });
     }
 
-    const user = await User.findById(userId);
+    // Perform an atomic update to prevent race conditions (VersionError)
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        // 1. Atomically remove any existing entries with the same token.
+        // This prevents duplicates if the token already exists for a different device.
+        $pull: { fcmTokens: { token: token } },
+      },
+      { new: false } // We don't need the result of this query
+    );
 
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-    // Remove any previous token entries that match this token
-    user.fcmTokens = user.fcmTokens.filter((t) => t.token !== token);
-
-    // Add the token at the end (latest)
-    user.fcmTokens.push({ token, deviceInfo });
-
-    await user.save();
+    // 2. Atomically add the new token to the set.
+    // `$addToSet` ensures no duplicates of the exact same token/deviceInfo object are added.
+    await User.findByIdAndUpdate(userId, {
+      $addToSet: { fcmTokens: { token, deviceInfo, createdAt: new Date() } },
+    });
 
     res.json({ message: "FCM token updated successfully" });
   } catch (err) {

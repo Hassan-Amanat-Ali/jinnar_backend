@@ -1,6 +1,7 @@
 import Gig from "../models/Gig.js";
 import User from "../models/User.js";
 import asyncHandler from "express-async-handler";
+import Category from "../models/Category.js";
 import SubCategory from "../models/SubCategory.js";
 import Order from "../models/Order.js";
 import { sendNotification } from "./notificationController.js";
@@ -8,117 +9,140 @@ import { sendNotification } from "./notificationController.js";
 export const searchGigs = async (req, res) => {
   try {
     const { 
-      search,       
-      category,
-      subcategory, // New filter
-      minPrice, 
-      maxPrice, 
-      pricingMethod,
-      // NEW: Location Parameters
-      latitude,
-      longitude,
-      radius // in Kilometers
+      search, category, subcategory, minPrice, maxPrice, pricingMethod,
+      minRating, minExperience, sortBy,
+      latitude, longitude, radius
     } = req.query;
 
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // 1. Build Base Query
-    const query = { status: "active" }; 
+    const query = { status: "active" };
     const orConditions = [];
-    // ---------------------------------------------------------
-    // 2. LOCATION FILTER (The Logic Change)
-    // ---------------------------------------------------------
-    if (latitude && longitude) {
-      const lat = parseFloat(latitude);
-      const lng = parseFloat(longitude);
-      const dist = parseFloat(radius) || 10; // Default to 10km if not sent
 
-      // We must find SELLERS who are within the range first.
-      // We query the 'User' collection because that is where 'selectedAreas' lives.
-      const sellersInArea = await User.find({
-        selectedAreas: {
-          $near: {
-            $geometry: {
-              type: "Point",
-              coordinates: [lng, lat] // MongoDB expects [Longitude, Latitude]
-            },
-            $maxDistance: dist * 1000 // Convert km to meters
-          }
-        }
-      }).select('_id'); // We only need their IDs
-
-      // Extract IDs into a simple array
-      const sellerIds = sellersInArea.map(user => user._id);
-
-      // Add to Gig Query: "Only show gigs where the seller is in this list"
-      query.sellerId = { $in: sellerIds };
-    }
-    // ---------------------------------------------------------
-
-    // 3. Text Search
+    // TEXT SEARCH
     if (search) {
       orConditions.push(
         { title: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } }
       );
     }
 
-    // 4. Category Filter 
+    // CATEGORY (by name)
     if (category) {
-      query.category = category;
+      const categoryDoc = await Category.findOne({ name: { $regex: `^${category}$`, $options: 'i' } });
+      if (categoryDoc) query.category = categoryDoc._id;
     }
 
-    // New: Subcategory Filter
+    // SUBCATEGORY (by name or ID)
     if (subcategory) {
-      orConditions.push(
-        { primarySubcategory: subcategory },
-        { extraSubcategories: subcategory }
-      );
+      const subCategoryDoc = await SubCategory.findOne({
+        $or: [
+          { _id: subcategory },
+          { name: { $regex: `^${subcategory}$`, $options: 'i' } }
+        ]
+      });
+      if (subCategoryDoc) {
+        orConditions.push(
+          { primarySubcategory: subCategoryDoc._id },
+          { extraSubcategories: subCategoryDoc._id }
+        );
+      }
     }
 
-    // Combine OR conditions if any exist
-    if (orConditions.length > 0) query.$or = orConditions;
-
-    // 5. Price Filter
+    // PRICE RANGE
     if (minPrice || maxPrice) {
       query["pricing.price"] = {};
       if (minPrice) query["pricing.price"].$gte = Number(minPrice);
       if (maxPrice) query["pricing.price"].$lte = Number(maxPrice);
     }
-    
-    // 6. Pricing Method Filter
-    if (pricingMethod) {
-      query["pricing.method"] = pricingMethod;
+
+    // PRICING METHOD
+    if (pricingMethod) query["pricing.method"] = pricingMethod;
+
+    // LOCATION FILTER
+    if (latitude && longitude) {
+      const sellers = await User.find({
+        selectedAreas: {
+          $near: {
+            $geometry: { type: "Point", coordinates: [Number(longitude), Number(latitude)] },
+            $maxDistance: (radius || 10) * 1000
+          }
+        }
+      }).select("_id");
+
+      query.sellerId = { $in: sellers.map(s => s._id) };
     }
 
-    // Execute Query
-    const gigs = await Gig.find(query)
-      .populate("sellerId", "name profilePicture rating") 
-      .populate("category", "name icon") 
-      .populate("primarySubcategory", "name")
-      .populate("extraSubcategories", "name")
-      .sort({ createdAt: -1 }) 
+    if (orConditions.length > 0) query.$or = orConditions;
+
+    // Get total count for pagination before applying skip/limit
+    const totalGigs = await Gig.countDocuments(query);
+
+    // FETCH GIGS with populated fields
+    let gigs = await Gig.find(query)
+      .populate("sellerId", "rating yearsOfExperience name bio skills")
+      .populate("category", "name")
+      .populate("primarySubcategory", "_id name")
+      .populate("extraSubcategories", "_id name")
       .skip(skip)
       .limit(limit);
 
-    const total = await Gig.countDocuments(query);
+    // Replace subcategories array with objects containing name and id
+    gigs = gigs.map(gig => {
+      const primary = gig.primarySubcategory ? { _id: gig.primarySubcategory._id, name: gig.primarySubcategory.name } : null;
+      const extras = gig.extraSubcategories ? gig.extraSubcategories.map(s => ({ _id: s._id, name: s.name })) : [];
+      return {
+        ...gig.toObject(),
+        subcategories: primary ? [primary, ...extras] : extras
+      };
+    });
+
+    // FILTER BY RATING (Post-query)
+    if (minRating) {
+      gigs = gigs.filter(g => (g.sellerId?.rating?.average || 0) >= Number(minRating));
+    }
+
+    // FILTER BY EXPERIENCE (Post-query)
+    if (minExperience) {
+      gigs = gigs.filter(g => (g.sellerId?.yearsOfExperience || 0) >= Number(minExperience));
+    }
+
+    // SORTING
+    if (sortBy) {
+      switch (sortBy) {
+        case "rating":
+          gigs.sort((a, b) => (b.sellerId?.rating?.average || 0) - (a.sellerId?.rating?.average || 0));
+          break;
+        case "experience":
+          gigs.sort((a, b) => (b.sellerId?.yearsOfExperience || 0) - (a.sellerId?.yearsOfExperience || 0));
+          break;
+        case "price_low":
+          gigs.sort((a, b) => (a.pricing?.price || 0) - (b.pricing?.price || 0));
+          break;
+        case "price_high":
+          gigs.sort((a, b) => (b.pricing?.price || 0) - (a.pricing?.price || 0));
+          break;
+        case "newest":
+          gigs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          break;
+      }
+    }
 
     res.json({
       gigs,
       pagination: {
-        total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
-      },
+        total: totalGigs,
+      }
     });
-
-  } catch (error) {
-    res.status(500).json({ error: "Search failed", details: error.message });
+  } catch (err) {
+    res.status(500).json({ error: "Search failed", details: err.message });
   }
 };
+
 
 export const createGig = async (req, res, next) => {
   try {
