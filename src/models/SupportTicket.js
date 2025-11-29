@@ -69,6 +69,26 @@ const supportTicketSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    // Add inside supportTicketSchema
+assignmentHistory: [
+  {
+    assignedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    assignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    assignedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+],
+
     aiAnalysis: {
       isAnalyzed: { type: Boolean, default: false },
       category: { 

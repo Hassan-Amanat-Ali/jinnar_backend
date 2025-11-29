@@ -18,29 +18,28 @@ export const createTicket = async (req, res) => {
 
   try {
     const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
+    if (!user) return res.status(404).json({ message: "User not found." });
+
+    // DUPLICATE CHECK: prevent user from creating multiple open tickets with same subject
+    const existingTicket = await SupportTicket.findOne({
+      user: req.user.id,
+      subject: subject.trim(),
+      status: { $in: ["open", "in_progress"] },
+    });
+    if (existingTicket) {
+      return res.status(400).json({ message: "You already have an open ticket with this subject." });
     }
 
-    // Standard users cannot set priority or category - ignore if sent
     const isAdmin = ['support', 'supervisor', 'super_admin'].includes(req.user.role);
+
     const ticketData = {
       user: req.user.id,
       subject,
-      conversation: [{
-        sender: req.user.id,
-        message,
-        attachments: attachments || [],
-      }],
+      conversation: [{ sender: req.user.id, message, attachments: attachments || [] }],
     };
 
-    // Only allow admins to set priority and category
-    if (isAdmin && req.body.priority) {
-      ticketData.priority = req.body.priority;
-    }
-    if (isAdmin && req.body.category) {
-      ticketData.category = req.body.category;
-    }
+    if (isAdmin && req.body.priority) ticketData.priority = req.body.priority;
+    if (isAdmin && req.body.category) ticketData.category = req.body.category;
 
     const ticket = new SupportTicket(ticketData);
     const createdTicket = await ticket.save();
@@ -60,7 +59,6 @@ export const createTicket = async (req, res) => {
         return sendPushNotification(tokenInfo.token, notification);
       });
     });
-
     await Promise.all(notificationPromises);
 
     res.status(201).json(createdTicket);
@@ -70,6 +68,7 @@ export const createTicket = async (req, res) => {
   }
 };
 
+
 /**
  * @description Get all support tickets for the logged-in user
  * @route GET /api/support/tickets
@@ -77,17 +76,31 @@ export const createTicket = async (req, res) => {
  */
 export const getMyTickets = async (req, res) => {
   try {
+    const { page = 1, limit = 10 } = req.query; // default: page 1, 10 tickets per page
+    const skip = (page - 1) * limit;
+
+    const total = await SupportTicket.countDocuments({ user: req.user.id });
+
     const tickets = await SupportTicket.find({ user: req.user.id })
       .populate("user", "name email")
       .populate("assignedTo", "name email")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(Number(skip))
+      .limit(Number(limit));
 
-    res.status(200).json(tickets);
+    res.status(200).json({
+      page: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(total / limit),
+      totalTickets: total,
+      tickets,
+    });
   } catch (error) {
     console.error("Error fetching user tickets:", error);
     res.status(500).json({ message: "Server error while fetching tickets." });
   }
 };
+
 
 /**
  * @description Get a single support ticket by ID
@@ -341,46 +354,60 @@ export const assignTicket = async (req, res) => {
   const { assigneeId } = req.body;
 
   if (!mongoose.Types.ObjectId.isValid(assigneeId)) {
-      return res.status(400).json({ message: "Invalid assignee ID." });
+    return res.status(400).json({ message: "Invalid assignee ID." });
+  }
+
+  // Double-check authorization within the controller for added security
+  const canAssignRoles = ['supervisor', 'super_admin'];
+  if (!canAssignRoles.includes(req.user.role)) {
+    return res.status(403).json({ message: "You do not have permission to assign tickets." });
   }
 
   try {
     const ticket = await SupportTicket.findById(req.params.id);
-
-    if (!ticket) {
-      return res.status(404).json({ message: "Ticket not found." });
-    }
+    if (!ticket) return res.status(404).json({ message: "Ticket not found." });
 
     const assignee = await User.findById(assigneeId);
-    if (!assignee) {
-        return res.status(404).json({ message: "Assignee user not found." });
-    }
-
+    if (!assignee) return res.status(404).json({ message: "Assignee user not found." });
     if (!['support', 'supervisor', 'super_admin'].includes(assignee.role)) {
-        return res.status(403).json({ message: "Can only assign tickets to administrators." });
+      return res.status(403).json({ message: "Can only assign tickets to administrators." });
     }
 
+    // LOG PREVIOUS ASSIGNMENT
+    if (ticket.assignedTo) {
+      ticket.assignmentHistory.push({
+        assignedBy: req.user.id,
+        assignedTo: ticket.assignedTo,
+        assignedAt: new Date(),
+      });
+    }
+
+    // ASSIGN NEW ADMIN
     ticket.assignedTo = assigneeId;
+    ticket.assignmentHistory.push({
+      assignedBy: req.user.id,
+      assignedTo: assigneeId,
+      assignedAt: new Date(),
+    });
+
     const updatedTicket = await ticket.save();
 
     // Notify the assigned admin
-    if (assignee.fcmTokens && assignee.fcmTokens.length > 0) {
+    if (assignee.fcmTokens?.length > 0) {
       const notificationPromises = assignee.fcmTokens.map(tokenInfo => {
         const notification = {
           title: "You've Been Assigned a Ticket",
           body: `You have been assigned support ticket #${ticket.ticketId}.`,
-          data: {
-            ticketId: ticket._id.toString(),
-          },
+          data: { ticketId: ticket._id.toString() },
         };
         return sendPushNotification(tokenInfo.token, notification);
       });
       await Promise.all(notificationPromises);
     }
 
-    // Also notify the user that their ticket has been assigned
+    // Notify ticket owner
     const user = await User.findById(ticket.user);
-    if (user && user.fcmTokens && user.fcmTokens.length > 0) {
+    if (user?.fcmTokens?.length > 0) {
       const notificationPromises = user.fcmTokens.map(tokenInfo => {
         const userNotification = {
           title: `Ticket #${ticket.ticketId} Assigned`,
@@ -391,11 +418,13 @@ export const assignTicket = async (req, res) => {
       });
       await Promise.all(notificationPromises);
     }
-    
+
     const populatedTicket = await SupportTicket.findById(updatedTicket._id)
-        .populate("user", "name email")
-        .populate("assignedTo", "name email")
-        .populate("conversation.sender", "name email role");
+      .populate("user", "name email")
+      .populate("assignedTo", "name email")
+      .populate("conversation.sender", "name email role")
+      .populate("assignmentHistory.assignedBy", "name email")
+      .populate("assignmentHistory.assignedTo", "name email");
 
     res.status(200).json(populatedTicket);
   } catch (error) {
@@ -403,6 +432,7 @@ export const assignTicket = async (req, res) => {
     res.status(500).json({ message: "Server error while assigning ticket." });
   }
 };
+
 
 /**
  * @description Add an internal note to a support ticket (for admins)
