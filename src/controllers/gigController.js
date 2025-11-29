@@ -1,6 +1,7 @@
 import Gig from "../models/Gig.js";
 import User from "../models/User.js";
 import asyncHandler from "express-async-handler";
+import mongoose from "mongoose";
 import Category from "../models/Category.js";
 import SubCategory from "../models/SubCategory.js";
 import Order from "../models/Order.js";
@@ -29,9 +30,16 @@ export const searchGigs = async (req, res) => {
       );
     }
 
-    // CATEGORY (by name)
+    // CATEGORY (by name or ID)
     if (category) {
-      const categoryDoc = await Category.findOne({ name: { $regex: `^${category}$`, $options: 'i' } });
+      let categoryDoc;
+      // Check if the provided category is a valid MongoDB ObjectId
+      if (mongoose.Types.ObjectId.isValid(category)) {
+        categoryDoc = await Category.findById(category);
+      } else {
+        // If not, assume it's a name and search by name
+        categoryDoc = await Category.findOne({ name: { $regex: `^${category}$`, $options: 'i' } });
+      }
       if (categoryDoc) query.category = categoryDoc._id;
     }
 
