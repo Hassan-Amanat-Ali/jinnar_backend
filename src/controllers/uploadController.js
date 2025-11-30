@@ -85,13 +85,13 @@ export const uploadProfilePicture = async (req, res) => {
 // ------------------------------------------------------------------
 // ⭐ NEW: Upload Gig Image (single — seller only)
 // ------------------------------------------------------------------
-export const uploadGigImage = async (req, res) => {
+export const uploadGigImages = async (req, res) => {
   try {
     const { error } = await ensureUserValid(req, res, true); // requireSeller = true
     if (error) return;
 
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: "No files uploaded" });
     }
 
     const { gigId } = req.params;
@@ -104,16 +104,25 @@ export const uploadGigImage = async (req, res) => {
       return res.status(404).json({ error: "Gig not found or you are not the owner." });
     }
 
-    // Delete old image if it exists
-    if (gig.images && gig.images.length > 0 && gig.images[0].url) {
-      await deleteFileFromStorage(gig.images[0].url);
+    // Validate image limit (e.g., max 3 images per gig from Gig model)
+    const GIG_IMAGE_LIMIT = 3; // As defined in Gig model validator
+    const currentImageCount = gig.images?.length || 0;
+    if (currentImageCount + req.files.length > GIG_IMAGE_LIMIT) {
+      return res.status(400).json({
+        error: `You can upload a maximum of ${GIG_IMAGE_LIMIT} images for a gig. You currently have ${currentImageCount}.`,
+      });
     }
 
-    gig.images = [{ url: req.file.url }];
+    const newImages = req.files.map((file) => ({ url: file.url }));
+
+    // Append new images to the existing array
+    gig.images = [...(gig.images || []), ...newImages];
+
     await gig.save();
+    await gig.populate("sellerId", "name");
 
     return res.status(200).json({
-      message: "Gig image uploaded successfully",
+      message: "Gig images uploaded successfully",
       gig,
     });
   } catch (err) {

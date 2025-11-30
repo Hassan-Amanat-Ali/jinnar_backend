@@ -237,7 +237,7 @@ export const createGig = async (req, res, next) => {
         price: pricingMethod === "negotiable" ? undefined : price,
       },
       // ✅ Use the URL from the uploaded file middleware
-      images: req.file ? [{ url: req.file.url }] : [],
+      images: req.files ? req.files.map(file => ({ url: file.url })) : [],
       category: categoryId,
       primarySubcategory: primarySubcategory,
       extraSubcategories: extraSubcategories,
@@ -423,8 +423,10 @@ export const updateGig = async (req, res, next) => {
 
     // ✅ IMAGES (raw JSON array of URLs)
     // ✅ Update image if a new one was uploaded
-    if (req.file) {
-      gig.images = [{ url: req.file.url }];
+    if (req.files && req.files.length > 0) {
+      // This will replace all existing images with the new ones.
+      // For appending, use the dedicated /upload/gig-image/:gigId route.
+      gig.images = req.files.map(file => ({ url: file.url }));
     }
 
     await gig.save();

@@ -3,7 +3,7 @@ import {
   uploadProfilePicture,
   uploadOtherImages,
   uploadPortfolioImages,
-  uploadGigImage,
+  uploadGigImages,
   uploadVideos,
   uploadCertificates,
   uploadIdentityDocument,
@@ -13,6 +13,7 @@ import {
   uploadProfilePictureMW,
   uploadOtherImagesMW,
   uploadPortfolioImagesMW,
+  uploadGigImagesMW, // Import the new middleware
   uploadVideosMW,
   uploadCertificatesMW,
   uploadIdentityDocumentMW,
@@ -47,8 +48,8 @@ router.post("/videos", protect, ...uploadVideosMW, uploadVideos);
 router.post(
   "/gig-image/:gigId",
   protect,
-  ...uploadOtherImagesMW, // Re-using this middleware is fine for single image uploads
-  uploadGigImage
+  ...uploadGigImagesMW, // Use the new, correct middleware
+  uploadGigImages,
 );
 router.post(
   "/certificates",

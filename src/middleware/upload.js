@@ -29,6 +29,7 @@ const folderMap = {
   otherImages: "otherImages",
   portfolioImages: "portfolioImages",
   gigImage: "gigImages",
+  gig_images: "gigImages", // Add this for the new multi-upload
   videos: "videos",
   certificates: "certificates",
   identityDocument: "identity",
@@ -56,6 +57,7 @@ const fileFilter = (req, file, cb) => {
     otherImages: ["image/jpeg", "image/png", "image/gif"],
     portfolioImages: ["image/jpeg", "image/png", "image/gif"],
     gigImage: ["image/jpeg", "image/png", "image/gif"],
+    gig_images: ["image/jpeg", "image/png", "image/gif"], // And here
     videos: ["video/mp4", "video/mpeg", "video/quicktime"],
     certificates: ["application/pdf"],
     identityDocument: ["application/pdf", "image/jpeg", "image/png"],
@@ -140,7 +142,7 @@ export const compressFiles = async (req, res, next) => {
       if (
         ["profilePicture", "otherImages", "portfolioImages", "gigImage"].includes(
           file.fieldname,
-        )
+        ) || file.fieldname === "gig_images" // And here
       ) {
         await compressImage(original, compressed);
       } else if (file.fieldname === "videos") {
@@ -205,6 +207,12 @@ export const uploadOtherImagesMW = [upload.array("otherImages", 10), compressFil
 
 export const uploadPortfolioImagesMW = [
   upload.array("portfolioImages", 5),
+  compressFiles,
+];
+
+// ⭐ NEW: Middleware for MULTIPLE gig images
+export const uploadGigImagesMW = [
+  upload.array("gig_images", 3), // Expects up to 3 files in a field named 'gig_images'
   compressFiles,
 ];
 
