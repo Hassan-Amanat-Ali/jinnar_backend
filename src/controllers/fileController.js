@@ -10,58 +10,60 @@ export const serveFile = async (req, res) => {
   try {
     const { folder, filename } = req.params;
 
-    // 1. Prevent Directory Traversal
-    if (filename.includes("..")) {
+    // Block directory traversal
+    if (filename.includes("..") || filename.includes("/") || filename.includes("\\")) {
       return res.status(400).json({ error: "Invalid filename" });
     }
 
-    const filePath = path.join("uploads", folder, filename);
+    // Build absolute path using process.cwd() → works everywhere
+    const filePath = path.join(process.cwd(), "uploads", folder, filename);
 
-    // 2. Check if the folder is private
+    // Double-check it's really inside uploads (defense in depth)
+    const resolvedPath = path.resolve(filePath);
+    const uploadsDir = path.resolve(process.cwd(), "uploads");
+    if (!resolvedPath.startsWith(uploadsDir)) {
+      return res.status(400).json({ error: "Access denied" });
+    }
+
+    // Your existing private folder + permission logic (keep unchanged)
     if (privateFolders.includes(folder)) {
       if (!req.user || !req.user.id) {
-        return res.status(401).json({ error: "Authentication required to access this file." });
+        return res.status(401).json({ error: "Authentication required" });
       }
 
       const userId = req.user.id;
       const userRole = req.user.role;
       const adminRoles = ["support", "supervisor", "regional_manager", "super_admin"];
 
-      // ✅ Grant access if the user is an admin
-      if (adminRoles.includes(userRole)) {
-        // Admin has permission, proceed to serve the file.
-      } else {
-        // If not an admin, perform ownership checks.
+      if (!adminRoles.includes(userRole)) {
         let hasPermission = false;
 
         if (folder === "identity") {
-          // User can only access their own identity documents.
-          const user = await User.findOne({ _id: userId, "identityDocuments.url": { $regex: filename } });
+          const user = await User.findOne({ _id: userId, "identityDocuments.url": { $regex: filename, $options: "i" } });
           if (user) hasPermission = true;
         } else if (folder === "chat") {
-          // User can access a chat attachment if they are the sender or receiver.
-          const message = await Message.findOne({ 
-            "attachment.url": { $regex: filename },
+          const message = await Message.findOne({
+            "attachment.url": { $regex: filename, $options: "i" },
             $or: [{ sender: userId }, { receiver: userId }]
           });
           if (message) hasPermission = true;
         }
-        // Add more private folder checks here (e.g., for reports)
 
         if (!hasPermission) {
-          return res.status(403).json({ error: "You do not have permission to access this file." });
+          return res.status(403).json({ error: "Forbidden" });
         }
       }
     }
 
-    // 3. For public files, check if the file exists and serve it
+    // Serve file if exists
     if (fs.existsSync(filePath)) {
-      return res.sendFile(path.resolve(filePath));
+      return res.sendFile(filePath);
     } else {
+      console.log("File not found:", filePath); // Helps debugging
       return res.status(404).json({ error: "File not found" });
     }
   } catch (error) {
     console.error("File serving error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ error: "Server error" });
   }
 };
