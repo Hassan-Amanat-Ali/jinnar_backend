@@ -6,6 +6,8 @@ uploads/
 temp/
 logs/
 model.nlp
+# Ignore generated model file
+model.nlp
 
 # macOS
 .DS_Store
