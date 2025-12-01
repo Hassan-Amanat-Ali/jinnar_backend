@@ -351,3 +351,57 @@ export const resetPassword = async (req, res, next) => {
 };
 
 // Additional auth-related controllers can be added here
+
+/**
+ * @description Switch user role between 'buyer' and 'seller'
+ * @route POST /auth/switch-role
+ */
+export const switchRole = async (req, res, next) => {
+  try {
+    const { newRole } = req.body;
+    const userId = req.user.id;
+
+    // 1. Validate newRole
+    if (!newRole || !["buyer", "seller"].includes(newRole)) {
+      return res.status(400).json({
+        error: "Invalid role. Please provide 'buyer' or 'seller'.",
+      });
+    }
+
+    // 2. Get current user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    // 3. Check if role is actually different
+    if (user.role === newRole) {
+      return res.status(200).json({
+        message: `You are already in the '${newRole}' role.`,
+        role: user.role,
+      });
+    }
+
+    // 4. Update user's role in the database
+    user.role = newRole;
+    await user.save();
+
+    // 5. Generate a new JWT with the updated role
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" },
+    );
+
+    // 6. Return success response with new token
+    res.status(200).json({
+      success: true,
+      message: `Role successfully switched to ${newRole}.`,
+      role: newRole,
+      token,
+    });
+  } catch (error) {
+    console.error("Switch Role Error:", error.message);
+    return next(error);
+  }
+};

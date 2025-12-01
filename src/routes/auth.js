@@ -6,7 +6,9 @@ import {
   forgotPassword,
   resetPassword,
   resendVerificationCode,
+  switchRole,
 } from "../controllers/authController.js";
+import { protect } from "../middleware/auth.js";
 // import { ussdHandler } from '../controllers/ussdController.js';
 import { body, validationResult } from "express-validator";
 
@@ -35,6 +37,7 @@ router.post("/resend-verification", resendVerificationCode);
 router.post("/login", login);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
+router.post("/switch-role", protect, switchRole);
 
 // router.post('/ussd', ussdHandler);
 
