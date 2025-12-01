@@ -21,7 +21,6 @@ export const createTicket = async (req, res) => {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found." });
 
-    // DUPLICATE CHECK: prevent user from creating multiple open tickets with same subject
     if (!ticketSubject) {
       ticketSubject = "Ticket from user message"; // Placeholder for AI to fill
     }
@@ -49,12 +48,49 @@ export const createTicket = async (req, res) => {
     const ticket = new SupportTicket(ticketData);
     const createdTicket = await ticket.save();
 
-    // Trigger AI analysis and auto-assignment (these run in the background)
-    analyzeTicket(createdTicket._id);
+    // Respond to the user first to provide a quick experience
+    res.status(201).json(createdTicket);
+
+    // --- Start background processing ---
+
+    // 1. Run AI Analysis
+    await analyzeTicket(createdTicket._id);
+    
+    // 2. Auto-assign ticket
     autoAssignTicket(createdTicket._id);
 
-    // Notify admins
-    const admins = await User.find({ role: { $in: ["support", "supervisor", "super_admin"] } });
+    // 3. Check for high-confidence auto-reply
+    const analyzedTicket = await SupportTicket.findById(createdTicket._id);
+    if (analyzedTicket && analyzedTicket.aiAnalysis.confidenceScore > 0.95 && analyzedTicket.aiAnalysis.suggestedResponse) {
+      const systemAgent = await User.findOne({ role: 'super_admin' });
+      if (systemAgent) {
+        const reply = {
+          sender: systemAgent._id,
+          message: analyzedTicket.aiAnalysis.suggestedResponse,
+          attachments: [],
+        };
+        analyzedTicket.conversation.push(reply);
+        analyzedTicket.status = 'resolved'; // AI is confident, so we can mark as resolved
+        await analyzedTicket.save();
+
+        // Notify the user who created the ticket about the auto-reply
+        if (user.fcmTokens && user.fcmTokens.length > 0) {
+          const notification = {
+            title: `Update on Ticket #${analyzedTicket.ticketId}`,
+            body: 'Our AI assistant has posted a response to your ticket.',
+            data: { ticketId: analyzedTicket._id.toString() },
+          };
+          const notificationPromises = user.fcmTokens.map(tokenInfo => 
+            sendPushNotification(tokenInfo.token, notification)
+          );
+          await Promise.all(notificationPromises);
+          console.log(`🤖 Auto-replied to ticket ${analyzedTicket.ticketId}`);
+        }
+      }
+    }
+
+    // 4. Notify human admins about the new ticket
+    const admins = await User.find({ role: { $in: ["support", "supervisor"] } }); // No need to notify super_admin if they are the sender
     const notificationPromises = admins.flatMap((admin) => {
       if (!admin.fcmTokens || admin.fcmTokens.length === 0) return [];
       return admin.fcmTokens.map(tokenInfo => {
@@ -68,10 +104,9 @@ export const createTicket = async (req, res) => {
     });
     await Promise.all(notificationPromises);
 
-    res.status(201).json(createdTicket);
   } catch (error) {
     console.error("Error creating ticket:", error);
-    res.status(500).json({ message: "Server error while creating ticket." });
+    // Since we already sent a response, we just log the error for background tasks
   }
 };
 

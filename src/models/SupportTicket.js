@@ -98,6 +98,7 @@ assignmentHistory: [
       },
       sentimentScore: { type: Number }, // 1 (Angry) to 10 (Happy)
       priorityScore: { type: Number }, // 1 (Low) to 5 (Critical)
+      confidenceScore: { type: Number }, // 0 to 1
       fraudFlag: { type: Boolean, default: false },
       suggestedResponse: { type: String }, // The draft for your admin
       analyzedAt: { type: Date }

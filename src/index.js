@@ -8,7 +8,7 @@ import morgan from 'morgan';
 import YAML from 'yamljs';
 import swaggerUi from 'swagger-ui-express';
 import apiRoutes from './routes/api.js';
-import cors from 'cors';   // ✅ ADD THIS
+import cors from 'cors';
 import path from 'path';
 import http from "http";
 import { botService } from "./services/BotService.js";
@@ -16,6 +16,8 @@ import setupSocket from "./socket.js";
 import { errorHandler } from './middleware/errorHandler.js';
 import mongoose from 'mongoose';
 import { initializeRecommendationEngine } from './services/recommendationService.js';
+import agenda from './config/agenda.js';
+import '../scripts/ticket-maintenance.js';
 
 
 const app = express();
@@ -28,6 +30,16 @@ const limiter = rateLimit({
 
 connectDb().then(async() => {
   console.log('Connected to MongoDB');
+
+  // Start Agenda.js scheduler
+  await agenda.start();
+  console.log('Agenda.js scheduler started');
+  
+  // Schedule jobs
+  await agenda.every('30 minutes', 'monitor-sla-breaches');
+  await agenda.every('1 day', 'auto-close-resolved-tickets');
+
+
   await botService.train(); // Use load() for faster startup
   await initializeRecommendationEngine();
 }).catch((err) => {

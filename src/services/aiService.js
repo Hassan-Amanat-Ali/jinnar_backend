@@ -5,13 +5,12 @@ import User from "../models/User.js";
 import { sendPushNotification } from "./pushNotificationService.js";
 
 
-console.log("Gemini API Key:", process.env.GEMINI_API_KEY);
+configDotenv(); // Make sure this is called to load .env variables
+
 // Initialize Gemini (Make sure GEMINI_API_KEY is in your .env)
-const genAI = new GoogleGenerativeAI( "AIzaSyCD4ZtNcCY7NJ-wD87FJ0vMfUBSIErNFgk");
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export const analyzeTicket = async (ticketId) => {
-    configDotenv();
-
   try {
     // 1. Fetch the ticket with necessary details
     const ticket = await SupportTicket.findById(ticketId).populate("user", "name email");
@@ -25,7 +24,8 @@ export const analyzeTicket = async (ticketId) => {
 
     // 3. Configure the Model
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash-lite", // Fast and cheap
+      model: "gemini-2.5-flash-lite",
+       // Use a more recent model
       generationConfig: { responseMimeType: "application/json" }, // FORCE JSON output
     });
 
@@ -42,7 +42,8 @@ export const analyzeTicket = async (ticketId) => {
       3. Assign Priority (1-5, where 5 is critical/urgent).
       4. Check for Fraud/Risk (Boolean).
       5. Generate a concise, descriptive subject line for the ticket (max 10 words).
-      5. Write a professional, empathetic draft response (sign off as "Jinnar Support").
+      6. Write a professional, empathetic draft response (sign off as "Jinnar Support").
+      7. Provide a confidence score (0.0 to 1.0) for how well the draft response resolves the user's issue.
 
       Output strict JSON:
       {
@@ -51,7 +52,8 @@ export const analyzeTicket = async (ticketId) => {
         "priority": number,
         "is_fraud": boolean,
         "draft_response": "string",
-        "subject": "string"
+        "subject": "string",
+        "confidence_score": number
       }
     `;
 
@@ -69,6 +71,7 @@ export const analyzeTicket = async (ticketId) => {
       priorityScore: aiData.priority,
       fraudFlag: aiData.is_fraud,
       suggestedResponse: aiData.draft_response,
+      confidenceScore: aiData.confidence_score,
       analyzedAt: new Date(),
     };
 
