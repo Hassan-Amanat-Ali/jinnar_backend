@@ -1,5 +1,21 @@
 import mongoose from "mongoose";
 
+const pointSchema = new mongoose.Schema(
+  {
+    type: {
+      type: String,
+      enum: ["Point"],
+      required: true,
+      default: "Point",
+    },
+    coordinates: {
+      type: [Number], // [lng, lat]
+      required: true,
+    },
+  },
+  { _id: false },
+); // Important: prevent _id in array items
+
 const gigSchema = new mongoose.Schema(
   {
     sellerId: {
@@ -19,6 +35,16 @@ const gigSchema = new mongoose.Schema(
       required: [true, "Gig description is required"],
       trim: true,
       maxlength: [1000, "Description cannot exceed 1000 characters"],
+    },
+    address: {
+      type: String,
+      trim: true,
+      maxlength: [200, "Address cannot exceed 200 characters"],
+      default: null,
+    },
+    location: {
+      type: pointSchema,
+      default: null,
     },
     // --- NEW FIELDS FOR ADMIN MANAGEMENT ---
     status: {
@@ -76,5 +102,7 @@ const gigSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+gigSchema.index({ location: "2dsphere" });
 
 export default mongoose.model("Gig", gigSchema);

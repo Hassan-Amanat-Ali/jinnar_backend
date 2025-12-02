@@ -61,6 +61,16 @@ const userSchema = new mongoose.Schema(
         "Mobile number must be in E.164 format (e.g., +1234567890)",
       ],
     },
+    address: {
+      type: String,
+      trim: true,
+      maxlength: [200, "Address cannot exceed 200 characters"],
+      default: null,
+    },
+    location: {
+      type: pointSchema,
+      default: null,
+    },
     role: {
       type: String,
       enum: [
@@ -251,6 +261,7 @@ userSchema.index({ "wallet.transactions.createdAt": -1 });
 userSchema.index({ "wallet.transactions.paymentMethod": 1 });
 userSchema.index({ "availability.day": 1 });
 userSchema.index({ selectedAreas: "2dsphere" });
+userSchema.index({ location: "2dsphere" });
 // userSchema.index({ 'preferredAreas': '2dsphere' });
 userSchema.index({ "notifications.createdAt": -1 });
 // For efficient notification retrieval

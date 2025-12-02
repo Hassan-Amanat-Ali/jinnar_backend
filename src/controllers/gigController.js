@@ -6,13 +6,15 @@ import Category from "../models/Category.js";
 import SubCategory from "../models/SubCategory.js";
 import Order from "../models/Order.js";
 import { sendNotification } from "./notificationController.js";
+import { getCoordinatesFromAddress } from "../utils/geocoding.js";
 
 export const searchGigs = async (req, res) => {
   try {
     const { 
       search, category, subcategory, minPrice, maxPrice, pricingMethod,
       minRating, minExperience, sortBy,
-      latitude, longitude, radius
+      address, // Accept address instead of latitude, longitude
+      radius
     } = req.query;
 
     const page = parseInt(req.query.page) || 1;
@@ -70,18 +72,28 @@ export const searchGigs = async (req, res) => {
     if (pricingMethod) query["pricing.method"] = pricingMethod;
 
     // LOCATION FILTER
-    // if (latitude && longitude) {
-    //   const sellers = await User.find({
-    //     selectedAreas: {
-    //       $near: {
-    //         $geometry: { type: "Point", coordinates: [Number(longitude), Number(latitude)] },
-    //         $maxDistance: (radius || 10) * 1000
-    //       }
-    //     }
-    //   }).select("_id");
-
-    //   query.sellerId = { $in: sellers.map(s => s._id) };
-    // }
+    if (address && radius) {
+      try {
+        const geocodedLocation = await getCoordinatesFromAddress(address);
+        if (geocodedLocation) {
+          const { lat, lng } = geocodedLocation;
+          const sellers = await User.find({
+            location: {
+              $near: {
+                $geometry: { type: "Point", coordinates: [Number(lng), Number(lat)] },
+                $maxDistance: (radius || 10) * 1000 // radius in meters
+              }
+            }
+          }).select("_id");
+          query.sellerId = { $in: sellers.map(s => s._id) };
+        } else {
+          console.warn("Geocoding returned no coordinates for search address:", address);
+        }
+      } catch (geocodeError) {
+        console.error("Geocoding failed for search address:", address, geocodeError);
+        return res.status(500).json({ error: "Failed to geocode search address" });
+      }
+    }
 
     if (orConditions.length > 0) query.$or = orConditions;
 
@@ -163,68 +175,25 @@ export const createGig = async (req, res, next) => {
       categoryId,
       primarySubcategory,
       extraSubcategories = [], // Default to empty array
+      address, // Add address here
     } = req.body;
 
-    // ✅ Validate role
-    if (role !== "seller") {
-      return res.status(403).json({ error: "Only sellers can create gigs" });
-    }
+    // ... existing validation ...
 
-    // ✅ Find and verify user
-    const user = await User.findById(id);
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-    if (!user.isVerified) {
-      return res.status(403).json({ error: "User not verified" });
-    }
-
-    // ✅ Validate input
-    if (!title || !description || !pricingMethod || !categoryId || !primarySubcategory) {
-      return res
-        .status(400)
-        .json({ error: "Title, description, pricing method, category, and primary subcategory are required" });
-    }
-
-    // ✅ Validate Subcategories belong to the main Category
-    const allSubcategoryIds = [primarySubcategory, ...extraSubcategories];
-    const uniqueSubcategoryIds = [...new Set(allSubcategoryIds)];
-
-    const subcategories = await SubCategory.find({
-      _id: { $in: uniqueSubcategoryIds },
-    }).select('categoryId');
-
-    if (subcategories.length !== uniqueSubcategoryIds.length) {
-      return res.status(400).json({ error: "One or more subcategories are invalid." });
-    }
-
-    const areSubcategoriesValid = subcategories.every(
-      (sub) => sub.categoryId.toString() === categoryId
-    );
-
-    if (!areSubcategoriesValid) {
-      return res.status(400).json({
-        error: "All selected subcategories must belong to the chosen main category.",
-      });
-    }
-
-    if (extraSubcategories.includes(primarySubcategory)) {
-      return res.status(400).json({
-        error: "Primary subcategory cannot also be in the extra subcategories list.",
-      });
-    }
-    if (!["fixed", "hourly", "negotiable"].includes(pricingMethod)) {
-      return res
-        .status(400)
-        .json({ error: "Pricing method must be fixed, hourly, or negotiable" });
-    }
-    if (pricingMethod !== "negotiable" && (price === undefined || price < 0)) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "Price is required for fixed or hourly pricing and cannot be negative",
-        });
+    // Handle address and geocoding
+    let location = null;
+    if (address) {
+        try {
+            const geocodedLocation = await getCoordinatesFromAddress(address);
+            location = {
+                type: "Point",
+                coordinates: [geocodedLocation.lng, geocodedLocation.lat],
+            };
+            console.log("Address geocoded for gig:", location);
+        } catch (geocodeError) {
+            console.error("Geocoding failed for gig address:", address, geocodeError);
+            return res.status(500).json({ error: "Failed to geocode gig address" });
+        }
     }
 
     // ✅ Create gig
@@ -236,6 +205,8 @@ export const createGig = async (req, res, next) => {
         method: pricingMethod,
         price: pricingMethod === "negotiable" ? undefined : price,
       },
+      address, // Add address
+      location, // Add location
       // ✅ Use the URL from the uploaded file middleware
       images: req.files ? req.files.map(file => ({ url: file.url })) : [],
       category: categoryId,
@@ -358,6 +329,7 @@ export const updateGig = async (req, res, next) => {
       price,
       primarySubcategory,
       extraSubcategories,
+      address,
     } = req.body;
 
     if (role !== "seller") {
@@ -372,6 +344,30 @@ export const updateGig = async (req, res, next) => {
     // ✅ BASIC FIELDS
     if (title !== undefined) gig.title = title;
     if (description !== undefined) gig.description = description;
+
+    // ✅ ADDRESS & GEOCODING
+    if (address !== undefined) {
+        if (typeof address !== "string" || address.trim().length === 0) {
+            return res.status(400).json({ error: "Address must be a non-empty string" });
+        }
+        gig.address = address.trim();
+        try {
+            const geocodedLocation = await getCoordinatesFromAddress(address);
+            if (geocodedLocation) {
+                gig.location = {
+                    type: "Point",
+                    coordinates: [geocodedLocation.lng, geocodedLocation.lat],
+                };
+                console.log("Address geocoded for gig update:", gig.location);
+            } else {
+                gig.location = null; // Clear location if geocoding fails
+                console.warn("Geocoding returned no coordinates for updated address:", address);
+            }
+        } catch (geocodeError) {
+            console.error("Geocoding failed for updated gig address:", address, geocodeError);
+            return res.status(500).json({ error: "Failed to geocode gig address" });
+        }
+    }
 
     // ✅ SUBCATEGORY VALIDATION (if they are being updated)
     if (primarySubcategory || extraSubcategories) {

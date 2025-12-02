@@ -6,6 +6,32 @@ import Order from "../models/Order.js";
 import SupportTicket from "../models/SupportTicket.js";
 import Wallet from "../models/Wallet.js";
 import Report from "../models/Report.js";
+import { getCoordinatesFromAddress } from "../utils/geocoding.js";
+
+// Helper function to geocode an array of addresses to GeoJSON Points
+const geocodeAddressArrayToGeoJsonPoints = async (addressArray) => {
+  if (!Array.isArray(addressArray)) {
+    throw new Error("Input must be an array of addresses.");
+  }
+  const geoJsonPoints = [];
+  for (const address of addressArray) {
+    if (typeof address !== "string" || address.trim().length === 0) {
+      throw new Error("Each area must be a non-empty address string.");
+    }
+    const geocodedLocation = await getCoordinatesFromAddress(address);
+    if (geocodedLocation) {
+      geoJsonPoints.push({
+        type: "Point",
+        coordinates: [geocodedLocation.lng, geocodedLocation.lat],
+      });
+    } else {
+      console.warn(`Geocoding returned no coordinates for address: ${address}`);
+      // Decide how to handle un-geocodable addresses: skip, return error, or push null
+      // For now, we'll skip it, but an error might be more appropriate for strict validation.
+    }
+  }
+  return geoJsonPoints;
+};
 
 /**
  * GET /api/workers/find
@@ -27,8 +53,7 @@ const haversineDistance = (lat1, lng1, lat2, lng2) => {
 export const findWorkers = asyncHandler(async (req, res) => {
   const {
     skills,
-    lat,
-    lng,
+    address, // Accept address instead of lat, lng
     radius = 10,
     sortBy = "rating.average",
     sortOrder = "desc",
@@ -36,8 +61,24 @@ export const findWorkers = asyncHandler(async (req, res) => {
     limit = 10,
   } = req.query;
 
-  const parsedLat = lat ? parseFloat(lat) : null;
-  const parsedLng = lng ? parseFloat(lng) : null;
+  let parsedLat = null;
+  let parsedLng = null;
+
+  if (address) {
+    try {
+      const geocodedLocation = await getCoordinatesFromAddress(address);
+      if (geocodedLocation) {
+        parsedLat = geocodedLocation.lat;
+        parsedLng = geocodedLocation.lng;
+      } else {
+        console.warn("Geocoding returned no coordinates for address:", address);
+      }
+    } catch (geocodeError) {
+      console.error("Geocoding failed for findWorkers address:", address, geocodeError);
+      return res.status(500).json({ error: "Failed to geocode address for worker search" });
+    }
+  }
+
   const parsedRadius = parseFloat(radius);
   const parsedPage = parseInt(page, 10);
   const parsedLimit = parseInt(limit, 10);
@@ -142,6 +183,7 @@ export const updateUser = async (req, res) => {
       portfolioImages,
       videos,
       certificates,
+      address, // Add address here
     } = req.body;
 
     // Log request body for debugging
@@ -163,10 +205,7 @@ export const updateUser = async (req, res) => {
         parsedSkills = JSON.parse(skills);
       if (typeof languages === "string" && languages)
         parsedLanguages = JSON.parse(languages);
-      if (typeof selectedAreas === "string" && selectedAreas)
-        parsedSelectedAreas = JSON.parse(selectedAreas);
-      if (typeof preferredAreas === "string" && preferredAreas)
-        parsedPreferredAreas = JSON.parse(preferredAreas);
+      // Removed parsing for selectedAreas and preferredAreas - now handled as arrays of strings
       if (typeof gigs === "string" && gigs) parsedGigs = JSON.parse(gigs);
       if (typeof availability === "string" && availability)
         parsedAvailability = JSON.parse(availability);
@@ -272,36 +311,23 @@ export const updateUser = async (req, res) => {
       user.profilePicture = profilePicture;
       console.log("profilePicture updated:", user.profilePicture);
     }
-    if (parsedPreferredAreas !== undefined) {
-      if (!Array.isArray(parsedPreferredAreas)) {
-        console.log("Invalid preferredAreas format:", parsedPreferredAreas);
-        return res
-          .status(400)
-          .json({ error: "preferredAreas must be an array" });
-      }
-      // V-V-V- COPY VALIDATION FROM 'selectedAreas' V-V-V-
-      for (let i = 0; i < parsedPreferredAreas.length; i++) {
-        const area = parsedPreferredAreas[i];
-        if (
-          !area.type ||
-          area.type !== "Point" ||
-          !Array.isArray(area.coordinates) ||
-          area.coordinates.length !== 2 ||
-          typeof area.coordinates[0] !== "number" ||
-          typeof area.coordinates[1] !== "number" ||
-          area.coordinates[1] < -90 ||
-          area.coordinates[1] > 90 ||
-          area.coordinates[0] < -180 ||
-          area.coordinates[0] > 180
-        ) {
-          return res.status(400).json({
-            error: `preferredAreas at index ${i} must have valid GeoJSON coordinates [lng, lat]`,
-          });
+    // Handle address and geocoding
+    if (address !== undefined) {
+        if (typeof address !== "string" || address.trim().length === 0) {
+            return res.status(400).json({ error: "Address must be a non-empty string" });
         }
-      }
-      // ^-^-^- END OF COPIED VALIDATION -^-^-^
-      user.preferredAreas = parsedPreferredAreas; // This assignment is now correct
-      console.log("preferredAreas updated:", parsedPreferredAreas);
+        user.address = address.trim();
+        try {
+            const geocodedLocation = await getCoordinatesFromAddress(address);
+            user.location = {
+                type: "Point",
+                coordinates: [geocodedLocation.lng, geocodedLocation.lat],
+            };
+            console.log("Address geocoded:", user.location);
+        } catch (geocodeError) {
+            console.error("Geocoding failed for address:", address, geocodeError);
+            return res.status(500).json({ error: "Failed to geocode address" });
+        }
     }
 
     // Update role-specific fields
@@ -349,34 +375,17 @@ export const updateUser = async (req, res) => {
         }
         user.yearsOfExperience = yearsOfExperience;
       }
-      if (parsedSelectedAreas !== undefined) {
-        if (!Array.isArray(parsedSelectedAreas)) {
-          console.log("Invalid selectedAreas format:", parsedSelectedAreas);
-          return res
-            .status(400)
-            .json({ error: "selectedAreas must be an array" });
+      if (selectedAreas !== undefined) { // Use selectedAreas directly from req.body
+        if (!Array.isArray(selectedAreas)) {
+          return res.status(400).json({ error: "selectedAreas must be an array of address strings" });
         }
-        for (let i = 0; i < parsedSelectedAreas.length; i++) {
-          const area = parsedSelectedAreas[i];
-          if (
-            !area.type ||
-            area.type !== "Point" ||
-            !Array.isArray(area.coordinates) ||
-            area.coordinates.length !== 2 ||
-            typeof area.coordinates[0] !== "number" ||
-            typeof area.coordinates[1] !== "number" ||
-            area.coordinates[1] < -90 ||
-            area.coordinates[1] > 90 ||
-            area.coordinates[0] < -180 ||
-            area.coordinates[0] > 180
-          ) {
-            return res.status(400).json({
-              error: `selectedAreas at index ${i} must have valid GeoJSON coordinates [lng, lat]`,
-            });
-          }
+        try {
+          user.selectedAreas = await geocodeAddressArrayToGeoJsonPoints(selectedAreas);
+          console.log("selectedAreas updated:", user.selectedAreas);
+        } catch (geocodeErr) {
+          console.error("Geocoding failed for selectedAreas:", geocodeErr.message);
+          return res.status(400).json({ error: `Failed to geocode one or more selectedAreas: ${geocodeErr.message}` });
         }
-        user.selectedAreas = parsedSelectedAreas;
-        console.log("selectedAreas updated:", parsedSelectedAreas);
       }
       if (parsedAvailability !== undefined) {
         if (!Array.isArray(parsedAvailability)) {
@@ -614,33 +623,17 @@ export const updateUser = async (req, res) => {
       }
     } else if (user.role === "buyer") {
       // Buyer-specific updates
-      if (parsedPreferredAreas !== undefined) {
-        if (!Array.isArray(parsedPreferredAreas)) {
-          console.log("Invalid preferredAreas format:", parsedPreferredAreas);
-          return res
-            .status(400)
-            .json({ error: "preferredAreas must be an array" });
+      if (preferredAreas !== undefined) { // Use preferredAreas directly from req.body
+        if (!Array.isArray(preferredAreas)) {
+          return res.status(400).json({ error: "preferredAreas must be an array of address strings" });
         }
-        for (let i = 0; i < parsedPreferredAreas.length; i++) {
-          const area = parsedPreferredAreas[i];
-          if (
-            !area.lat ||
-            !area.lng ||
-            typeof area.lat !== "number" ||
-            typeof area.lng !== "number" ||
-            area.lat < -90 ||
-            area.lat > 90 ||
-            area.lng < -180 ||
-            area.lng > 180
-          ) {
-            console.log(`Invalid preferredAreas at index ${i}:`, area);
-            return res.status(400).json({
-              error: `preferredAreas at index ${i} must have valid lat (-90 to 90) and lng (-180 to 180)`,
-            });
-          }
+        try {
+          user.preferredAreas = await geocodeAddressArrayToGeoJsonPoints(preferredAreas);
+          console.log("preferredAreas updated:", user.preferredAreas);
+        } catch (geocodeErr) {
+          console.error("Geocoding failed for preferredAreas:", geocodeErr.message);
+          return res.status(400).json({ error: `Failed to geocode one or more preferredAreas: ${geocodeErr.message}` });
         }
-        user.preferredAreas = parsedPreferredAreas;
-        console.log("preferredAreas updated:", parsedPreferredAreas);
       }
     }
 
@@ -690,7 +683,7 @@ export const getPublicProfile = async (req, res) => {
 
     // Fetch user
     const user = await User.findById(id).select(`
-        name role bio profilePicture 
+        name role bio profilePicture address location
         skills languages yearsOfExperience 
         selectedAreas portfolioImages videos certificates
         rating wallet.balance availability createdAt
@@ -747,6 +740,8 @@ export const getPublicProfile = async (req, res) => {
       role: user.role,
       profilePicture: user.profilePicture,
       bio: user.bio || "No bio yet",
+      address: user.address, // Add address
+      location: user.location, // Add location
       skills: user.skills || [],
       languages: user.languages || [],
       yearsOfExperience: user.yearsOfExperience || 0,
@@ -813,7 +808,7 @@ export const getMyProfile = async (req, res) => {
     const { id } = req.user;
 
     const user = await User.findById(id).select(
-      "-password -verificationCode -verificationCodeExpires",
+      "-password -verificationCode -verificationCodeExpires address location",
     );
 
     if (!user) {
@@ -832,6 +827,8 @@ export const getMyProfile = async (req, res) => {
       name: user.name,
       email: user.email,
       mobileNumber: user.mobileNumber,
+      address: user.address, // Add address
+      location: user.location, // Add location
       role: user.role,
       isVerified: user.isVerified,
       verificationStatus: user.verificationStatus, // <-- ADDED
