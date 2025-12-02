@@ -1,5 +1,5 @@
 export const getCoordinatesFromAddress = async (address) => {
-  const apiKey = import.meta.env.VITE_GEOCODE_KEY;
+  const apiKey = process.env.GEOCODE_KEY;
 
   if (!address || !apiKey) {
     console.error("Missing address or API key for Geocode.maps.co");
@@ -20,7 +20,7 @@ export const getCoordinatesFromAddress = async (address) => {
         // They return strings, so we parse them to numbers
         lat: parseFloat(data[0].lat),
         lng: parseFloat(data[0].lon),
-        displayName: data[0].display_name
+        displayName: data[0].display_name,
       };
     } else {
       console.warn("No coordinates found.");

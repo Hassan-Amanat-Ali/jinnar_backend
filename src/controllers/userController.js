@@ -74,8 +74,14 @@ export const findWorkers = asyncHandler(async (req, res) => {
         console.warn("Geocoding returned no coordinates for address:", address);
       }
     } catch (geocodeError) {
-      console.error("Geocoding failed for findWorkers address:", address, geocodeError);
-      return res.status(500).json({ error: "Failed to geocode address for worker search" });
+      console.error(
+        "Geocoding failed for findWorkers address:",
+        address,
+        geocodeError
+      );
+      return res
+        .status(500)
+        .json({ error: "Failed to geocode address for worker search" });
     }
   }
 
@@ -122,7 +128,7 @@ export const findWorkers = asyncHandler(async (req, res) => {
             parsedLat,
             parsedLng,
             lat2,
-            lng2,
+            lng2
           );
           if (minDistance === null || distanceKm < minDistance)
             minDistance = distanceKm;
@@ -131,7 +137,7 @@ export const findWorkers = asyncHandler(async (req, res) => {
         return { ...seller.toObject(), distance: minDistance };
       })
       .filter(
-        (seller) => seller.distance !== null && seller.distance <= parsedRadius,
+        (seller) => seller.distance !== null && seller.distance <= parsedRadius
       );
   }
 
@@ -150,7 +156,7 @@ export const findWorkers = asyncHandler(async (req, res) => {
   const totalResults = sellers.length;
   const paginatedSellers = sellers.slice(
     (parsedPage - 1) * parsedLimit,
-    parsedPage * parsedLimit,
+    parsedPage * parsedLimit
   );
 
   res.json({
@@ -263,7 +269,7 @@ export const updateUser = async (req, res) => {
       ) {
         console.log(
           "Buyer attempted to update seller-specific fields:",
-          req.body,
+          req.body
         );
         return res.status(403).json({
           error:
@@ -306,28 +312,32 @@ export const updateUser = async (req, res) => {
     // ✅ Handle profilePicture (now a simple URL string)
     if (profilePicture) {
       if (typeof profilePicture !== "string") {
-        return res.status(400).json({ error: "profilePicture must be a URL string" });
+        return res
+          .status(400)
+          .json({ error: "profilePicture must be a URL string" });
       }
       user.profilePicture = profilePicture;
       console.log("profilePicture updated:", user.profilePicture);
     }
     // Handle address and geocoding
     if (address !== undefined) {
-        if (typeof address !== "string" || address.trim().length === 0) {
-            return res.status(400).json({ error: "Address must be a non-empty string" });
-        }
-        user.address = address.trim();
-        try {
-            const geocodedLocation = await getCoordinatesFromAddress(address);
-            user.location = {
-                type: "Point",
-                coordinates: [geocodedLocation.lng, geocodedLocation.lat],
-            };
-            console.log("Address geocoded:", user.location);
-        } catch (geocodeError) {
-            console.error("Geocoding failed for address:", address, geocodeError);
-            return res.status(500).json({ error: "Failed to geocode address" });
-        }
+      if (typeof address !== "string" || address.trim().length === 0) {
+        return res
+          .status(400)
+          .json({ error: "Address must be a non-empty string" });
+      }
+      user.address = address.trim();
+      try {
+        const geocodedLocation = await getCoordinatesFromAddress(address);
+        user.location = {
+          type: "Point",
+          coordinates: [geocodedLocation.lng, geocodedLocation.lat],
+        };
+        console.log("Address geocoded:", user.location);
+      } catch (geocodeError) {
+        console.error("Geocoding failed for address:", address, geocodeError);
+        return res.status(500).json({ error: "Failed to geocode address" });
+      }
     }
 
     // Update role-specific fields
@@ -375,16 +385,29 @@ export const updateUser = async (req, res) => {
         }
         user.yearsOfExperience = yearsOfExperience;
       }
-      if (selectedAreas !== undefined) { // Use selectedAreas directly from req.body
+      if (selectedAreas !== undefined) {
+        // Use selectedAreas directly from req.body
         if (!Array.isArray(selectedAreas)) {
-          return res.status(400).json({ error: "selectedAreas must be an array of address strings" });
+          return res
+            .status(400)
+            .json({
+              error: "selectedAreas must be an array of address strings",
+            });
         }
         try {
-          user.selectedAreas = await geocodeAddressArrayToGeoJsonPoints(selectedAreas);
+          user.selectedAreas =
+            await geocodeAddressArrayToGeoJsonPoints(selectedAreas);
           console.log("selectedAreas updated:", user.selectedAreas);
         } catch (geocodeErr) {
-          console.error("Geocoding failed for selectedAreas:", geocodeErr.message);
-          return res.status(400).json({ error: `Failed to geocode one or more selectedAreas: ${geocodeErr.message}` });
+          console.error(
+            "Geocoding failed for selectedAreas:",
+            geocodeErr.message
+          );
+          return res
+            .status(400)
+            .json({
+              error: `Failed to geocode one or more selectedAreas: ${geocodeErr.message}`,
+            });
         }
       }
       if (parsedAvailability !== undefined) {
@@ -425,7 +448,7 @@ export const updateUser = async (req, res) => {
             ) {
               console.log(
                 `Invalid time slot at index ${i}, position ${j}:`,
-                slot.timeSlots[j],
+                slot.timeSlots[j]
               );
               return res.status(400).json({
                 error: `Availability at index ${i} has invalid time slot at position ${j}; must be morning, afternoon, or evening`,
@@ -494,9 +517,9 @@ export const updateUser = async (req, res) => {
           }
         }
         // ✅ Assign the arrays of strings directly
-        user.portfolioImages = parsedPortfolioImages.map(url => ({ url }));
-        user.videos = parsedVideos.map(url => ({ url }));
-        user.certificates = parsedCertificates.map(url => ({ url }));
+        user.portfolioImages = parsedPortfolioImages.map((url) => ({ url }));
+        user.videos = parsedVideos.map((url) => ({ url }));
+        user.certificates = parsedCertificates.map((url) => ({ url }));
         console.log("portfolioImages updated:", user.portfolioImages);
         console.log("videos updated:", user.videos);
         console.log("certificates updated:", user.certificates);
@@ -522,7 +545,7 @@ export const updateUser = async (req, res) => {
           ) {
             console.log(
               `Invalid pricingMethod at index ${i}:`,
-              gigData.pricingMethod,
+              gigData.pricingMethod
             );
             return res.status(400).json({
               error: `Gig at index ${i} has invalid pricing method. Must be fixed, hourly, or negotiable`,
@@ -553,7 +576,10 @@ export const updateUser = async (req, res) => {
           for (let j = 0; j < images.length; j++) {
             // ✅ Simplified validation, only URL is needed now.
             if (!images[j].url || typeof images[j].url !== "string") {
-              console.log(`Invalid image data at index ${i}, image ${j}:`, images[j]);
+              console.log(
+                `Invalid image data at index ${i}, image ${j}:`,
+                images[j]
+              );
               return res.status(400).json({
                 error: `Gig at index ${i} has invalid image data at position ${j}; a URL string is required`,
               });
@@ -572,7 +598,7 @@ export const updateUser = async (req, res) => {
               if (existingGig.sellerId.toString() !== id) {
                 console.log(
                   `Unauthorized update attempt for gig at index ${i}:`,
-                  gigData.gigId,
+                  gigData.gigId
                 );
                 return res
                   .status(403)
@@ -611,7 +637,7 @@ export const updateUser = async (req, res) => {
           } catch (gigErr) {
             console.error(
               `Gig Processing Error at index ${i}:`,
-              gigErr.message,
+              gigErr.message
             );
             return res.status(400).json({
               error: `Failed to process gig at index ${i}`,
@@ -623,16 +649,29 @@ export const updateUser = async (req, res) => {
       }
     } else if (user.role === "buyer") {
       // Buyer-specific updates
-      if (preferredAreas !== undefined) { // Use preferredAreas directly from req.body
+      if (preferredAreas !== undefined) {
+        // Use preferredAreas directly from req.body
         if (!Array.isArray(preferredAreas)) {
-          return res.status(400).json({ error: "preferredAreas must be an array of address strings" });
+          return res
+            .status(400)
+            .json({
+              error: "preferredAreas must be an array of address strings",
+            });
         }
         try {
-          user.preferredAreas = await geocodeAddressArrayToGeoJsonPoints(preferredAreas);
+          user.preferredAreas =
+            await geocodeAddressArrayToGeoJsonPoints(preferredAreas);
           console.log("preferredAreas updated:", user.preferredAreas);
         } catch (geocodeErr) {
-          console.error("Geocoding failed for preferredAreas:", geocodeErr.message);
-          return res.status(400).json({ error: `Failed to geocode one or more preferredAreas: ${geocodeErr.message}` });
+          console.error(
+            "Geocoding failed for preferredAreas:",
+            geocodeErr.message
+          );
+          return res
+            .status(400)
+            .json({
+              error: `Failed to geocode one or more preferredAreas: ${geocodeErr.message}`,
+            });
         }
       }
     }
@@ -663,7 +702,7 @@ export const updateUser = async (req, res) => {
 
     // Re-fetch user to confirm updates
     const updatedUser = await User.findById(id).select(
-      "-verificationCode -verificationCodeExpires",
+      "-verificationCode -verificationCodeExpires"
     );
     return res.status(200).json({
       message: "User updated successfully",
@@ -709,7 +748,7 @@ export const getPublicProfile = async (req, res) => {
     const recentReviewsRaw = (user.reviews || []).slice(-5).reverse();
     const reviewerIds = recentReviewsRaw.map((r) => r.reviewer).filter(Boolean);
     const reviewers = await User.find({ _id: { $in: reviewerIds } }).select(
-      "name profilePicture",
+      "name profilePicture"
     );
     const reviewerMap = reviewers.reduce((acc, u) => {
       acc[u._id] = u;
@@ -808,7 +847,7 @@ export const getMyProfile = async (req, res) => {
     const { id } = req.user;
 
     const user = await User.findById(id).select(
-      "-password -verificationCode -verificationCodeExpires address location",
+      "-password -verificationCode -verificationCodeExpires"
     );
 
     if (!user) {
@@ -878,7 +917,7 @@ export const getSellerReviews = async (req, res) => {
     // Fetch reviewer details
     const reviewerIds = paged.map((r) => r.reviewer).filter(Boolean);
     const reviewers = await User.find({ _id: { $in: reviewerIds } }).select(
-      "name profilePicture",
+      "name profilePicture"
     );
     const reviewerMap = reviewers.reduce((acc, u) => {
       acc[u._id] = u;
@@ -921,25 +960,36 @@ export const submitForVerification = async (req, res) => {
     }
 
     // 1. Check current status
-    if (user.verificationStatus === 'approved') {
-        return res.status(400).json({ error: "User is already verified." });
+    if (user.verificationStatus === "approved") {
+      return res.status(400).json({ error: "User is already verified." });
     }
-    if (user.verificationStatus === 'pending') {
-        return res.status(400).json({ error: "Verification is already pending." });
+    if (user.verificationStatus === "pending") {
+      return res
+        .status(400)
+        .json({ error: "Verification is already pending." });
     }
 
     // 2. Check if documents exist
     if (!user.identityDocuments || user.identityDocuments.length === 0) {
-      return res.status(400).json({ error: "Please upload at least one identity document before submitting." });
+      return res
+        .status(400)
+        .json({
+          error:
+            "Please upload at least one identity document before submitting.",
+        });
     }
 
     // 3. Update status and save
-    user.verificationStatus = 'pending';
+    user.verificationStatus = "pending";
     await user.save();
 
     // 4. Respond
-    res.status(200).json({ message: "Your verification request has been submitted and is now pending review." });
-
+    res
+      .status(200)
+      .json({
+        message:
+          "Your verification request has been submitted and is now pending review.",
+      });
   } catch (error) {
     console.error("Submit for Verification Error:", error);
     res.status(500).json({ error: "Failed to submit for verification." });
@@ -957,7 +1007,9 @@ export const getUserDetailsForAdmin = asyncHandler(async (req, res) => {
   }
 
   // 2. Fetch Orders (as buyer and seller)
-  const ordersAsBuyer = await Order.find({ buyerId: id }).sort({ createdAt: -1 });
+  const ordersAsBuyer = await Order.find({ buyerId: id }).sort({
+    createdAt: -1,
+  });
   const ordersAsSeller = await Order.find({ sellerId: id }).sort({
     createdAt: -1,
   });
