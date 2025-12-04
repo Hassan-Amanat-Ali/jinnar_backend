@@ -13,18 +13,42 @@ export const searchGigs = async (req, res) => {
     const { 
       search, category, subcategory, minPrice, maxPrice, pricingMethod,
       minRating, minExperience, sortBy,
-      address, // Accept address instead of latitude, longitude
-      radius
+      lat, lng, radius 
     } = req.query;
 
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const query = { status: "active" };
+    const pipeline = [];
+
+    // --- STAGE 1: GEO-SPATIAL SEARCH ---
+    // MUST be the very first stage if lat/lng are present
+    if (lat && lng) {
+      pipeline.push({
+        $geoNear: {
+          near: {
+            type: "Point",
+            coordinates: [parseFloat(lng), parseFloat(lat)],
+          },
+          distanceField: "distance", // Output field for distance (in meters)
+          maxDistance: (parseFloat(radius) || 10) * 1000, // Convert km to meters
+          key: "location", // The index key
+          spherical: true,
+          // Optimization: Apply status check inside geoNear to reduce initial set
+          query: { status: "active" } 
+        },
+      });
+    } else {
+      // If no Geo search, we must manually filter for active gigs first
+      pipeline.push({ $match: { status: "active" } });
+    }
+
+    // --- STAGE 2: BUILD MAIN MATCH CONDITIONS ---
+    const matchConditions = {};
     const orConditions = [];
 
-    // TEXT SEARCH
+    // Text Search
     if (search) {
       orConditions.push(
         { title: { $regex: search, $options: "i" } },
@@ -32,137 +56,176 @@ export const searchGigs = async (req, res) => {
       );
     }
 
-    // CATEGORY (by name or ID)
+    // Category (Handle ID or Name)
     if (category) {
-      let categoryDoc;
-      // Check if the provided category is a valid MongoDB ObjectId
       if (mongoose.Types.ObjectId.isValid(category)) {
-        categoryDoc = await Category.findById(category);
+        matchConditions.category = new mongoose.Types.ObjectId(category);
       } else {
-        // If not, assume it's a name and search by name
-        categoryDoc = await Category.findOne({ name: { $regex: `^${category}$`, $options: 'i' } });
+        const catDoc = await Category.findOne({ name: { $regex: `^${category}$`, $options: 'i' } });
+        if (catDoc) matchConditions.category = catDoc._id;
       }
-      if (categoryDoc) query.category = categoryDoc._id;
     }
 
-    // SUBCATEGORY (by name or ID)
+    // Subcategory (Handle ID or Name)
     if (subcategory) {
-      const subCategoryDoc = await SubCategory.findOne({
-        $or: [
-          { _id: subcategory },
-          { name: { $regex: `^${subcategory}$`, $options: 'i' } }
-        ]
-      });
-      if (subCategoryDoc) {
+      let subCatId = null;
+      if (mongoose.Types.ObjectId.isValid(subcategory)) {
+        subCatId = new mongoose.Types.ObjectId(subcategory);
+      } else {
+        const subDoc = await SubCategory.findOne({ name: { $regex: `^${subcategory}$`, $options: 'i' } });
+        if (subDoc) subCatId = subDoc._id;
+      }
+
+      if (subCatId) {
         orConditions.push(
-          { primarySubcategory: subCategoryDoc._id },
-          { extraSubcategories: subCategoryDoc._id }
+          { primarySubcategory: subCatId },
+          { extraSubcategories: subCatId }
         );
       }
     }
 
-    // PRICE RANGE
+    // Price Filter
     if (minPrice || maxPrice) {
-      query["pricing.price"] = {};
-      if (minPrice) query["pricing.price"].$gte = Number(minPrice);
-      if (maxPrice) query["pricing.price"].$lte = Number(maxPrice);
+      matchConditions["pricing.price"] = {};
+      if (minPrice) matchConditions["pricing.price"].$gte = Number(minPrice);
+      if (maxPrice) matchConditions["pricing.price"].$lte = Number(maxPrice);
     }
 
-    // PRICING METHOD
-    if (pricingMethod) query["pricing.method"] = pricingMethod;
-
-    // LOCATION FILTER
-    if (address && radius) {
-      try {
-        const geocodedLocation = await getCoordinatesFromAddress(address);
-        if (geocodedLocation) {
-          const { lat, lng } = geocodedLocation;
-          const sellers = await User.find({
-            location: {
-              $near: {
-                $geometry: { type: "Point", coordinates: [Number(lng), Number(lat)] },
-                $maxDistance: (radius || 10) * 1000 // radius in meters
-              }
-            }
-          }).select("_id");
-          query.sellerId = { $in: sellers.map(s => s._id) };
-        } else {
-          console.warn("Geocoding returned no coordinates for search address:", address);
-        }
-      } catch (geocodeError) {
-        console.error("Geocoding failed for search address:", address, geocodeError);
-        return res.status(500).json({ error: "Failed to geocode search address" });
-      }
+    // Pricing Method
+    if (pricingMethod) {
+      matchConditions["pricing.method"] = pricingMethod;
     }
 
-    if (orConditions.length > 0) query.$or = orConditions;
+    // Attach $or conditions if they exist
+    if (orConditions.length > 0) {
+      matchConditions.$or = orConditions;
+    }
 
-    // Get total count for pagination before applying skip/limit
-    const totalGigs = await Gig.countDocuments(query);
+    // Apply the Match Stage (Only if we have conditions)
+    if (Object.keys(matchConditions).length > 0) {
+      pipeline.push({ $match: matchConditions });
+    }
 
-    // FETCH GIGS with populated fields
-    let gigs = await Gig.find(query)
-      .populate("sellerId", "rating yearsOfExperience name bio skills")
-      .populate("category", "name")
-      .populate("primarySubcategory", "_id name")
-      .populate("extraSubcategories", "_id name")
-      .skip(skip)
-      .limit(limit);
+    // --- STAGE 3: JOIN SELLER (USERS) ---
+    pipeline.push(
+      {
+        $lookup: {
+          from: "users",
+          localField: "sellerId",
+          foreignField: "_id",
+          as: "sellerInfo",
+        },
+      },
+      { $unwind: "$sellerInfo" } // Convert array to object
+    );
 
-    // Replace subcategories array with objects containing name and id
-    gigs = gigs.map(gig => {
-      const primary = gig.primarySubcategory ? { _id: gig.primarySubcategory._id, name: gig.primarySubcategory.name } : null;
-      const extras = gig.extraSubcategories ? gig.extraSubcategories.map(s => ({ _id: s._id, name: s.name })) : [];
-      return {
-        ...gig.toObject(),
-        subcategories: primary ? [primary, ...extras] : extras
-      };
-    });
-
-    // FILTER BY RATING (Post-query)
+    // --- STAGE 4: FILTER BY SELLER STATS ---
+    const sellerMatch = {};
     if (minRating) {
-      gigs = gigs.filter(g => (g.sellerId?.rating?.average || 0) >= Number(minRating));
+      sellerMatch["sellerInfo.rating.average"] = { $gte: Number(minRating) };
     }
-
-    // FILTER BY EXPERIENCE (Post-query)
     if (minExperience) {
-      gigs = gigs.filter(g => (g.sellerId?.yearsOfExperience || 0) >= Number(minExperience));
+      sellerMatch["sellerInfo.yearsOfExperience"] = { $gte: Number(minExperience) };
+    }
+    
+    if (Object.keys(sellerMatch).length > 0) {
+      pipeline.push({ $match: sellerMatch });
     }
 
-    // SORTING
+    // --- STAGE 5: LOOKUP CATEGORY NAMES (For Display) ---
+    pipeline.push(
+      { $lookup: { from: "categories", localField: "category", foreignField: "_id", as: "categoryData" } },
+      { $unwind: { path: "$categoryData", preserveNullAndEmptyArrays: true } },
+      { $lookup: { from: "subcategories", localField: "primarySubcategory", foreignField: "_id", as: "primarySubData" } },
+      { $unwind: { path: "$primarySubData", preserveNullAndEmptyArrays: true } }
+    );
+
+    // --- STAGE 6: SORTING ---
+    // Note: $geoNear automatically sorts by distance. 
+    // This stage OVERRIDES distance sort if a user selects something else.
+    let sortStage = {};
+    
+    // Default sort
+    sortStage = { createdAt: -1 }; 
+
     if (sortBy) {
       switch (sortBy) {
         case "rating":
-          gigs.sort((a, b) => (b.sellerId?.rating?.average || 0) - (a.sellerId?.rating?.average || 0));
+          sortStage = { "sellerInfo.rating.average": -1 };
           break;
         case "experience":
-          gigs.sort((a, b) => (b.sellerId?.yearsOfExperience || 0) - (a.sellerId?.yearsOfExperience || 0));
+          sortStage = { "sellerInfo.yearsOfExperience": -1 };
           break;
         case "price_low":
-          gigs.sort((a, b) => (a.pricing?.price || 0) - (b.pricing?.price || 0));
+          sortStage = { "pricing.price": 1 };
           break;
         case "price_high":
-          gigs.sort((a, b) => (b.pricing?.price || 0) - (a.pricing?.price || 0));
+          sortStage = { "pricing.price": -1 };
           break;
         case "newest":
-          gigs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          sortStage = { createdAt: -1 };
+          break;
+        case "distance":
+          // If sorting by distance, we rely on $geoNear's inherent sort order.
+          // However, if we need to force it (and geoNear was used), we use the distance field.
+          if (lat && lng) sortStage = { distance: 1 };
           break;
       }
     }
+    
+    pipeline.push({ $sort: sortStage });
+
+    // --- STAGE 7: PAGINATION & PROJECTION ---
+    pipeline.push({
+      $facet: {
+        metadata: [{ $count: "total" }],
+        data: [
+          { $skip: skip },
+          { $limit: limit },
+          {
+            $project: {
+              title: 1,
+              description: 1,
+              pricing: 1,
+              images: 1,
+              status: 1,
+              createdAt: 1,
+              distance: 1, // Will be null if geo search wasn't used
+              "sellerId._id": "$sellerInfo._id",
+              "sellerId.name": "$sellerInfo.name",
+              "sellerId.rating": "$sellerInfo.rating",
+              "sellerId.yearsOfExperience": "$sellerInfo.yearsOfExperience",
+              "sellerId.bio": "$sellerInfo.bio",
+              "category": { _id: "$categoryData._id", name: "$categoryData.name" },
+              "primarySubcategory": { _id: "$primarySubData._id", name: "$primarySubData.name" }
+            }
+          }
+        ],
+      },
+    });
+
+    // --- EXECUTE ---
+    const result = await Gig.aggregate(pipeline);
+
+    // Format output
+    const gigs = result[0].data;
+    const total = result[0].metadata[0] ? result[0].metadata[0].total : 0;
 
     res.json({
       gigs,
       pagination: {
         page,
         limit,
-        total: totalGigs,
+        total,
+        pages: Math.ceil(total / limit)
       }
     });
+
   } catch (err) {
+    console.error("Search Gigs Error:", err);
     res.status(500).json({ error: "Search failed", details: err.message });
   }
 };
-
 
 export const createGig = async (req, res, next) => {
   try {
