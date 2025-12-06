@@ -9,18 +9,32 @@ configDotenv();
 
 // Nodemailer transporter using Gmail SMTP
 const transporter = nodemailer.createTransport({
-  service: "gmail",
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
+  // 1. REMOVE "service: gmail" (Crucial!)
+  
+  // 2. Point to your server
+  // host: "mail.jinnar.com", 
+  host:"127.0.0.1",
+  
+  // 3. Use Port 587 (Standard for Postfix/iRedMail)
+  port: 587,
+  
+  // 4. Set secure to FALSE (because 587 uses STARTTLS, not implicit SSL)
+  secure: false, 
   auth: {
-    // It's highly recommended to use environment variables for security
-    user: process.env.GMAIL_USER, // Your Gmail address from .env file
-    pass: process.env.GMAIL_APP_PASSWORD, // Your Gmail app password from .env file
+    user: process.env.SMTP_USER, // MUST be the full email: 'info@jinnar.com'
+    pass: process.env.SMTP_PASS, // Your iRedMail password
   },
+  
+  // 5. IMPORTANT: Fixes potential "Self-signed certificate" errors
+  // Since your Postfix inside Docker might not share the exact same 
+  // Let's Encrypt file as Nginx yet, this prevents the connection from failing.
+  tls: {
+    rejectUnauthorized: false
+  }
 });
 
 console.log("Nodemailer configured for Gmail.");
+  console.log(process.env.SMTP_USER)
 
 // Initialize Twilio client from environment variables (safe for prod)
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
@@ -104,7 +118,7 @@ export const registerUser = async (req, res) => {
     if (transporter) {
       try {
         const mailOptions = {
-          from: `"Jinnar Services" <${process.env.GMAIL_USER}>`,
+          from: `"Jinnar Services" <${process.env.SMTP_USER}>`,
           to: user.email,
           subject: "Your Verification Code",
           html: `<p>Your verification code is: <b>${verificationCode}</b></p><p>This code will expire in 10 minutes.</p>`,
@@ -277,7 +291,7 @@ export const forgotPassword = async (req, res, next) => {
     if (transporter) {
       try {
         const mailOptions = {
-          from: `"Jinnar Services" <${process.env.GMAIL_USER}>`,
+          from: `"Jinnar Services" <${process.env.SMTP_USER}>`,
           to: user.email,
           subject: "Your Password Reset Code",
           html: `<p>Your password reset code is: <b>${verificationCode}</b></p><p>This code will expire in 10 minutes.</p>`,

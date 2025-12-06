@@ -1,0 +1,56 @@
+# HTTP — redirect to HTTPS
+server {
+    listen 80;
+    server_name jinnar.com srv1144519.hstgr.cloud;
+
+    return 301 https://$host$request_uri;
+}
+
+# HTTPS
+server {
+    listen 443 ssl;
+    server_name jinnar.com srv1144519.hstgr.cloud;
+
+    root /var/www/websites/jinnar.com;
+    index index.html;
+
+    ssl_certificate /etc/ssl/certs/nginx-selfsigned.crt;
+    ssl_certificate_key /etc/ssl/private/nginx-selfsigned.key;
+
+    location / {
+        try_files $uri /index.html;
+    }
+
+    access_log /var/www/websites/jinnar.com/logs/access.log;
+    error_log /var/www/websites/jinnar.com/logs/error.log;
+}
+# HTTP — redirect to HTTPS
+server {
+    listen 80;
+    server_name api.jinnar.com api.srv1144519.hstgr.cloud;
+
+    return 301 https://$host$request_uri;
+}
+
+# HTTPS
+server {
+    listen 443 ssl;
+    server_name api.jinnar.com api.srv1144519.hstgr.cloud;
+
+    ssl_certificate /etc/ssl/certs/nginx-selfsigned.crt;
+    ssl_certificate_key /etc/ssl/private/nginx-selfsigned.key;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    access_log /var/www/websites/api.jinnar.com/logs/access.log;
+    error_log /var/www/websites/api.jinnar.com/logs/error.log;
+}

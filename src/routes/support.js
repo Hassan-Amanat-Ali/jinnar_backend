@@ -10,7 +10,7 @@ import { protect } from "../middleware/auth.js";
 const router = express.Router();
 
 // @route   /api/support
-router.post("/tickets", protect, createTicket);
+router.post("/tickets", createTicket);
 router.get("/tickets", protect, getMyTickets);
 router.get("/tickets/:id", protect, getTicketById);
 router.post("/tickets/:id/reply", protect, replyToTicket);
