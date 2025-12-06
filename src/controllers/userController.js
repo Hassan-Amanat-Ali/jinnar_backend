@@ -388,11 +388,9 @@ export const updateUser = async (req, res) => {
       if (selectedAreas !== undefined) {
         // Use selectedAreas directly from req.body
         if (!Array.isArray(selectedAreas)) {
-          return res
-            .status(400)
-            .json({
-              error: "selectedAreas must be an array of address strings",
-            });
+          return res.status(400).json({
+            error: "selectedAreas must be an array of address strings",
+          });
         }
         try {
           user.selectedAreas =
@@ -403,11 +401,9 @@ export const updateUser = async (req, res) => {
             "Geocoding failed for selectedAreas:",
             geocodeErr.message
           );
-          return res
-            .status(400)
-            .json({
-              error: `Failed to geocode one or more selectedAreas: ${geocodeErr.message}`,
-            });
+          return res.status(400).json({
+            error: `Failed to geocode one or more selectedAreas: ${geocodeErr.message}`,
+          });
         }
       }
       if (parsedAvailability !== undefined) {
@@ -652,11 +648,9 @@ export const updateUser = async (req, res) => {
       if (preferredAreas !== undefined) {
         // Use preferredAreas directly from req.body
         if (!Array.isArray(preferredAreas)) {
-          return res
-            .status(400)
-            .json({
-              error: "preferredAreas must be an array of address strings",
-            });
+          return res.status(400).json({
+            error: "preferredAreas must be an array of address strings",
+          });
         }
         try {
           user.preferredAreas =
@@ -667,11 +661,9 @@ export const updateUser = async (req, res) => {
             "Geocoding failed for preferredAreas:",
             geocodeErr.message
           );
-          return res
-            .status(400)
-            .json({
-              error: `Failed to geocode one or more preferredAreas: ${geocodeErr.message}`,
-            });
+          return res.status(400).json({
+            error: `Failed to geocode one or more preferredAreas: ${geocodeErr.message}`,
+          });
         }
       }
     }
@@ -971,12 +963,10 @@ export const submitForVerification = async (req, res) => {
 
     // 2. Check if documents exist
     if (!user.identityDocuments || user.identityDocuments.length === 0) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "Please upload at least one identity document before submitting.",
-        });
+      return res.status(400).json({
+        error:
+          "Please upload at least one identity document before submitting.",
+      });
     }
 
     // 3. Update status and save
@@ -984,12 +974,10 @@ export const submitForVerification = async (req, res) => {
     await user.save();
 
     // 4. Respond
-    res
-      .status(200)
-      .json({
-        message:
-          "Your verification request has been submitted and is now pending review.",
-      });
+    res.status(200).json({
+      message:
+        "Your verification request has been submitted and is now pending review.",
+    });
   } catch (error) {
     console.error("Submit for Verification Error:", error);
     res.status(500).json({ error: "Failed to submit for verification." });
