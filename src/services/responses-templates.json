@@ -1,0 +1,1105 @@
+ {
+  "Tier 1 Support (55 Templates)": [
+    {
+      "name": "Login Failure (Wrong Credentials)",
+      "subject_en": "Trouble Logging In? Let’s Fix That",
+      "english": "Hello [User's First Name], Thank you for contacting Jinnar Support. We're here to help! It looks like your login attempt may have failed due to incorrect details. Please double-check that: Your phone number or username is entered correctly; You’re using the most recent code (if logging in with OTP); There are no spaces or extra characters in the input fields. If you’re still having trouble: 👉 Tap “Forgot Password” to reset your login or 👉 Reply to this message and we’ll assist you further. We want to make sure you’re back in smoothly! Warm regards, Jinnar Support Team ",
+      "swahili": "Habari [Jina la Mtumiaji], Asante kwa kuwasiliana na Jinnar Support. Tuko hapa kukusaidia! Inaonekana umejaribu kuingia lakini taarifa ulizoweka si sahihi. Tafadhali hakikisha kuwa: Namba ya simu au jina la mtumiaji umeandika vizuri; Umetumia msimbo wa sasa uliotumwa (OTP); Hakuna nafasi au herufi za ziada umeandika kimakosa. Kama bado una changamoto: 👉 Bonyeza “Umesahau Nenosiri” ili kuweka upya login yako au 👉 Jibu ujumbe huu nasi tutakusaidia moja kwa moja. Tunahakikisha unaingia tena bila shida yoyote! Kwa heri, Timu ya Msaada ya Jinnar ",
+      "tier": 1
+    },
+    {
+      "name": "Reset Password Instructions",
+      "subject_en": "Need to Reset Your Password? Here’s How",
+      "english": "Hello [User's First Name], No worries—we’ve got you covered. To reset your password, simply follow these steps: Open the Jinnar App or visit the website; Tap “Log In”; Select “Forgot Password?”; Enter your registered phone number or username; Follow the link/code sent to you via SMS or email; Set a new password and confirm. 📌 Tip: Use a password that’s easy to remember but hard for others to guess. If you run into any issues during the process, feel free to reply to this message and we’ll help you right away. Best regards, Jinnar Support Team ",
+      "swahili": "Habari [Jina la Mtumiaji], Usiwe na wasiwasi—tuko hapa kukusaidia. Ili kuweka upya nenosiri lako, fuata hatua hizi: Fungua App ya Jinnar au tembelea tovuti; Bofya “Ingia”; Chagua “Umesahau Nenosiri?”; Andika namba ya simu au jina la mtumiaji uliyosajili; Fuata kiungo au msimbo uliotumwa kwa SMS au barua pepe; Weka nenosiri jipya na uthibitishe. 📌 Kidokezo: Tumia nenosiri ambalo ni rahisi kwako kukumbuka lakini ni gumu kwa wengine kubahatisha. Ukipata changamoto yoyote, jibu ujumbe huu nasi tutakusaidia mara moja. Kwa heri, Timu ya Msaada ya Jinnar ",
+      "tier": 1
+    },
+    {
+      "name": "Verification Code Not Received",
+      "subject_en": "Didn’t Get the Verification Code? Let’s Fix That",
+      "english": "Hello [User's First Name], Sorry you didn’t receive the verification code. Let’s try a few quick fixes : ✅ Make sure your phone has a stable mobile signal ✅ Check that you entered the correct phone number ✅ Wait a moment—it can sometimes take 1–2 minutes ✅ If needed, tap “Resend Code” to get a new one. 📌 Still not getting it? Please reply and confirm: Your full phone number; Whether you’re using SMS or email for verification. We’ll investigate and make sure you get in! Thanks for your patience, Jinnar Support Team ",
+      "swahili": "Habari [Jina la Mtumiaji], Samahani kama hujapokea msimbo wa kuthibitisha. Hebu jaribu hatua hizi haraka : ✅ Hakikisha simu yako ina mtandao mzuri ✅ Hakikisha umeandika namba ya simu kwa usahihi ✅ Subiri kidogo—wakati mwingine huchukua dakika 1–2 ✅ Ukihitaji, bofya “Tuma Tena Msimbo” ili upate mpya. 📌 Bado hupokei? Tafadhali jibu na uthibitishe: Namba yako kamili ya simu; Kama unatumia SMS au barua pepe kupokea msimbo. Tutachunguza na kuhakikisha unapata huduma unayohitaji. Asante kwa subira yako, Timu ya Msaada ya Jinnar ",
+      "tier": 1
+    },
+    {
+      "name": "Account Temporarily Locked",
+      "subject_en": "Trouble Logging In? Your Account May Be Temporarily Locked",
+      "english": "Hello [User's First Name], It looks like your account has been temporarily locked after multiple failed login attempts. ✅ Don’t worry—this is a security measure to protect your profile. Here’s what to do: Wait 10–15 minutes before trying again. Tap “Forgot Password” if you’re unsure of your login details. Make sure you’re using your registered phone number or username. If you're still locked out after waiting, please reply to this message and we’ll assist you immediately. Your safety is our priority. Best regards, Jinnar Support Team ",
+      "swahili": "Habari [Jina la Mtumiaji], Inaonekana akaunti yako imefungwa kwa muda baada ya kujaribu kuingia mara nyingi bila mafanikio. ✅ Usihofu—hii ni hatua ya usalama kulinda wasifu wako. Fanya hivi: Subiri dakika 10–15 kabla ya kujaribu tena. Bofya “Umesahau Nenosiri” ikiwa huna uhakika na taarifa zako. Hakikisha unatumia namba ya simu au jina ulilosajili nalo. Kama bado huwezi kuingia baada ya kusubiri, tafadhali jibu ujumbe huu nasi tutakusaidia mara moja. Usalama wako ni muhimu kwetu. Kwa heri, Timu ya Msaada ya Jinnar ",
+      "tier": 1
+    },
+    {
+      "name": "Account Not Yet Approved",
+      "subject_en": "Your Account Is Still Under Review",
+      "english": "Hello [User's First Name], Thanks for signing up with Jinnar! 🙌  Your account is currently under review by our team. We check all new registrations to ensure everyone meets our community standards and safety requirements. ⏳ Review time usually takes between 24–48 hours. Once approved, you’ll receive a confirmation message and can start using the platform right away. 📌 In the meantime: Please make sure your documents are uploaded clearly; Check that your contact information is correct; You can reply here if you need to update anything. Thanks for your patience, and welcome to the Jinnar community! Best regards, Jinnar Support Team ",
+      "swahili": "Habari [Jina la Mtumiaji], Asante kwa kujisajili na Jinnar! 🙌  Akaunti yako bado inakaguliwa na timu yetu. Tunahakikisha kila usajili mpya unakidhi viwango vya usalama na maadili ya jamii yetu. ⏳ Ukaguzi huchukua kati ya saa 24–48. Ukikubaliwa, utapokea ujumbe wa uthibitisho na utaweza kuanza kutumia jukwaa mara moja. 📌 Wakati unasubiri: Hakikisha nyaraka zako zimepakiwa kwa uwazi; Hakikisha mawasiliano yako yako sahihi; Unaweza pia kujibu hapa ikiwa kuna taarifa unataka kusasisha. Asante kwa subira yako, na karibu sana kwenye familia ya Jinnar! Kwa heri, Timu ya Msaada ya Jinnar ",
+      "tier": 1
+    },
+    {
+      "name": "Multiple Device Login Warning",
+      "subject_en": "Your Account Was Accessed on Multiple Devices",
+      "english": "Hello [User's First Name], We noticed that your Jinnar account was recently accessed from more than one device. 🔒 For your security, please ensure: You recognize all devices you’ve used; You have not shared your login information with anyone; You log out from old or public devices when done. 📌 Important Reminder: Sharing your account with others is against Jinnar policy and can result in a suspension. If this activity wasn’t you, please reset your password immediately and reply to this message so we can help investigate. Your safety matters to us. Kind regards, Jinnar Support Team ",
+      "swahili": "Habari [Jina la Mtumiaji], Tumegundua kuwa akaunti yako ya Jinnar imetumika katika vifaa zaidi ya kimoja hivi karibuni. 🔒 Kwa usalama wako, tafadhali hakikisha kuwa: Unavitambua vifaa vyote ulivyotumia; Hujawahi kushiriki taarifa zako za kuingia na mtu mwingine; Umejiondoa (log out) kwenye vifaa vya zamani au vya umma baada ya kumaliza. 📌 Kumbuka Muhimu: Kugawana akaunti yako na mtu mwingine ni kinyume cha sheria ya Jinnar na kunaweza kusababisha akaunti kusimamishwa. Ikiwa shughuli hii haikutokea kutoka kwako, tafadhali badilisha nenosiri lako mara moja na ujibu ujumbe huu ili tushughulikie jambo hili haraka. Usalama wako ni kipaumbele chetu. Kwa heri, Timu ya Msaada ya Jinnar ",
+      "tier": 1
+    },
+    {
+      "name": "How to Cancel a Job Post",
+      "subject_en": "Need to Cancel Your Job Post? Here’s How",
+      "english": "Hello [User's First Name] No problem! If you need to cancel a job you posted, just follow these steps: Open the Jinnar app or website; Go to “My Jobs” or “Job History”; Select the job you want to cancel; Tap “Cancel Job” and confirm your choice. 📝 Note: If a worker has already accepted the job, please let them know why you're canceling to avoid confusion. Still having trouble? Reply here and we’ll cancel it for you manually. Thanks for using Jinnar! Best regards, Jinnar Support Team ",
+      "swahili": "Habari [Jina la Mtumiaji], Hakuna shida! Ukihitaji kufuta kazi uliyoweka, fuata hatua hizi rahisi: Fungua app ya Jinnar au tembelea tovuti; Nenda kwenye “Kazi Zangu” au “Historia ya Kazi”; Chagua kazi unayotaka kufuta; Bofya “Futa Kazi” kisha thibitisha uamuzi wako. 📝 Kumbuka: Ikiwa fundi tayari amekubali kazi hiyo, ni vyema kumjulisha sababu ya kufuta ili kuepusha mkanganyiko. Ukikwama popote, jibu ujumbe huu nasi tutakufutia kazi hiyo moja kwa moja. Asante kwa kutumia Jinnar! Kwa heri, Timu ya Msaada ya Jinnar ",
+      "tier": 1
+    },
+    {
+      "name": "Job Assigned to Wrong Worker",
+      "subject_en": "Job Assigned to the Wrong Worker? Let’s Correct It",
+      "english": "Hello [User's First Name], Thanks for reaching out. We understand how important it is to get the right person for the job. If your job was assigned to the wrong worker by mistake, here’s what you can do: Go to “My Jobs” in the app or website; Select the job in question; Tap “Cancel Job” if no work has started; Repost the job or select a different worker. 📌 Important: If the job has already started or been completed, please let us know before canceling so we can guide you based on the situation. We’re happy to help correct this quickly. Just reply here if you’d like us to handle it for you. Best regards, Jinnar Support Team ",
+      "swahili": "Habari [Jina la Mtumiaji], Asante kwa kuwasiliana nasi. Tunaelewa umuhimu wa kupata fundi sahihi kwa kazi yako. Ikiwa kazi imepewa fundi asiye sahihi kimakosa, unaweza kufanya yafuatayo: Nenda kwenye “Kazi Zangu” kupitia app au tovuti; Chagua kazi inayohusika; Bofya “Futa Kazi” kama kazi haijaanza; Tuma tena kazi hiyo au chagua fundi mwingine. 📌 Muhimu: Kama kazi tayari imeanza au kumalizika, tafadhali tujulishe kabla ya kufuta ili tukuelekeze vizuri kulingana na hali. Tupo hapa kukusaidia haraka. Jibu tu hapa tukutatulie. Kwa heri, Timu ya Msaada ya Jinnar ",
+      "tier": 1
+    },
+    {
+      "name": "No Worker Responded to Job Request",
+      "subject_en": "Still Waiting for a Worker? Here’s What You Can Do",
+      "english": "Hello [User's First Name], Sorry you haven’t received a response yet—we know how frustrating that can be. Here are a few things you can try to get matched faster: ✅ Make sure the job details (location, time, and payment) are clear ✅ Consider increasing your offer or adding more description ✅ Try posting the job during peak work hours (7:00 AM – 5:00 PM) ✅ Use the “Find a Worker” feature to browse available pros directly. If you’d like, we can also boost your post or help you repost it. Just let us know how you’d like to proceed! Warm regards, Jinnar Support Team ",
+      "swahili": "Habari [Jina la Mtumiaji], Samahani kama bado hujapata fundi – tunaelewa inaweza kukatisha tamaa. Hapa kuna mambo machache unayoweza kujaribu ili kupata fundi haraka zaidi: ✅ Hakikisha maelezo ya kazi yako (eneo, muda, na bei) yako wazi ✅ Ongeza maelezo zaidi au fanya ofa iwe ya kuvutia zaidi ✅ Jaribu kutuma kazi hiyo wakati wa saa za kazi (7:00 Asubuhi – 5:00 Jioni) ✅ Tumia kipengele cha “Tafuta Fundi” ili kuchagua mwenyewe kutoka kwenye orodha ya mafundi. Ikiwa unapenda, tunaweza kusaidia kuiboresha au kuituma tena kazi hiyo. Tujulishe tu ulichopendelea. Kwa heri, Timu ya Msaada ya Jinnar ",
+      "tier": 1
+    },
+    {
+      "name": "Job Posting Mistakenly Marked as Completed",
+      "subject_en": "Job Marked as Completed by Mistake? Let’s Fix It",
+      "english": "Hello [User's First Name], Thanks for reaching out. It looks like this job was marked as completed, but you didn’t intend for that to happen. No problem — we can help. If work is still pending or incomplete, please reply with: The name of the job; What part is still unfinished; Whether you want to reopen or repost it. 🔁 If approved, we’ll either reopen the job or help you repost it to find another worker. We’re here to ensure the job is done right. Warm regards, Jinnar Support Team ",
+      "swahili": "Habari [Jina la Mtumiaji], Asante kwa kuwasiliana nasi. Inaonekana kazi hii imewekwa kuwa imekamilika kimakosa, lakini hujakusudia hivyo. Usijali — tunaweza kusaidia. Kama kazi bado haijakamilika, tafadhali jibu na: Jina la kazi hiyo; Sehemu gani haijamalizika; Kama ungependa tufungue tena kazi au tuiweke upya. 🔁 Tukikubaliana, tutaifungua tena kazi hiyo au tutakusaidia kuiweka upya ili upate fundi mwingine. Tupo hapa kuhakikisha kazi inakamilika vizuri. Kwa heri, Timu ya Msaada ya Jinnar ",
+      "tier": 1
+    },
+    {
+      "name": "How to Reschedule a Job",
+      "subject_en": "Need to Reschedule Your Job? It’s Easy",
+      "english": "Hello [User's First Name], No worries—rescheduling a job is simple! To reschedule your upcoming job: Open the Jinnar app or website; Go to “My Jobs”; Tap the job you wish to reschedule; Choose “Reschedule”, select a new time and date, and confirm. 📌 Tip: It’s always a good idea to notify the worker or customer directly in the chat so both parties are aligned. Need help with this? Just reply here and we’ll update the schedule for you. Thanks for using Jinnar! Warm regards, Jinnar Support Team ",
+      "swahili": "Habari [Jina la Mtumiaji], Usiwe na wasiwasi—kubadilisha muda wa kazi ni rahisi sana! Ili kupanga upya kazi iliyopo: Fungua app ya Jinnar au tembelea tovuti; Nenda kwenye “Kazi Zangu”; Bofya kazi unayotaka kupanga upya; Chagua “Panga Tena”, weka muda na tarehe mpya, kisha thibitisha. 📌 Kidokezo: Ni vyema kumjulisha fundi au mteja kupitia sehemu ya ujumbe ili wote muwe na maelewano. Ukitaka tusaidie moja kwa moja, jibu hapa na tutarekebisha ratiba kwa niaba yako. Asante kwa kutumia Jinnar! Kwa heri, Timu ya Msaada ya Jinnar ",
+      "tier": 1
+    },
+    {
+      "name": "Refund in Process (Standard)",
+      "subject_en": "Your Refund Is Being Processed",
+      "english": "Hello [User's First Name], We’ve received your refund request and have started the process. 💰 Refund Status: In Progress ⏳ Estimated Time: 3–5 business days depending on your payment method. You’ll receive a confirmation message once the funds have been returned to your account or mobile wallet. 📌 If you don’t see the refund after 5 business days, please reply here and we’ll follow up immediately. Thanks for your patience, Jinnar Support Team ",
+      "swahili": "Habari [Jina la Mtumiaji], Tumeipokea ombi lako la kurejeshewa fedha na tayari tumelianzisha. 💰 Hali ya Marejesho: Inaendelea ⏳ Muda wa Kawaida: Siku 3–5 za kazi kulingana na njia ya malipo. Utatumiwa ujumbe wa uthibitisho pindi fedha zitakaporejeshwa kwenye akaunti yako au pochi ya simu. 📌 Ikiwa hujaona marejesho baada ya siku 5 za kazi, tafadhali jibu hapa nasi tutafuatilia mara moja. Asante kwa subira yako, Timu ya Msaada ya Jinnar ",
+      "tier": 1
+    },
+    {
+      "name": "Refund Denied (With Reason)",
+      "subject_en": "Refund Denied – Policy Not Met",
+      "english": "Hello [User's First Name], We’ve completed the review of your refund request for Case #{TicketID}. Unfortunately, the request has been denied. This decision was made because: {Reason_1} (e.g., Request falls outside policy timeline); {Reason_2} (e.g., Job completion was verified). This decision is final. You can review our full refund policy here: [Link]. We understand this may be disappointing and appreciate your understanding. Sincerely, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Tumekamilisha ukaguzi wa ombi lako la kurejeshewa fedha kwa Tiketi #{TicketID}. Samahani, ombi hili halijakubaliwa. Uamuzi huu umetolewa kwa sababu: {Sababu_1} (Mfano: Ombi liko nje ya muda wa sera); {Sababu_2} (Mfano: Kukamilika kwa kazi kulithibitishwa). Huu ni uamuzi wa mwisho. Unaweza kupitia sera yetu kamili ya marejesho hapa: [Link]. Tunaelewa hili linaweza kukukatisha tamaa na tunathamini uelewa wako. Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Customer Didn’t Pay (Worker Inquiry)",
+      "subject_en": "Payment Delay? Let’s Check It for You",
+      "english": "Hello [User's First Name], Thanks for reaching out. We understand how important it is to receive your payment on time. 🧾 If your job has been completed but payment hasn't arrived yet, here are a few things to check: Make sure the job was officially marked as “Completed” in the app. Check if the customer’s payment method went through successfully. Ensure your mobile money account details are accurate and active. 📌 If all looks correct and it's been more than 24 hours since completion, please reply here with the Job ID, and we’ll investigate and escalate it for you. We’re here to make sure your hard work gets rewarded. Kind regards, Jinnar Support Team ",
+      "swahili": "Habari [Jina la Mtumiaji], Asante kwa kuwasiliana nasi. Tunaelewa ni muhimu sana kupokea malipo kwa wakati. 🧾 Ikiwa kazi imekamilika lakini bado hujapokea malipo, tafadhali angalia mambo haya: Hakikisha kazi imewekwa rasmi kama “Imekamilika” kwenye app. Thibitisha kama malipo kutoka kwa mteja yalifaulu. Hakikisha maelezo ya akaunti yako ya simu ya kupokea malipo ni sahihi na iko hai. 📌 Ikiwa kila kitu kiko sawa na ni zaidi ya saa 24 tangu kazi kukamilika, tafadhali jibu hapa na utoe Job ID, nasi tutachunguza na kuchukua hatua mara moja. Tupo hapa kuhakikisha kazi yako inalipwa ipasavyo. Kwa heri, Timu ya Msaada ya Jinnar ",
+      "tier": 1
+    },
+    {
+      "name": "Payment Held in Escrow – Explanation",
+      "subject_en": "Your Payment Is Safe — Here’s Why It’s Held in Escrow",
+      "english": "Hello [User's First Name], Thanks for your message. We’d like to assure you that your payment is safe and currently held in escrow. 💡 What does that mean? Escrow is a temporary holding system that protects both the customer and the worker. The funds are stored securely by Jinnar and only released after the job is marked completed by both parties. 🔒 Why we use escrow: It guarantees payment for the worker. It gives the customer time to confirm the job is done right. It prevents fraud or disputes during the process. 📌 Once the job is completed and confirmed, the money is released immediately to the worker’s mobile wallet. Let us know if you have more questions! Best regards, Jinnar Support Team ",
+      "swahili": "Habari [Jina la Mtumiaji], Asante kwa ujumbe wako. Tunapenda kukuhakikishia kuwa malipo yako yapo salama na yamehifadhiwa kwa sasa kupitia mfumo wa escrow. 💡 Escrow ni nini? Escrow ni mfumo wa kushikilia fedha kwa muda mfupi ili kulinda wateja na mafundi. Fedha zinahifadhiwa salama na Jinnar na hutolewa tu baada ya kazi kuwekwa kuwa imekamilika na pande zote mbili. 🔒 Kwa nini tunatumia escrow: Inahakikisha fundi atalipwa kwa kazi aliyofanya. Inampa mteja nafasi ya kuthibitisha kazi imekamilika vizuri. Inazuia udanganyifu au migogoro wakati wa kazi. 📌 Mara tu kazi inapothibitishwa kuwa imekamilika, fedha hupelekwa moja kwa moja kwenye pochi ya simu ya fundi. Tujulishe ikiwa unahitaji msaada zaidi. Kwa heri, Timu ya Msaada ya Jinnar ",
+      "tier": 1
+    },
+    {
+      "name": "Double Payment Made – Investigation Started",
+      "subject_en": "Double Payment Received – Investigation Started",
+      "english": "Hello [User's First Name], Thank you for bringing the double payment to our attention. We have flagged this transaction and immediately opened an investigation. This is a top priority. Our finance team will review the payment logs and coordinate with the payment provider to reverse the duplicate charge. ⏳ Please allow 24–48 hours for us to confirm the reversal process. We will notify you as soon as the excess funds are returned to your account. Thanks for your honesty and patience. Sincerely, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Asante kwa kutujulisha kuhusu malipo mara mbili. Tumeiweka alama hii ya muamala na kuanzisha uchunguzi mara moja. Hili ni kipaumbele chetu. Timu yetu ya kifedha itakagua kumbukumbu za malipo na kuratibu na mtoa huduma wa malipo ili kubatilisha malipo ya ziada. ⏳ Tafadhali ruhusu saa 24–48 ili kuthibitisha mchakato wa kurejesha fedha. Tutakujulisha mara tu fedha za ziada zitakaporejeshwa kwenye akaunti yako. Asante kwa uaminifu na subira yako. Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Unauthorized Payment Alert",
+      "subject_en": "Unauthorized Payment Alert – Action Needed",
+      "english": "Hello [User's First Name], We received an alert regarding a potentially unauthorized payment on your account. For your security, please take these steps immediately: 1. Review your transaction history on the Jinnar app. 2. If you do not recognize the charge, please reply immediately with the transaction ID and exact amount. We will investigate and apply a temporary hold on your payment method to prevent further issues. Your security is our highest priority. Sincerely, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Tumepokea tahadhari kuhusu malipo ambayo huenda hayakuidhinishwa kwenye akaunti yako. Kwa usalama wako, tafadhali chukua hatua hizi mara moja: 1. Kagua historia yako ya miamala kwenye app ya Jinnar. 2. Ikiwa hutambui malipo hayo, tafadhali jibu mara moja ukitaja namba ya muamala (transaction ID) na kiasi kamili. Tutachunguza na kuweka zuio la muda kwenye njia yako ya malipo ili kuzuia matatizo zaidi. Usalama wako ni kipaumbele chetu kikuu. Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "How to View Job History",
+      "subject_en": "How to View Your Job History",
+      "english": "Hello [User's First Name], Viewing your job history is easy! To access your past bookings and details: 1. Log in to your Jinnar app or visit the website. 2. Navigate to the “My Jobs” or “Job History” section. 3. You can filter by “Completed” or “Cancelled” jobs to find what you need. This section stores all records, ratings, and payment details for your reference. If you have trouble finding a specific job, let us know the date or worker's name! Best regards, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Kuona historia yako ya kazi ni rahisi! Ili kufikia rekodi na maelezo ya kazi zilizopita: 1. Ingia kwenye app yako ya Jinnar au tembelea tovuti. 2. Nenda kwenye sehemu ya “Kazi Zangu” au “Historia ya Kazi”. 3. Unaweza kuchuja kulingana na kazi “Zilizokamilika” au “Zilizofutwa” ili kupata unachohitaji. Sehemu hii huhifadhi rekodi zote, alama, na maelezo ya malipo kwa ajili ya marejeleo yako. Ikiwa unapata shida kupata kazi maalum, tujulishe tarehe au jina la fundi! Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "How to Rate a Worker or Customer",
+      "subject_en": "How to Rate a Worker or Customer",
+      "english": "Hello [User's First Name], We encourage all users to leave ratings! Ratings help us maintain quality and ensure fairness. To leave a rating: 1. Go to your “Job History” section. 2. Find the job you wish to rate (it must be marked 'Completed'). 3. Click “Rate Worker/Customer” and choose your star rating and leave a brief comment. 📌 Note: Ratings are final and cannot be edited after submission. Thank you for helping us build a trusted community! Best regards, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Tunahimiza watumiaji wote waache alama za tathmini! Tathmini husaidia kudumisha ubora na kuhakikisha haki. Ili kutoa tathmini: 1. Nenda kwenye sehemu yako ya “Historia ya Kazi”. 2. Tafuta kazi unayotaka kutoa tathmini (lazima iwe imewekwa 'Imekamilika'). 3. Bofya “Tathmini Fundi/Mteja” kisha chagua alama zako za nyota na uandike maoni mafupi. 📌 Kumbuka: Tathmini ni za mwisho na haziwezi kubadilishwa baada ya kuwasilishwa. Asante kwa kutusaidia kujenga jamii inayoaminika! Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "How to Update Personal Info",
+      "subject_en": "How to Update Your Personal Info",
+      "english": "Hello [User's First Name], You can easily update most of your personal information (name, photo, phone number, etc.) directly in the app: 1. Log in to Jinnar. 2. Navigate to the “Profile” or “Account Settings” section. 3. Tap “Edit Profile” or the relevant field. 📌 Note: For certain sensitive changes like bank details or legal name changes, you may be asked to provide supporting documents for verification. If you get stuck or receive an error, please reply here with a screenshot! Best regards, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Unaweza kusasisha kwa urahisi taarifa zako nyingi za kibinafsi (jina, picha, namba ya simu, nk.) moja kwa moja kwenye app: 1. Ingia kwenye Jinnar. 2. Nenda kwenye sehemu ya “Wasifu” au “Mipangilio ya Akaunti”. 3. Bofya “Badilisha Wasifu” au sehemu husika. 📌 Kumbuka: Kwa mabadiliko nyeti kama vile maelezo ya benki au mabadiliko ya jina la kisheria, unaweza kuombwa kutoa nyaraka za uthibitisho. Ukikwama au kupata hitilafu, tafadhali jibu hapa ukiwa na picha ya skrini! Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "How to Switch Language (English/Swahili)",
+      "subject_en": "How to Change Your App Language",
+      "english": "Hello [User's First Name], You can easily switch the primary language for the Jinnar app between English and Swahili (Kiswahili). Here's how: 1. Go to your “Account Settings” or “Profile” section. 2. Look for the “Language” or “Lugha” option. 3. Select your preferred language (English or Swahili). The change should take effect immediately. Enjoy using Jinnar in your preferred language! Best regards, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Unaweza kubadilisha kwa urahisi lugha kuu ya app ya Jinnar kati ya Kiingereza na Kiswahili (Swahili). Fanya hivi: 1. Nenda kwenye sehemu ya “Mipangilio ya Akaunti” au “Wasifu”. 2. Tafuta chaguo la “Lugha” au “Language”. 3. Chagua lugha unayopendelea (Kiingereza au Kiswahili). Mabadiliko yanapaswa kutokea mara moja. Furahia kutumia Jinnar kwa lugha unayopendelea! Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Where to Find Badge Status or Training Progress",
+      "subject_en": "Where to Check Your Badge Status and Training Progress",
+      "english": "Hello [User's First Name], To check your badge status, training progress, or certification status: 1. Log in to your Jinnar account (Worker Profile). 2. Navigate to the “My Profile” section. 3. Look for the “Verification & Badges” or “Training Progress” dashboard. This will show you exactly which modules you have completed and when your badge will be issued. Keep up the hard work! Best regards, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Kuangalia hali ya beji yako, maendeleo ya mafunzo, au hali ya uthibitisho: 1. Ingia kwenye akaunti yako ya Jinnar (Wasifu wa Fundi). 2. Nenda kwenye sehemu ya “Wasifu Wangu”. 3. Tafuta dashibodi ya “Uthibitisho na Beji” au “Maendeleo ya Mafunzo”. Hii itaonyesha ni moduli gani umemaliza na lini beji yako itatolewa. Endelea na bidii! Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "How to Upload Verification Documents",
+      "subject_en": "Instructions: How to Upload Your Verification Documents",
+      "english": "Hello [User's First Name], To upload your verification documents (ID, training certificate, license, etc.): 1. Log in and go to “Account Settings” or “Profile”. 2. Tap on “Verification” or “Document Uploads”. 3. Select the document type and upload a clear, legible photo or scan. 📌 Important: Make sure the file size is correct (under 5MB) and the images are not blurry. Our team will review the documents within 24–48 hours. Please reply if you face any technical difficulties with the upload! Best regards, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Kupakia nyaraka zako za uthibitisho (Kitambulisho, cheti cha mafunzo, leseni, nk.): 1. Ingia na nenda kwenye “Mipangilio ya Akaunti” au “Wasifu”. 2. Bofya “Uthibitisho” au “Upakiaji wa Nyaraka”. 3. Chagua aina ya waraka na upakie picha au nakala iliyo wazi na inayosomwa. 📌 Muhimu: Hakikisha ukubwa wa faili ni sahihi (chini ya 5MB) na picha hazijafifia. Timu yetu itakagua nyaraka ndani ya saa 24–48. Tafadhali jibu kama unapata matatizo yoyote ya kiufundi na upakiaji! Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Profile Under Review – Please Wait",
+      "subject_en": "Profile Under Review – Please Wait",
+      "english": "Hello [User's First Name], Thank you for submitting your profile for review. It is now in the queue for final approval. Our team checks all new profiles to ensure they meet our standards for safety and professionalism. ⏳ Review time usually takes 24 hours. You will receive an email or in-app notification immediately once your status changes to 'Approved'. We appreciate your patience! Best regards, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Asante kwa kuwasilisha wasifu wako kwa ukaguzi. Sasa uko kwenye foleni kwa ajili ya idhini ya mwisho. Timu yetu hukagua wasifu wote mpya ili kuhakikisha wanakidhi viwango vyetu vya usalama na taaluma. ⏳ Muda wa ukaguzi kwa kawaida huchukua saa 24. Utapokea barua pepe au arifa ya ndani ya app mara tu hali yako itakapobadilika kuwa 'Imekubaliwa'. Tunathamini subira yako! Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Missing Documents – Action Needed",
+      "subject_en": "Action Needed: Missing Documents for Profile Approval",
+      "english": "Hello [User's First Name], We reviewed your profile but found that certain required documents are still missing or unclear. Your profile cannot be approved until this is corrected. 🚫 Required action: Please upload a clear photo/scan of your [Missing Document Type] to the 'Document Uploads' section. 📌 Note: The document must be valid and clearly legible. Once the missing documents are uploaded, we will fast-track your review. Please complete this within 48 hours to avoid delay. Thank you for your cooperation! Best regards, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Tumekagua wasifu wako lakini tumegundua kuwa nyaraka fulani zinazohitajika bado hazipo au haziko wazi. Wasifu wako hauwezi kuidhinishwa hadi hili litakaporekebishwa. 🚫 Hatua Inayohitajika: Tafadhali pakia picha/nakala iliyo wazi ya [Aina ya Waraka Unaokosekana] kwenye sehemu ya 'Upakiaji wa Nyaraka'. 📌 Kumbuka: Waraka lazima uwe halali na usomeke wazi. Nyaraka zinazokosekana zitakapopakiwa, tutaharakisha ukaguzi wako. Tafadhali kamilisha hili ndani ya saa 48 ili kuepuka kuchelewa. Asante kwa ushirikiano wako! Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Profile Rejected – Reasons & Next Steps",
+      "subject_en": "Profile Review Status: Rejected – Next Steps",
+      "english": "Hello [User's First Name], After a thorough review, we regret to inform you that your profile has been rejected at this time. This decision was based on: 1. [Reason 1: e.g., Unverified identity/documents]. 2. [Reason 2: e.g., Failure to meet minimum training requirements]. 📌 Next Steps: You may reapply after [X days] once you have corrected the issues and uploaded the necessary documents. This decision is final for the current application. We wish you the best in your future endeavors. Sincerely, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Baada ya ukaguzi wa kina, tunasikitika kukujulisha kuwa wasifu wako umekataliwa kwa wakati huu. Uamuzi huu ulitolewa kwa sababu ya: 1. [Sababu 1: Mfano: Utambulisho/nyaraka hazijathibitishwa]. 2. [Sababu 2: Mfano: Kushindwa kufikia mahitaji ya chini ya mafunzo]. 📌 Hatua Zinazofuata: Unaweza kuomba tena baada ya [X siku] baada ya kurekebisha matatizo na kupakia nyaraka zinazohitajika. Huu ni uamuzi wa mwisho kwa maombi ya sasa. Tunakutakia mafanikio mema katika safari yako ya baadaye. Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Updating Profile Picture Guidelines",
+      "subject_en": "Reminder: Profile Picture Guidelines",
+      "english": "Hello [User's First Name], We noticed an issue with your profile picture. For professional standards and safety, please ensure your profile picture meets these guidelines: 1. Clear, front-facing photo of your face (no masks or hats). 2. Good lighting and clear focus (not blurry). 3. No other people in the photo. 4. Professional and appropriate background. Your profile visibility may be reduced until your photo is updated. Please correct this within 24 hours. Thank you for maintaining our standards! Best regards, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Tumegundua tatizo na picha yako ya wasifu. Kwa viwango vya kitaalamu na usalama, tafadhali hakikisha picha yako ya wasifu inakidhi miongozo hii: 1. Picha iliyo wazi, inayoangalia mbele (bila barakoa au kofia). 2. Mwangaza mzuri na umakini wazi (sio hafifu). 3. Hakuna watu wengine kwenye picha. 4. Mandhari ya kitaalamu na yanayofaa. Wasifu wako huenda usionekane kwa urahisi hadi picha yako itakaposasishwa. Tafadhali rekebisha hili ndani ya saa 24. Asante kwa kudumisha viwango vyetu! Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "How to Add Work Categories or Skills",
+      "subject_en": "How to Add Work Categories or Skills",
+      "english": "Hello [User's First Name], To add or update your work categories and skills: 1. Go to your “Worker Profile” section. 2. Look for the “Skills” or “Services Offered” area. 3. Tap “Edit” and select the categories relevant to your experience (e.g., Plumbing, Electrical, Cleaning). 📌 Note: Adding more relevant categories and detailed skills increases your chances of getting matched with the right jobs. If you have any trouble or your specialized skill is missing from the list, please reply here! Best regards, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Kuongeza au kusasisha kategoria na ujuzi wako wa kazi: 1. Nenda kwenye sehemu ya “Wasifu wa Fundi”. 2. Tafuta eneo la “Ujuzi” au “Huduma Zinazotolewa”. 3. Bofya “Badilisha” na uchague kategoria zinazohusiana na uzoefu wako (mfano: Fundi Bomba, Umeme, Usafi). 📌 Kumbuka: Kuongeza kategoria zinazofaa na ujuzi wa kina huongeza nafasi yako ya kupata kazi zinazostahili. Ikiwa unapata shida au ujuzi wako maalum haupo kwenye orodha, tafadhali jibu hapa! Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Thank You for Reporting a Cleanliness/Safety Issue",
+      "subject_en": "Your Report Has Been Received – Thank You",
+      "english": "Hello [User's First Name], Thank you for reporting this cleanliness or safety issue. We take such concerns very seriously. 🛠️ Your report has been logged and forwarded to our internal review team. We appreciate your effort in helping us maintain a high standard of professionalism and safety across the Jinnar platform. If possible, please share any photos or additional details that can help us investigate more thoroughly. Our team will follow up once the review is complete. We’re committed to keeping Jinnar safe and respectful for everyone. Sincerely, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Asante kwa kuripoti suala hili la usafi au usalama. Tunachukulia masuala haya kwa uzito mkubwa. 🛠️ Ripoti yako tayari imehifadhiwa na kutumwa kwa timu yetu ya ukaguzi wa ndani. Tunathamini juhudi zako katika kusaidia kudumisha viwango vya juu vya taaluma na usalama kwenye jukwaa la Jinnar. Ikiwezekana, tafadhali shiriki picha au maelezo ya ziada yatakayosaidia uchunguzi wetu kuwa wa kina zaidi. Timu yetu itawasiliana nawe mara baada ya ukaguzi kukamilika. Tumejizatiti kuhakikisha Jinnar inabaki salama na yenye heshima kwa kila mtu. Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Warning Sent to Worker – We’re Monitoring It",
+      "subject_en": "We’ve Taken Action – Warning Issued",
+      "english": "Hello [User's First Name], Thank you again for your report. We want to let you know that we’ve issued a formal warning to the worker involved. The issue has been noted in their account history and will be closely monitored moving forward. 📌 If any further problems occur, we encourage you to report them again so that we can take stronger action if needed. Your feedback helps us build a safer and more respectful environment for everyone on the platform. Sincerely, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Asante tena kwa taarifa yako. Tunapenda kukujulisha kuwa tumetoa onyo rasmi kwa fundi aliyehusika. Suala hili limeandikwa kwenye historia ya akaunti yake na tutakuwa tukilifuatilia kwa karibu. 📌 Ikiwa matatizo kama hayo yataendelea, tafadhali ripoti tena ili tuweze kuchukua hatua kali zaidi ikiwa itahitajika. Maoni yako yanatusaidia kujenga mazingira salama na yenye heshima kwa kila mtu kwenye jukwaa letu. Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "We’ve Escalated Your Report for Review",
+      "subject_en": "Your Report Has Been Escalated for Further Review",
+      "english": "Hello [User's First Name], Thank you for submitting your report. Based on the nature of the issue, we’ve escalated your case to our internal review team for deeper investigation. 🔍 Our team will now assess the details, review the worker’s behavior history, and determine whether further action is necessary. If we require any more information, we’ll reach out to you directly. Please allow up to 48 hours for this review to be completed. We appreciate your patience and your help in keeping the platform safe and professional. Kind regards, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Asante kwa kutuma ripoti yako. Kwa kuzingatia uzito wa tukio hili, tumelipeleka kwa timu yetu ya ukaguzi wa ndani kwa uchunguzi wa kina zaidi. 🔍 Timu yetu sasa itapitia maelezo, kuchunguza historia ya tabia ya fundi, na kuamua kama hatua zaidi zinahitajika. Tukihitaji taarifa zaidi, tutawasiliana nawe moja kwa moja. Tafadhali ruhusu hadi saa 48 ili ukaguzi huu kukamilika. Tunathamini subira yako na msaada wako katika kuhakikisha jukwaa letu linabaki salama na la kitaaluma. Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Customer Report Handled – Follow-Up Message",
+      "subject_en": "Your Report Has Been Handled – Thank You",
+      "english": "Hello [User's First Name], We’re following up to let you know that your report has been reviewed and action has been taken where necessary. ✔️ Whether it involved coaching, a warning, or another internal step, please know that we treat all cases with care and fairness. Thank you for helping us maintain professionalism on the Jinnar platform. Your voice makes a difference. If you have any further concerns, feel free to contact us again. Warm regards, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Tunakuandikia kufuatilia taarifa yako – ukaguzi umefanyika na hatua stahiki zimechukuliwa pale ilipohitajika. ✔️ Iwe ni mazungumzo ya ushauri, onyo, au hatua nyingine ya ndani, tafadhali fahamu kuwa tunashughulikia kila tukio kwa makini na haki. Asante kwa kusaidia kudumisha taaluma kwenye jukwaa la Jinnar. Sauti yako ina mchango mkubwa. Ikiwa una wasiwasi mwingine wowote, usisite kuwasiliana nasi tena. Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Repeat Complaint – We’ve Taken Stronger Action",
+      "subject_en": "We’ve Taken Further Action Based on Repeat Complaint",
+      "english": "Hello [User's First Name], Thank you for your continued feedback. We’ve noted that this is not the first complaint about this worker, and we take that very seriously. As a result, we’ve now taken stronger disciplinary action, which may include temporary suspension or restriction of the worker’s account. Please be assured that your safety and satisfaction remain our top priorities. If you have further feedback or need support, we’re here to help. Best regards, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Asante kwa mrejesho wako wa mara kwa mara. Tumeona kuwa huu si malalamiko ya kwanza dhidi ya fundi huyu, jambo ambalo tunalichukulia kwa uzito mkubwa. Kwa sababu hiyo, tumechukua hatua kali zaidi, ambazo zinaweza kujumuisha kusimamishwa au kuwekwa vikwazo kwenye akaunti ya fundi. Tafadhali kuwa na uhakika kuwa usalama na kuridhika kwako ndizo kipaumbele chetu kikuu. Kama una maoni zaidi au unahitaji msaada, tupo tayari kukusaidia. Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "You’re Safe – We Do Not Share Your Identity With Workers",
+      "subject_en": "Your Identity Is Always Protected",
+      "english": "Hello [User's First Name], We want to reassure you that your identity is never shared with any worker after you submit a complaint. 🛡️ All reports are handled confidentially by our internal support team. The worker will not know who submitted the report, and your safety and peace of mind are fully protected. Thank you for helping us maintain quality and accountability on the platform. If you ever feel uncomfortable or unsafe, don’t hesitate to report it — we’re always here for you. With care, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Tunapenda kukuhakikishia kuwa taarifa zako hazitawahi kushirikiwa na fundi baada ya kuripoti tukio. 🛡️ Ripoti zote hushughulikiwa kwa usiri na timu yetu ya ndani ya msaada. Fundi hatakuwa na njia yoyote ya kujua nani alitoa taarifa hiyo, na usalama wako pamoja na utulivu wako unalindwa kikamilifu. Asante kwa kusaidia kudumisha ubora na uwajibikaji kwenye jukwaa letu. Ikiwa wakati wowote utajisikia kutokuwa salama au kutopendezwa na huduma, tafadhali ripoti — tupo hapa kwa ajili yako. Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "We Do Not Support Off-Platform Transactions",
+      "subject_en": "Why Off-Platform Transactions Are Not Allowed",
+      "english": "Hello [User's First Name], For your safety and to protect everyone on the platform, Jinnar does not allow transactions to happen outside the app. 🔒 When you pay through Jinnar: Your money is protected in escrow until the job is completed. You have access to customer support and dispute resolution. You help us track and reward good worker performance. ⚠️ If you pay a worker directly (off-platform), we cannot assist you in case of delays, poor service, or disputes. Please always keep communication and payments within the Jinnar platform for your own protection. Thanks for your understanding, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Kwa ajili ya usalama wako na kulinda pande zote mbili, Jinnar hairuhusu miamala kufanyika nje ya jukwaa letu. 🔒 Ukilipa kupitia Jinnar: Fedha zako zinalindwa hadi kazi itakapokamilika. Unapata msaada wa wateja na usuluhishi wa migogoro. Unasaidia kufuatilia na kuthamini utendaji mzuri wa mafundi. ⚠️ Ukimlipa fundi moja kwa moja (nje ya mfumo), hatutaweza kusaidia iwapo kutatokea ucheleweshaji, kazi mbovu, au matatizo yoyote. Tafadhali hakikisha kuwa mawasiliano na malipo yote yanafanyika ndani ya jukwaa la Jinnar kwa usalama wako mwenyewe. Asante kwa kuelewa, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Why Phone Numbers Are Not Shared Directly",
+      "subject_en": "Why We Don’t Share Phone Numbers Directly",
+      "english": "Hello [User's First Name], We understand your interest in contacting workers or customers directly. However, for safety and quality control, Jinnar does not share personal phone numbers between users. 📱 Here’s why: We protect your privacy and avoid unwanted calls or misuse. All communication is recorded through the app to resolve future issues. We prevent fraud, scams, and off-platform dealings that can lead to unverified work. ✅ You can still chat instantly and securely with others through the built-in Jinnar messaging feature. Thanks for your cooperation in keeping our platform secure and professional. Sincerely, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Tunaelewa kuwa unaweza kutamani kuwasiliana moja kwa moja na fundi au mteja. Hata hivyo, kwa ajili ya usalama na ufuatiliaji wa ubora, Jinnar haitoi namba za simu za watumiaji kwa moja kwa moja. 📱 Sababu ni hizi: Tunalinda faragha yako dhidi ya simu zisizohitajika au matumizi mabaya. Mawasiliano yote yanahifadhiwa kupitia app ili kusaidia tukitokea tatizo. Tunazuia ulaghai, udanganyifu, na huduma zisizothibitishwa nje ya mfumo. ✅ Unaweza kuendelea kuzungumza kwa usalama kupitia sehemu ya ujumbe ya Jinnar. Asante kwa kushirikiana nasi katika kudumisha usalama na taaluma. Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Why Work Must Be Done Through Jinnar Platform",
+      "subject_en": "Why We Require Jobs to Stay on the Jinnar Platform",
+      "english": "Hello [User's First Name], Thanks for reaching out. To ensure safety, fairness, and accountability, all job activities must remain within the Jinnar platform — from booking to payment to review. Here’s why this matters: ✅ You are protected by our escrow system — payment is only released when the job is complete. ✅ You can rate the worker or customer fairly and receive support if problems arise. ✅ We can track job history to ensure quality and transparency for all users. ⚠️ When jobs are taken off the platform, we lose the ability to support you, resolve complaints, or verify that the work was done properly. Let’s keep everything on-platform so your experience stays smooth, safe, and professional. Best regards, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Asante kwa kuwasiliana nasi. Ili kuhakikisha usalama, haki, na uwajibikaji, kazi zote zinapaswa kufanyika ndani ya jukwaa la Jinnar — kuanzia kuweka kazi hadi malipo na tathmini. Hii ni muhimu kwa sababu: ✅ Unalindwa kupitia mfumo wetu wa escrow — malipo hutolewa tu baada ya kazi kukamilika. ✅ Unaweza kutoa au kupokea tathmini kwa haki na kupata msaada kama kutakuwa na shida. ✅ Tunaweza kufuatilia historia ya kazi kwa ajili ya ubora na uwazi. ⚠️ Iwapo kazi itafanyika nje ya mfumo, hatuwezi kukusaidia, kushughulikia malalamiko, au kuthibitisha ubora wa kazi. Tufanye kila kitu kupitia jukwaa ili kuhakikisha huduma zako ni salama, laini, na za kitaalamu. Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "No Guarantee of Jobs – Merit-Based Exposure",
+      "subject_en": "Why We Don’t Guarantee Jobs – It’s Based on Merit",
+      "english": "Hello [User's First Name], Thanks for your message. Please note that Jinnar does not guarantee jobs to any worker — instead, exposure on the platform is earned through performance. Here’s how it works: ✅ Workers with high ratings, fast responses, and good job completion records appear more frequently to customers. ✅ Completing training and earning your badge also boosts your visibility. ✅ Positive customer reviews help build trust and increase job opportunities. ⚠️ Jinnar is a fair, open platform — your growth depends on your effort, consistency, and professionalism. Keep doing your best — and more jobs will follow. With appreciation, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Asante kwa ujumbe wako. Tafadhali fahamu kuwa Jinnar haitoi uhakika wa kazi kwa fundi yeyote — badala yake, kuonekana kwenye jukwaa kunategemea utendaji wako binafsi. Ndiyo inavyofanya kazi: ✅ Mafundi walio na viwango vya juu, wanaojibu haraka, na wanaokamilisha kazi vizuri huonekana zaidi kwa wateja. ✅ Kukamilisha mafunzo na kupata beji huongeza nafasi yako ya kuonekana. ✅ Maoni chanya kutoka kwa wateja hujenga imani na kuongeza nafasi ya kupata kazi. ⚠️ Jinnar ni jukwaa la wazi na la haki — mafanikio yako yanategemea juhudi, uthabiti, na taaluma yako. Endelea kufanya kazi kwa bidii — kazi zaidi zitakuja. Kwa heshima, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Badge Loss Warning – Policy Violation Risk",
+      "subject_en": "Warning: Risk of Losing Badge Due to Policy Violation",
+      "english": "Hello [User's First Name], This is a formal warning regarding recent behavior that may violate Jinnar’s platform rules. 🚫 Please note: Continued violations — such as off-platform deals, unprofessional conduct, or ignoring customer bookings — can lead to the removal of your badge and reduced visibility on the platform. Your badge is a symbol of trust. To keep it, please: Follow all platform policies. Maintain high-quality service. Respond to jobs on time. If you have questions about what’s allowed, feel free to contact us. Let’s work together to protect your reputation and grow your opportunities. Sincerely, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Hii ni onya rasmi kuhusu tabia ya hivi karibuni inayoweza kukiuka sheria za matumizi ya jukwaa la Jinnar. 🚫 Tafadhali fahamu: Ukiukaji unaoendelea — kama vile kufanya kazi nje ya mfumo, kutokuwa wa kitaalamu, au kupuuza nafasi za kazi — unaweza kusababisha kupoteza beji yako na kupungua kwa nafasi ya kuonekana kwa wateja. Beji yako ni alama ya kuaminika. Ili kuilinda, tafadhali: Fuata sera zote za jukwaa. Toa huduma bora. Jibu kazi kwa wakati. Ikiwa una maswali kuhusu kilicho ruhusiwa, usisite kuwasiliana nasi. Tushirikiane kulinda sifa yako na kukuza mafanikio yako. Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Reminder: Ratings Affect Your Visibility",
+      "subject_en": "Reminder: Your Ratings Impact How Often You’re Seen",
+      "english": "Hello [User's First Name], Just a friendly reminder: your star ratings play a big role in how visible you are to customers on the Jinnar platform. 📊 Here’s how it works: Workers with higher ratings appear more often in search results. Consistent 4–5 star reviews help you build trust and get hired more. Low ratings or repeated complaints can reduce your job opportunities. To protect your visibility: ✅ Communicate well ✅ Be punctual ✅ Deliver quality work ✅ Always act professionally. Your ratings are your reputation — take pride in them! With appreciation, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Hii ni kukukumbusha kwa upole: alama zako za nyota zina athari kubwa kwa jinsi unavyoonekana kwa wateja kwenye jukwaa la Jinnar. 📊 Ndivyo inavyofanya kazi: Mafundi wenye alama za juu huonekana zaidi kwenye matokeo ya utafutaji. Ukipata nyota 4–5 kwa uthabiti, unaaminika zaidi na unapata kazi nyingi. Alama za chini au malalamiko ya mara kwa mara hupunguza nafasi ya kazi. Ili kulinda nafasi yako ya kuonekana: ✅ Wasiliana vizuri ✅ Fika kwa wakati ✅ Toa kazi bora ✅ Kuwa wa kitaalamu kila mara. Alama zako ni sifa yako — ziheshimu na zijenge kwa bidii! Kwa heshima, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "We Apologize for the Delay – We’re Working on It",
+      "subject_en": "Update on Your Request – We’re Still Working On It",
+      "english": "Hello [User's First Name], Thank you for your patience — we sincerely apologize for the delay in responding to your issue. ⏱️ Please know that your concern has been received and is still under active review by our team. We’re doing our best to resolve it as quickly and carefully as possible. We’ll follow up with a full response or resolution update shortly. Thanks again for your understanding. Sincerely, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Asante kwa subira yako — tunaomba radhi kwa kuchelewa kukujibu kuhusu suala lako. ⏱️ Tafadhali fahamu kuwa ombi lako limepokelewa na bado linashughulikiwa kikamilifu na timu yetu. Tunafanya kila juhudi kulitatua haraka na kwa uangalifu unaostahili. Tutawasiliana tena hivi karibuni na taarifa kamili au suluhisho. Asante kwa kuelewa. Kwa heri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Your Concern Has Been Logged – Ticket #XYZ",
+      "subject_en": "Your Issue Has Been Logged – Ticket #[Ticket Number]",
+      "english": "Hello [User's First Name], Thank you for reaching out. We’ve received your concern and created a support ticket to track and resolve the issue. Your reference number is: #[Ticket Number]. 🔎 Our support team is currently reviewing the case and will follow up with updates or a resolution as soon as possible. In the meantime, if you have any additional details to share, feel free to reply to this message — it will be automatically added to your case. Thanks for your patience, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Asante kwa kuwasiliana nasi. Tumepokea suala lako na tumetengeneza tiketi ya msaada ili kulifuatilia na kulitatua. Namba yako ya rufaa ni: #[Namba ya Tiketi]. 🔎 Timu yetu ya msaada inaendelea kulichunguza suala hili na itawasiliana nawe mara tu suluhisho au taarifa mpya itakapopatikana. Wakati huo, kama una maelezo ya ziada, tafadhali jibu ujumbe huu — taarifa zako zitaongezwa moja kwa moja kwenye tiketi hiyo. Asante kwa subira yako, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Case Resolved – Please Confirm If You’re Satisfied",
+      "subject_en": "Your Case Has Been Resolved – Let Us Know If You're Satisfied",
+      "english": "Hello [User's First Name], We wanted to let you know that your support case ( Ticket #[Ticket Number] ) has now been marked as resolved based on our recent actions or communication. 🙏 Please take a moment to confirm if everything has been handled to your satisfaction. If you still need help or have new information to share, feel free to reply — we’ll gladly reopen the case and assist further. Thank you for using Jinnar and for helping us improve the experience for everyone. Warm regards, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Tunapenda kukujulisha kuwa tiketi yako ya msaada ( #[Namba ya Tiketi] ) sasa imetatuliwa kulingana na hatua tulizochukua au mawasiliano yetu ya awali. 🙏 Tafadhali chukua muda kuthibitisha kama kila kitu kimetatuliwa kwa kuridhisha kwako. Iwapo bado unahitaji msaada au una taarifa mpya ya kushiriki, tafadhali jibu ujumbe huu — tuko tayari kufungua tena tiketi na kusaidia zaidi. Asante kwa kutumia Jinnar na kwa kusaidia kuboresha huduma kwa kila mtu. Kwa heshima, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Thank You for Using Jinnar – Feedback Request",
+      "subject_en": "How Did We Do? Share Your Feedback",
+      "english": "Hello [User's First Name], Thank you for using Jinnar! We truly value your experience on the platform and would love to hear how things went. Your feedback helps us improve the quality of our service and make Jinnar even better for everyone. 📝 Please take a moment to rate your recent experience or share a short comment. [Insert feedback link or instructions] Your opinion matters — and it helps us grow. With appreciation, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Asante kwa kutumia Jinnar! Tunathamini sana uzoefu wako kwenye jukwaa letu na tungependa kujua jinsi mambo yalivyokwenda. Maoni yako yanatusaidia kuboresha huduma zetu na kufanya Jinnar kuwa bora zaidi kwa kila mmoja. 📝 Tafadhali chukua muda kutoa tathmini au kuandika maoni mafupi kuhusu uzoefu wako. [Weka kiungo cha maoni au maelekezo hapa] Maoni yako ni muhimu — na yanatusaidia kukua. Kwa shukrani, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Issue Escalated – Expect Response Within 24h",
+      "subject_en": "Your Case Has Been Escalated – We’ll Get Back Within 24 Hours",
+      "english": "Hello [User's First Name], Thanks for your message. We’ve reviewed your concern and have escalated it to our Tier 2 Support Team for deeper investigation. ⏳ Please expect a response or resolution update within the next 24 hours. If you have any urgent details to add, feel free to reply directly — your message will be attached to the case. We appreciate your patience and are working to resolve this promptly. Sincerely, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Asante kwa ujumbe wako. Tumekagua suala lako na tumelielekeza kwa Timu ya Msaada ya Ngazi ya Pili (Tier 2) kwa uchunguzi zaidi. ⏳ Tafadhali tarajia jibu au taarifa ya suluhisho ndani ya saa 24 zijazo. Iwapo una maelezo ya haraka ya kuongeza, tafadhali jibu ujumbe huu moja kwa moja — ujumbe wako utaambatishwa kwenye tiketi hiyo. Tunashukuru kwa subira yako na tunalishughulikia kwa haraka iwezekanavyo. Kwa heshima, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Why Training Is Required Before Badge",
+      "subject_en": "Why You Must Complete Training Before Receiving a Badge",
+      "english": "Hello [User's First Name], To ensure quality, trust, and safety on the Jinnar platform, all workers are required to complete our official training before receiving a badge. 🎓 Here’s why training is important: It prepares you with the soft and technical skills customers expect. It helps reduce complaints and misunderstandings on jobs. It boosts your chances of getting hired by showing professionalism. ✅ Once you complete the training, your badge will appear on your profile — giving you more visibility and credibility. Let us know if you need help accessing your training modules. With encouragement, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Ili kuhakikisha ubora, uaminifu, na usalama katika jukwaa la Jinnar, mafundi wote wanatakiwa kukamilisha mafunzo rasmi kabla ya kupokea beji yao. 🎓 Hii ndiyo sababu mafunzo ni muhimu: Yanakuandaa na ujuzi unaotarajiwa na wateja (kitaalamu na kitabia). Yanapunguza malalamiko na kutokuelewana katika kazi. Yanakusaidia kupata kazi zaidi kwa kuonyesha taaluma. ✅ Mara baada ya kumaliza mafunzo, beji itaonekana kwenye wasifu wako — na kukuongezea kuonekana na kuaminika kwa wateja. Tujulishe ikiwa unahitaji msaada kupata moduli za mafunzo. Kwa mafanikio, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "How Ratings Are Calculated on Jinnar",
+      "subject_en": "How Your Ratings Are Calculated on Jinnar",
+      "english": "Hello [User's First Name], Your star rating on Jinnar is a key part of your reputation — and it’s based on real feedback from completed jobs. ⭐ Ratings are calculated using: Customer reviews after job completion. Performance across key areas: professionalism, communication, timeliness, quality of work, and respect. Consistency over time — recent ratings carry more weight. Higher ratings increase your visibility and help you win more jobs. 🔍 Tip: Always ask customers to rate you after the job is complete — and make sure to rate them too! If you’d like tips on how to raise your rating, feel free to reach out. Keep up the great work, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Alama zako za nyota kwenye Jinnar ni sehemu muhimu ya sifa yako — na zinatokana na maoni halisi baada ya kazi kukamilika. ⭐ Alama zinahesabiwa kwa kuzingatia: Mapitio ya wateja baada ya kazi. Utendaji katika maeneo muhimu: taaluma, mawasiliano, muda, ubora wa kazi, na heshima. Uthabiti wa muda mrefu — alama za hivi karibuni huwa na uzito zaidi. Alama za juu huongeza nafasi yako ya kuonekana na kupata kazi zaidi. 🔍 Ushauri: Omba kila mteja akupe tathmini baada ya kazi — na usisahau kuwapa tathmini pia! Ukitaka ushauri wa kuongeza alama zako, tuko tayari kusaidia. Endelea na kazi nzuri, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Professional Conduct Reminder for Workers",
+      "subject_en": "Reminder: Professional Conduct Is Expected on Every Job",
+      "english": "Hello [User's First Name], This is a friendly reminder that professional behavior is required on all jobs completed through the Jinnar platform. Here’s what we expect from every worker: ✅ Respectful communication with customers ✅ Arriving on time and prepared ✅ Completing the job as agreed ✅ Maintaining hygiene, safety, and a positive attitude. Professionalism builds your reputation and increases your chances of getting repeat clients and higher ratings. Let’s work together to keep Jinnar safe, reliable, and trusted by all. Thank you, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Hii ni kukukumbusha kwa upole kuwa tabia ya kitaalamu inahitajika katika kila kazi inayofanyika kupitia jukwaa la Jinnar. Tunatarajia yafuatayo kutoka kwa kila fundi: ✅ Mawasiliano ya heshima na wateja ✅ Kufika kwa wakati na ukiwa umejiandaa ✅ Kukamilisha kazi kama mliyoafikiana ✅ Kudumisha usafi, usalama, na mtazamo chanya. Utaalamu huongeza sifa zako na nafasi ya kupata wateja wa kurudi na alama za juu. Tushirikiane kulifanya Jinnar kuwa jukwaa salama, la kuaminika, na linaloheshimika. Asante, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Service Scope Limits – Can’t Force Extra Tasks",
+      "subject_en": "Reminder: Workers Should Not Be Forced to Do Extra Tasks",
+      "english": "Hello [User's First Name], Just a quick reminder: workers on Jinnar are expected to complete only the tasks that were agreed upon when the job was booked. 🚫 It’s not acceptable to: Demand additional work outside the original request. Pressure or threaten a worker into doing more. Refuse payment unless extra tasks are completed. If you need more help beyond the original scope, feel free to discuss a new job request with the worker or post another task through the platform. We’re here to support fairness for both workers and customers. Thanks for understanding, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Hii ni kukumbusha kuwa: fundi anapaswa kutekeleza tu kazi ambayo ilikubaliwa wakati wa kuweka oda. 🚫 Haitakubalika: Kumlazimisha fundi afanye kazi ya ziada isiyokuwepo awali. Kutoa vitisho au shinikizo ili afanye zaidi. Kukataa kulipa hadi afanye kazi ya ziada. Ikiwa unahitaji msaada zaidi nje ya makubaliano ya awali, tafadhali zungumza na fundi kuhusu kuweka kazi mpya au tumia jukwaa kuweka oda nyingine. Tuko hapa kuhakikisha haki kwa pande zote mbili — fundi na mteja. Asante kwa kuelewa, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Need Help? Here’s How to Chat With Support",
+      "subject_en": "Need Help? Here's the Easiest Way to Reach Support",
+      "english": "Hello [User's First Name], Need assistance with something on the Jinnar platform? We’re here for you! 🧑‍💻 The best way to get help is by using the in-app chat support. Here’s how: Log in to your Jinnar account. Tap the “Help” or “Chat With Support” button. Type your question or describe your issue. A support agent will respond shortly. Our team is available during working hours and ready to assist with any issues — from job concerns to profile settings. Don’t hesitate to reach out. We’re happy to help! Kind regards, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Unahitaji msaada kuhusu jambo lolote kwenye jukwaa la Jinnar? Tupo hapa kwa ajili yako! 🧑‍💻 Njia bora zaidi ya kupata msaada ni kutumia gumzo la moja kwa moja ndani ya app. Fuata hatua hizi: Ingia kwenye akaunti yako ya Jinnar. Gonga kitufe cha “Msaada” au “Gumzo na Msaada”. Andika swali lako au eleza tatizo lako. Afisa wa msaada atajibu hivi karibuni. Timu yetu inapatikana wakati wa kazi na iko tayari kusaidia kwa mambo yoyote — kutoka kwa changamoto za kazi hadi mipangilio ya wasifu. Usisite kutuandikia — tunafurahi kukusaidia! Kwa heshima, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    },
+    {
+      "name": "Escalation Note to Tier 2 Admin",
+      "subject_en": "Escalation Request – Tier 2 Review Needed for Ticket #[Ticket Number]",
+      "english": "Hi Tier 2 Team, Please review and take over this case for deeper investigation and resolution. Ticket Number: #[Ticket Number] User Role: [Customer or Worker] Name: [User's Full Name] Issue Summary: [Brief description of the issue] Actions Taken So Far: [e.g., Initial response sent to user] [e.g., Verified report validity through screenshots/chat] [e.g., Issued temporary warning or flagged account] Reason for Escalation: [e.g., Repeated complaints, system error, payment dispute, or complex violation] Supporting documents, screenshots, or logs are attached where applicable. Please advise on the next steps or take direct action. Let me know if anything further is needed from Tier 1. Thanks, [Your Name – Tier 1 Support]",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 1
+    },
+    {
+      "name": "Pre-Filled Incident Report Message",
+      "subject_en": "Incident Report – Preliminary Summary for Ticket #[Ticket Number]",
+      "english": "Ticket Number: #[Ticket Number] Reported By: [Customer or Worker Name] Role: [Customer / Worker] Date of Report: [MM/DD/YYYY] Location (if applicable): [City/Ward] Category of Issue: ☐ Cleanliness/Safety ☐ Unprofessional Behavior ☐ Incomplete Work ☐ Payment Dispute ☐ Off-Platform Solicitation ☐ Other: [Specify] Summary of Complaint: [Insert 2–3 sentence summary based on user message] Initial Findings: Chat log reviewed: [Yes/No] Visual evidence provided: [Yes/No] Worker/Customer history: [e.g., Prior similar complaint? Y/N] Tier 1 action taken: [e.g., Warning issued, tagged for review, etc.] Recommendation: ☐ Escalate to Tier 2 ☐ Monitor for repeat pattern ☐ No action – resolved at Tier 1 ☐ Awaiting user clarification Prepared By: [Your Name – Tier 1 Support] Date: [MM/DD/YYYY]",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 1
+    },
+    {
+      "name": "Tagging Instruction Templates for Common Cases",
+      "subject_en": "Standardized Tagging List (Internal Use)",
+      "english": "Use the following standardized tags when handling recurring issues. This improves case tracking, performance analysis, and pattern detection across the platform. ⚠️ Behavior & Performance: behavior_warning_first – First warning issued for conduct violation; behavior_repeat_offense – Second or more conduct issue flagged; unprofessional_tone – Rude or inappropriate communication. 🛠️ Work Quality: job_incomplete – Task not completed as described; job_damaged – Item/property damage reported; quality_dispute – Workmanship not meeting expectations. 💰 Payments & Disputes: payment_dispute_customer – Customer disagrees with price/payment; payment_dispute_worker – Worker raises issue with payment; job_price_not_agreed – Payment amount unclear or contested. 📱 Platform Abuse or Policy Breach: off_platform_request – Attempt to take transaction outside Jinnar; false_profile_info – Faked experience, skills, or identity; fake_job_posting – Spam or misleading job listing. 🧼 Cleanliness & Safety: safety_violation_reported – Safety concern raised by customer; cleanliness_issue – Hygiene complaint against worker. Reminder: Always apply at least one relevant tag per serious incident. For recurring behavior, pair tags with a short summary note.",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 1
+    },
+    {
+      "name": "Case Summary Recap for Multi-Ticket Issue",
+      "subject_en": "Summary Recap – Multiple Related Tickets for [User’s Name or Account ID]",
+      "english": "User Name: [Full Name] Role: [Customer / Worker] Account ID (if applicable): [#ID] Summary Purpose: Consolidate details from multiple related support tickets to enable unified handling or escalation. Relevant Ticket Numbers: #[Ticket 1] – [Short Description] #[Ticket 2] – [Short Description] #[Ticket 3] – [Short Description] (Add more if needed) Nature of Issue: Brief explanation of the common thread (e.g., repeated misconduct, unresolved payment issues, multiple safety complaints, system bugs affecting same user, etc.) Actions Taken Across All Cases: Tier 1 responses issued: Yes/No. Tier 2 involvement: Yes/No. Warnings issued: [First warning / Final warning]. Status of resolution: [Resolved / Pending / Escalated]. Recommendation: ☐ Merge tickets under master case ☐ Escalate to policy team ☐ Monitor user for further activity ☐ Final warning to be issued ☐ Temporary suspension pending investigation. Prepared By: [Your Name – Tier 1 Support] Date: [MM/DD/YYYY]",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 1
+    },
+    {
+      "name": "Follow-Up Message After Worker Sanctioned",
+      "subject_en": "Action Taken – Your Report Helped Improve Platform Safety",
+      "english": "Hello [User's First Name], Thank you again for bringing this matter to our attention. We want to let you know that we’ve reviewed your report about [brief description, e.g., “a safety concern during a job with [Worker’s Name]”], and appropriate action has been taken in line with our platform policies. 🔒 Depending on the severity and history, actions may include a formal warning, temporary suspension, or full removal from the platform. Your report helped keep the Jinnar community safer and more accountable — we truly appreciate your role in that. If you ever feel unsafe or uncomfortable again, please don’t hesitate to contact us immediately. With gratitude, Jinnar Support Team",
+      "swahili": "Habari [Jina la Mtumiaji], Asante tena kwa kutujulisha kuhusu tukio hili. Tunapenda kukufahamisha kuwa tumechunguza taarifa yako kuhusu [maelezo mafupi, mfano: “tukio la usalama wakati wa kazi na [Jina la Fundi]”], na hatua stahiki zimechukuliwa kulingana na sera za jukwaa letu. 🔒 Kulingana na uzito wa tukio na historia ya mtumiaji, hatua zilizochukuliwa zinaweza kuwa onyo rasmi, kusimamishwa kwa muda, au kuondolewa kabisa kutoka kwenye jukwaa. Taarifa yako imesaidia kulinda usalama wa jamii ya Jinnar — tunakushukuru sana kwa mchango wako. Ikiwa utajihisi kutokuwa salama au kutopendezwa tena, tafadhali wasiliana nasi mara moja. Kwa shukrani, Timu ya Msaada ya Jinnar",
+      "tier": 1
+    }
+  ],
+  "Tier 2 Supervisor (51 Templates)": [
+    {
+      "name": "Escalation Acknowledged – Case Under Supervisor Review",
+      "subject_en": "Escalation Acknowledged – Supervisor Review in Progress (Case #{TicketID})",
+      "english": "Thank you for your message. Your case (#{TicketID}) has been escalated and is now under supervisor review at Jinnar. We understand the importance of this matter and will handle it with urgency and fairness. Case type: {Case_Type} Related job (if any): #{JobID} on {Job_Date} Parties: {Customer_Name} ⇄ {Worker_Name} What Happens Next (Process Overview): We’re conducting a higher-level review that may include: Checking order, chat, and activity logs; Reviewing photos, videos, or job artifacts; Contacting involved parties for clarifications; Verifying alignment with safety and platform policies. Timeline Commitment: You can expect a supervisor update within {Update_Window} (no later than {Update_Deadline}). If we need additional time to complete a fair review, we’ll let you know before the deadline. If You Need to Send Anything (Optional): If you have documents, photos, or details that could help, please reply to this thread or upload them via the app under Case #{TicketID} → Add Evidence by {Evidence_Deadline}. Neutrality & Safety Note (Keep as needed): Please note, this review is impartial. Any interim actions we take (e.g., a temporary account hold) are safety measures and do not imply fault. How We’ll Contact You: We’ll post updates directly in your ticket and notify you via {Primary_Channel} ({Email/Phone/In-App}). If we need quick clarification, we may reach you at {Preferred_Contact}. Closing (Set Expectations): We appreciate your patience while we complete this higher-level review. Our goal is a decision that is consistent, evidence-based, and aligned with Jinnar policies. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Complex Refund Review – Extended Timeline Explanation",
+      "subject_en": "Refund Request Under Supervisor Review – Extended Timeline (Case #{TicketID})",
+      "english": "We’ve received your refund request for Case #{TicketID}, and it has been escalated for supervisor-level review. We understand the importance of resolving financial matters quickly and fairly. Case type: {Case_Type} Related job (if any): #{JobID} on {Job_Date} Refund amount requested: {Refund_Amount} Why Extra Time Is Needed (Process Overview): This refund request involves multiple factors that require extended review, including: Reviewing supporting documentation from both customer and worker; Checking platform logs, payment records, and any job evidence; Consulting platform policy for exceptions or unusual circumstances; Coordinating with our payment provider if adjustments are needed. Because of these complexities, the standard {Standard_Timeline} review period is not sufficient to reach a fair outcome. Timeline Commitment: Your refund case will now be completed within {Extended_Timeline} , with a decision no later than {Extended_Deadline}. If we are able to conclude sooner, we will notify you right away. If Additional Information Is Needed (Optional): If we require more information from you, we’ll contact you through {Primary_Channel} ({Email/Phone/In-App}). Please respond within {Response_Timeframe} to avoid further delay. Neutrality & Assurance Note: Please note that your case is under impartial review by the supervisor team. No final decision has been made yet. This extended timeline ensures a thorough and fair resolution for all parties involved. Closing (Set Expectations): Thank you for your patience as we complete this detailed review. Our goal is to ensure the outcome is accurate, consistent, and aligned with Jinnar’s standards of fairness. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Payment Dispute – Additional Documentation Requested",
+      "subject_en": "Payment Dispute Review – Additional Documentation Required (Case #{TicketID})",
+      "english": "Your payment dispute for Case #{TicketID} has been escalated for supervisor review. We take financial matters seriously and want to ensure the decision is fair and based on complete information. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Disputed amount: {Disputed_Amount} Why More Documentation Is Needed (Process Overview): To complete a thorough review of this payment dispute, we require additional documentation. The information already submitted is not sufficient to make a final decision. Specifically, we are requesting: {Document_Type_1} (e.g., receipts, proof of payment, invoices) {Document_Type_2} (e.g., photos, chat confirmations, contracts) {Other_Details} (as relevant to the case) Submission Instructions: Please submit the requested documentation by {Submission_Deadline}. You can upload files directly in the app under Case #{TicketID} → Add Evidence , or reply to this email with attachments. Timeline Commitment: Once we receive the required documents, we will finalize our review within {Resolution_Window}. If no additional information is provided by the deadline, the supervisor will make a decision based only on the evidence currently available. Neutrality & Assurance Note: This request does not imply any decision has been made. It is part of our effort to give all parties the opportunity to present their side before we reach a final outcome. Closing (Set Expectations): Thank you for your cooperation. Providing complete documentation helps us resolve disputes fairly, transparently, and in line with Jinnar’s policies. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Policy Exception Granted – One-Time Approval Notice",
+      "subject_en": "One-Time Policy Exception Granted – Case #{TicketID}",
+      "english": "Your request regarding Case #{TicketID} has been reviewed at the supervisor level. We understand your concerns and appreciate the information you provided during this process. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Requested adjustment: {Requested_Action} Decision Explanation (Process Overview): After reviewing the full details, the supervisor team has approved your request as a one-time exception to standard policy. This decision was made in recognition of the specific circumstances of your case, even though the situation falls outside of our usual policy boundaries. Conditions & Limitations: This approval applies only to Case #{TicketID} and does not establish precedent for future requests. All other policies remain in effect. Future cases will follow the standard policy unless another supervisor review is required. Timeline Commitment: The approved adjustment ({Adjustment_Approved}) will be processed by {Processing_Deadline}. You will see confirmation via {Primary_Channel} once complete. Closing (Set Expectations): We appreciate your understanding and cooperation as we maintain fairness for all users while also recognizing unique situations when they occur. Thank you for helping us keep Jinnar a trusted platform. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Policy Exception Denied – Final Clarification with Reason",
+      "subject_en": "Policy Exception Request – Final Decision (Case #{TicketID})",
+      "english": "Thank you for your patience while your request for Case #{TicketID} was reviewed at the supervisor level. We carefully considered the details and evaluated whether an exception to standard policy could be granted. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Requested exception: {Requested_Action} Decision Explanation (Process Overview): After thorough review, the supervisor team has determined that a policy exception cannot be granted in this case. Our decision is based on the following: {Reason_1} (e.g., request falls outside policy timelines) {Reason_2} (e.g., insufficient evidence provided) {Reason_3} (if applicable) Clarification & Finality: This decision is final and cannot be appealed further. Standard platform policies will continue to apply for Case #{TicketID}. We encourage you to review the applicable policy here: {Policy_Link}. Closing (Set Expectations): We recognize this may not be the outcome you were hoping for. Please know this decision was made to ensure fairness and consistency across all cases on the Jinnar platform. Thank you for your understanding and cooperation. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Customer Compensation Credit Approved (With Conditions)",
+      "subject_en": "Customer Compensation Credit Approved – Case #{TicketID}",
+      "english": "Thank you for your patience while Case #{TicketID} was reviewed by a supervisor. We understand the inconvenience you experienced and have carefully considered your request. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Requested adjustment: {Requested_Action} Decision Explanation (Process Overview): As part of our commitment to fairness and customer satisfaction, your case has been approved for a compensation credit of {Credit_Amount}. This credit will be applied to your Jinnar account and can be used toward future bookings. Conditions & Limitations: Please note the following conditions: The credit is non-transferable and may only be used on the Jinnar platform. The credit will expire if not used within {Expiration_Period}. This approval applies only to Case #{TicketID} and does not alter our general refund or compensation policies. Timeline Commitment: The credit will be visible in your account by {Processing_Deadline}. You’ll receive a confirmation once it has been successfully applied. Closing (Set Expectations): We appreciate your understanding and cooperation. Thank you for choosing Jinnar, and we look forward to serving you again. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Worker Compensation Adjustment Approved (With Conditions)",
+      "subject_en": "Worker Compensation Adjustment Approved – Case #{TicketID}",
+      "english": "Your case (#{TicketID}) has been reviewed by a supervisor. We appreciate your patience during this process and understand the importance of fair compensation for your work. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Requested adjustment: {Requested_Action} Decision Explanation (Process Overview): After reviewing the job records, communication history, and supporting evidence, the supervisor has approved a compensation adjustment of {Adjustment_Amount} to be added to your payment. This decision ensures fairness in line with platform policy. Conditions & Limitations: Please note the following conditions: The adjustment applies only to Case #{TicketID}. The adjustment does not set precedent for future jobs. The adjustment will appear as a one-time addition to your earnings. Timeline Commitment: The additional payment will be processed and visible in your Jinnar Wallet by {Processing_Deadline}. You will receive a confirmation once the adjustment has been completed. Closing (Set Expectations): Thank you for your professionalism and commitment to quality. We appreciate your continued contributions to the Jinnar platform. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Final Decision on Escalated Safety Complaint",
+      "subject_en": "Final Decision on Safety Complaint – Case #{TicketID}",
+      "english": "Your safety-related complaint regarding Case #{TicketID} has been escalated and thoroughly reviewed by a supervisor. We recognize the seriousness of safety concerns and appreciate the time you took to report this matter. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Parties involved: {Customer_Name} ⇄ {Worker_Name} Decision Explanation (Process Overview): After reviewing all submitted evidence, platform records, and relevant policies, the supervisor team has reached a final decision: {Action_Taken} (e.g., permanent account suspension, temporary suspension, warning issued, no violation found). {Rationale} (brief explanation, e.g., “based on confirmed multiple reports,” or “insufficient evidence to support violation”). Clarification & Finality: This is the final decision for Case #{TicketID}. Any safety actions taken are documented in the platform for future reference. No further appeal is available on this decision. Next Steps (if relevant): If additional assistance is required, contact {Safety_Team_Email}. If interim safety measures were applied (e.g., suspension), they will remain in effect as outlined above. If no violation was found, the case is closed with no further action required. Closing (Set Expectations): Thank you for bringing this issue to our attention. Your cooperation helps us maintain a safe and trusted environment for all members of the Jinnar community. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Investigation Opened – Expect Update Within 72h",
+      "subject_en": "Investigation Opened – Case #{TicketID}",
+      "english": "Your case (#{TicketID}) has been escalated to a supervisor, and a formal investigation has now been opened. We understand the seriousness of the matter and are committed to reviewing it thoroughly and fairly. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Parties involved: {Customer_Name} ⇄ {Worker_Name} Investigation Steps (Process Overview): The supervisor team is currently: Reviewing all available evidence and platform records; Gathering additional information from the involved parties (if necessary); Consulting relevant policies to ensure compliance and fairness; Assessing whether any interim safety or account measures are required. Timeline Commitment: You will receive an update within 72 hours (no later than {Update_Deadline}). If the investigation concludes sooner, we will notify you right away. Neutrality & Assurance Note: At this stage, no final decision has been made. All actions are taken to ensure a fair and impartial outcome. Closing (Set Expectations): Thank you for your patience and cooperation as we complete this investigation. Your role in reporting concerns helps us keep Jinnar safe, transparent, and fair for all users. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Final Case Closure – Supervisor Confirmation",
+      "subject_en": "Final Case Closure – Supervisor Confirmation (Case #{TicketID})",
+      "english": "Your case (#{TicketID}) has been fully reviewed and finalized at the supervisor level. We appreciate your patience throughout this process. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Final action taken: {Action_Taken} Decision Explanation (Process Overview): After a thorough review of all evidence, records, and policies, the supervisor team has reached a final outcome: {Summary_of_Decision} (e.g., refund approved, compensation credit issued, account action taken, or no violation found). This conclusion represents the final step in the escalation process. Clarification & Finality: The case is now closed at the supervisor level. No further appeals will be reviewed for Case #{TicketID}. All actions have been recorded in the platform system for transparency and accountability. Next Steps (if applicable): If a payment adjustment or credit was approved, you will see it processed by {Processing_Deadline}. If no further action is required, no additional steps are needed on your part. Closing (Set Expectations): Thank you for working with us through this review. Your cooperation helps us ensure fairness and trust across the Jinnar platform. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Delay in Supervisor Review – Additional 24h Needed",
+      "subject_en": "Delay in Supervisor Review – Case #{TicketID} (Additional Time Needed)",
+      "english": "Your case (#{TicketID}) is currently under review by a supervisor. Due to the unexpected volume of escalations/complexity of evidence, the review timeline needs to be extended by 24 hours. The supervisor is actively working to ensure fairness and accuracy. We sincerely apologize for this delay. You can expect a final update by {New_Deadline}. Thank you for your understanding. Sincerely, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Escalation Resolved Faster Than Expected",
+      "subject_en": "Escalation Resolved – Case #{TicketID} (Completed Sooner Than Expected)",
+      "english": "We’re writing with an update on Case #{TicketID}. Although we originally provided a longer review timeline, the supervisor team was able to complete the escalation process sooner than expected. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Resolution type: {Resolution_Action} Decision Explanation (Process Overview): After thoroughly reviewing all evidence, platform records, and applicable policies, the supervisor team has reached a final decision: {Summary_of_Decision} (e.g., refund approved, worker reinstated, compensation credit applied, or no violation found). This decision represents the final outcome of the escalation process. Clarification & Finality: The case is now closed at the supervisor level. No further appeal is available for Case #{TicketID}. All actions have been documented in the platform system for accountability. Next Steps (if applicable): If a credit, refund, or adjustment was approved, it will be processed by {Processing_Deadline}. If no action was required, no further steps are needed from you. Closing (Set Expectations): Thank you for your cooperation during this process. We’re pleased to resolve your case earlier than expected, and we appreciate your trust in Jinnar. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Worker Temporarily Suspended Pending Review",
+      "subject_en": "Temporary Suspension Notice – Case #{TicketID}",
+      "english": "Your case (#{TicketID}) has been escalated for supervisor review as part of Case #{TicketID}. To protect customers and the integrity of the platform, we have applied a temporary suspension while the case is investigated. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Reported concern: {Summary_of_Complaint} Decision Explanation (Process Overview): This suspension is a precautionary step, not a final judgment. During this time, you will not be able to accept or perform new jobs. The supervisor team is: Reviewing all relevant evidence and platform records; Gathering additional information from the involved parties (if necessary); Evaluating whether further action is necessary. Timeline Commitment: A final decision will be communicated within {Review_Window} (no later than {Review_Deadline}). If additional time is required due to case complexity, you will be notified. Neutrality & Assurance Note: The suspension does not imply fault. It is a standard safety measure applied when serious concerns are raised. Closing (Set Expectations): We encourage your cooperation during this review. Your prompt response to any information requests will help us conclude the matter fairly and efficiently. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Customer Account Flagged for Risk – Behavior Under Review",
+      "subject_en": "Customer Account Flagged for Risk – Case #{TicketID}",
+      "english": "Your account activity linked to Case #{TicketID} has been escalated for supervisor review. To protect worker safety and the integrity of the platform, your account has been flagged for risk and placed under review. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Reported concern: {Summary_of_Complaint} Decision Explanation (Process Overview): Flagging an account does not mean a final decision has been made. It is a precautionary measure while we investigate reports of potential risk behavior. While flagged, your account may face temporary limitations, which can include: Restricted ability to book new jobs; Closer monitoring of communication with workers; Temporary hold on certain payment or refund requests. The supervisor team is currently: Reviewing platform logs and reported evidence; Contacting the parties involved if clarification is needed; Determining if further action is necessary under Jinnar’s risk and safety policies. Timeline Commitment: A decision will be communicated within {Review_Window} (no later than {Review_Deadline}). If additional time is needed due to case complexity, we will update you accordingly. Neutrality & Assurance Note: This review is impartial. Being flagged for risk does not assume misconduct; it simply ensures worker and customer safety until a full review is complete. Closing (Set Expectations): We appreciate your cooperation during this review. Please respond promptly to any requests for information, as this will help us complete the process fairly and efficiently. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Case Escalated to Tier 3 for Legal/Compliance Concerns",
+      "subject_en": "Case Escalated to Tier 3 – Legal/Compliance Review (Case #{TicketID})",
+      "english": "Your case (#{TicketID}) has been escalated beyond the supervisor level for Tier 3 legal and compliance review. This step was taken due to the nature of the concerns raised, which require specialized evaluation. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Reported concern: {Summary_of_Complaint} Decision Explanation (Process Overview): Escalation to Tier 3 means the case may involve: Possible legal, regulatory, or contractual violations; Review of sensitive evidence requiring compliance oversight; Coordination with external parties, such as regulators or legal authorities (if necessary). At this stage: Tier 2 has completed its review and referred the case upward. Tier 3 specialists are now handling the matter to ensure compliance with applicable laws and platform policies. Interim safety or account measures (e.g., suspension, restrictions) will remain in place until a final outcome is determined. Timeline Commitment: Because this case involves legal/compliance review, the timeline may be longer than standard escalations. You will receive an update within {Update_Window} (no later than {Update_Deadline}), even if the final resolution is still pending. Neutrality & Assurance Note: Escalating to Tier 3 does not imply a predetermined outcome. It ensures that the matter is handled with the highest level of care, accuracy, and compliance. Closing (Set Expectations): We appreciate your patience while this review is completed at the Tier 3 level. Should additional information be required, you will be contacted directly by our compliance team. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Harassment/Abuse Complaint Acknowledgement – Action Taken",
+      "subject_en": "Harassment/Abuse Complaint – Acknowledged and Action Taken (Case #{TicketID})",
+      "english": "We have received and escalated your harassment/abuse complaint (Case #{TicketID}) for supervisor review. We recognize the seriousness of this matter and want to assure you that it has been given the highest priority. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Reported party: {Other_Party_Name} Decision Explanation (Process Overview): After initial review, the supervisor team has taken immediate action to protect your safety and the integrity of the platform. Steps taken include: {Action_Taken_1} (e.g., temporary suspension of the reported party); {Action_Taken_2} (e.g., removal from ongoing job assignments, account hold); {Action_Taken_3} (if applicable, e.g., flagged for further compliance/legal review). Next Steps (Ongoing Review): The case remains under full investigation. Additional measures may be applied once all evidence is reviewed. You will receive a follow-up update within {Update_Window} (no later than {Update_Deadline}). Neutrality & Safety Note: Your safety and trust are our highest priorities. Any information you’ve provided will remain confidential and will not be shared with the reported party. Closing (Set Expectations): Thank you for reporting this incident. Your cooperation helps us maintain a safe and respectful environment for all Jinnar users. Please contact {Safety_Team_Email} if you feel at risk or need immediate assistance. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Multiple Safety Reports on Worker – Permanent Suspension Notice",
+      "subject_en": "Permanent Suspension Notice – Case #{TicketID}",
+      "english": "Your account has been reviewed by a supervisor as part of Case #{TicketID}. After examining multiple safety-related reports and prior history on your account, the supervisor team has reached a final decision. Case type: {Case_Type} Related job(s): #{JobID_List} Reported concerns: {Summary_of_Complaints} Decision Explanation (Process Overview): Due to repeated safety complaints and verified violations of Jinnar’s safety standards, your account has been placed under permanent suspension. This action was taken because: {Reason_1} (e.g., repeated confirmed reports of unsafe conduct); {Reason_2} (e.g., prior warnings issued but not followed); {Reason_3} (if applicable). Clarification & Finality: This decision is final and cannot be appealed further. You will no longer be able to accept jobs, access customer communications, or receive new bookings. Any outstanding payments for completed jobs will still be processed according to platform policy. Next Steps: You may not open new accounts on the platform. If you have questions about outstanding payments, please contact {Support_Email}. All actions have been documented and shared with our internal Safety & Trust team. Closing (Set Expectations): This permanent suspension protects customer and worker safety across the Jinnar platform. We thank you for your past contributions but must uphold platform standards to maintain trust and security for all users. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Customer Safety Assurance – Security Team Involved",
+      "subject_en": "Safety Assurance Update – Security Team Involved (Case #{TicketID})",
+      "english": "We’ve received your report related to Case #{TicketID}. Your safety is our highest priority, and this matter has been escalated to include Jinnar’s dedicated Security Team. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Reported concern: {Summary_of_Complaint} Decision Explanation (Process Overview): The Security Team has been engaged to: Review the incident in detail alongside the supervisor team; Implement precautionary measures to protect your safety (e.g., worker restrictions, monitoring, or suspension); Coordinate with external authorities if required by policy or law. Timeline Commitment: You will receive a formal update within {Update_Window} (no later than {Update_Deadline}). If additional information is needed from you, a member of our Security Team will reach out directly via {Primary_Channel}. Neutrality & Safety Note: Your personal details and communications will be handled confidentially. The reported party will not have access to your private information at any point. Closing (Set Expectations): Thank you for taking the time to report this issue. By acting quickly, you help us uphold Jinnar’s commitment to safety and trust. Please contact {Safety_Team_Email} if you feel unsafe or require urgent support before the next update. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust On behalf of Jinnar Security Team {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Fraudulent Activity Detected – Account Frozen Pending Investigation",
+      "subject_en": "Account Frozen Pending Investigation – Case #{TicketID}",
+      "english": "Your account has been flagged in connection with Case #{TicketID}. Following supervisor review, indicators of potential fraudulent activity were detected. To protect platform integrity and all users, your account has been temporarily frozen while a full investigation is conducted. Case type: {Case_Type} Related job(s): #{JobID_List} Concern identified: {Summary_of_Fraud_Concern} Decision Explanation (Process Overview): Freezing the account is a precautionary step to prevent further transactions until the investigation is complete. During this period, you will not be able to: Book or perform new jobs; Send or receive payments through the platform; Access certain account functions. The supervisor and compliance teams are: Reviewing transaction logs and activity patterns; Comparing evidence with Jinnar’s fraud detection standards; Coordinating with payment providers and legal authorities if required. Timeline Commitment: An update will be provided within {Update_Window} (no later than {Update_Deadline}). Depending on the findings, the account may be reinstated, restricted further, or permanently closed. Neutrality & Assurance Note: This action does not represent a final decision or determination of fault. It ensures that the platform and its users remain protected while the review is in progress. Closing (Set Expectations): We appreciate your cooperation during this investigation. If you believe this action was taken in error, please reply with supporting documentation by {Evidence_Deadline}. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust On behalf of Jinnar Compliance Team {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Duplicate/Multiple Account Misuse – Action Clarified",
+      "subject_en": "Account Misuse Clarification – Case #{TicketID}",
+      "english": "Your case (#{TicketID}) has been reviewed at the supervisor level. Our investigation identified the use of duplicate or multiple accounts, which is against Jinnar’s platform rules. Case type: {Case_Type} Related account(s): {Account_List} Concern identified: {Summary_of_Misuse} Decision Explanation (Process Overview): Based on the review, the following actions have been applied: {Action_Taken_1} (e.g., secondary accounts permanently closed); {Action_Taken_2} (e.g., primary account placed under warning/monitoring); {Action_Taken_3} (if applicable, e.g., temporary hold on new bookings). These steps are necessary to prevent misuse and ensure fairness across the platform. Duplicate or multiple account activity can: Distort worker or customer ratings; Circumvent suspensions or prior warnings; Create risks for payments, refunds, and platform safety. Clarification & Finality: The decision for Case #{TicketID} is final. You may continue to use {Primary_Account} in compliance with Jinnar’s rules (if not suspended). Attempting to create additional accounts may result in permanent removal from the platform. Closing (Set Expectations): We appreciate your cooperation in resolving this issue. Please use your single verified account for all future activity to remain in good standing with Jinnar. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Data Privacy/Confidentiality Case Response",
+      "subject_en": "Data Privacy/Confidentiality Case Response – Case #{TicketID}",
+      "english": "We have received and escalated your report under Case #{TicketID}, which concerns data privacy or confidentiality. Protecting the personal information of all Jinnar users is one of our highest priorities, and your case has been reviewed at the supervisor level. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Reported concern: {Summary_of_Privacy_Complaint} Decision Explanation (Process Overview): After reviewing the case, the supervisor team has taken the following actions: {Action_Taken_1} (e.g., restricted or suspended access for the reported party); {Action_Taken_2} (e.g., removed unauthorized data or content from the platform); {Action_Taken_3} (if applicable, e.g., referred matter to Compliance for legal obligations). We have also ensured that your personal details remain secure and will not be disclosed to any unauthorized party. Next Steps (Ongoing Review): The case remains under active monitoring. If additional evidence is identified or required, you may be contacted by the supervisor or compliance team. A follow-up update will be shared by {Update_Deadline}. Neutrality & Assurance Note: This action is precautionary and policy-driven. It does not assume misconduct beyond what has been confirmed by evidence. All measures are aimed at maintaining a safe, trustworthy platform. Closing (Set Expectations): Thank you for reporting this matter. Your cooperation strengthens our ability to protect confidentiality across Jinnar. If you believe your privacy is at risk in the meantime, please contact {Privacy_Team_Email} for immediate support. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust On behalf of Jinnar Privacy & Compliance Team {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Law Enforcement/Authority Notified – Required by Policy",
+      "subject_en": "Case Escalated to Law Enforcement – Case #{TicketID}",
+      "english": "Your case (#{TicketID}) has been reviewed at the supervisor level. Based on the seriousness of the matter, it has been escalated to the appropriate law enforcement or regulatory authority in line with Jinnar’s policies and legal obligations. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Reported concern: {Summary_of_Complaint} Decision Explanation (Process Overview): As required by policy and law, we have: Reported the case details to {Authority_Name}; Preserved and secured all relevant evidence, including platform logs and communications; Applied precautionary actions to protect users involved, which may include account restrictions or suspensions. Neutrality & Assurance Note: This escalation does not imply a predetermined outcome. The final determination will rest with the external authority. Jinnar will cooperate fully while also continuing to uphold user safety and confidentiality. Timeline Commitment: While the case is in the hands of {Authority_Name}, updates may depend on the authority’s process. However, you will receive a platform-level update by {Update_Deadline} regarding any new actions affecting your account. Closing (Set Expectations): We understand this may feel serious, but please be assured this step is taken only when required by policy and law. If you have urgent questions, contact {Compliance_Team_Email}. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust On behalf of Jinnar Compliance & Legal Team {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "High-Risk Customer/Worker Placed Under Permanent Monitoring",
+      "subject_en": "Permanent Monitoring Notice – Case #{TicketID}",
+      "english": "Your case (#{TicketID}) has been reviewed by the supervisor team. Based on the nature and frequency of prior incidents, your account has been classified as high-risk and will remain under permanent monitoring. Case type: {Case_Type} Related job(s): #{JobID_List} Reported concerns: {Summary_of_Complaints} Decision Explanation (Process Overview): This classification was applied due to: {Reason_1} (e.g., repeated safety or policy complaints); {Reason_2} (e.g., prior suspensions or warnings on record); {Reason_3} (if applicable). As part of permanent monitoring, your account will be subject to: Continuous oversight of activities and transactions; Closer review of communications with customers/workers; Immediate restrictions or suspensions if new violations occur. Clarification & Finality: Your account is not suspended at this time (unless otherwise stated). This monitoring status is final and permanent. Continued compliance with Jinnar’s standards is required to maintain access to the platform. Closing (Set Expectations): Thank you for your cooperation. This monitoring status is intended to protect the Jinnar community while giving you the opportunity to continue using the platform responsibly. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Why Supervisor Review Was Needed (Policy Complexity)",
+      "subject_en": "Supervisor Review Explanation – Case #{TicketID}",
+      "english": "Your case (#{TicketID}) was escalated for supervisor review. We want to explain why this additional level of review was necessary and how it ensures fairness. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Reported concern: {Summary_of_Request_or_Dispute} Decision Explanation (Process Overview): Some cases involve complex policy considerations that cannot be resolved at the first support level. Supervisor review was needed because: {Reason_1} (e.g., request involved exceptions outside standard policy); {Reason_2} (e.g., overlapping policies that required interpretation); {Reason_3} (if applicable, e.g., high-value dispute requiring senior authorization). During this process, the supervisor team: Carefully reviewed all submitted evidence and platform records; Cross-checked against Jinnar’s policies and guidelines; Applied judgment where policy language required clarification. Outcome Clarification: Final decision: {Summary_of_Decision} (e.g., refund granted, compensation credit issued, request denied). This outcome reflects both fairness to the parties involved and adherence to platform rules. Closing (Set Expectations): We appreciate your patience while this case was reviewed at the supervisor level. Escalating complex issues ensures consistency, fairness, and alignment with Jinnar’s policies. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Escalated Account Verification – Final Outcome",
+      "subject_en": "Escalated Account Verification – Final Outcome (Case #{TicketID})",
+      "english": "Your account verification request (Case #{TicketID}) was escalated to a supervisor for further review. We understand how important verified status is to your activity on Jinnar, and we’ve now completed the process. Case type: {Case_Type} Related account: {Account_ID_or_Name} Reason for escalation: {Summary_of_Verification_Issue} Decision Explanation (Process Overview): After reviewing all submitted documents and platform records, the supervisor team has reached a final decision: {Outcome_Approved_or_Denied} (e.g., verification approved, verification denied due to insufficient documents). The review process included: Validating government-issued ID or equivalent documents; Confirming consistency with account details (name, email, phone number, and activity); Cross-checking with fraud-prevention and compliance systems. Clarification & Finality: If approved: Your account is now verified and marked accordingly. This improves trust and visibility on the platform. If denied: The decision is final. However, you may reapply after {Reapply_Wait_Period} if new or corrected documents are available. Any attempt to bypass the verification process with false details will result in permanent removal from the platform. Closing (Set Expectations): Thank you for your cooperation during this process. Verification helps ensure the safety, trust, and reliability of all users on Jinnar. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Refund Beyond Standard Timeline – Approved by Supervisor",
+      "subject_en": "Refund Approved – Beyond Standard Timeline (Case #{TicketID})",
+      "english": "Your refund request under Case #{TicketID} was escalated to a supervisor because it fell outside Jinnar’s standard refund window. After careful consideration, we’ve reached a final decision. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Requested refund: {Refund_Amount} Decision Explanation (Process Overview): The supervisor team has approved your refund as an exception beyond the usual timeline. This decision was made after reviewing: The specific circumstances of your case; Supporting evidence provided; Jinnar’s policy allowances for rare exceptions. Clarification & Conditions: The refund of {Refund_Amount} will be processed to your original payment method. Processing may take {Processing_Timeline} depending on your bank/payment provider. This approval applies only to Case #{TicketID} and does not change the standard refund timelines for future cases. Closing (Set Expectations): We appreciate your patience while this case was reviewed. Thank you for using Jinnar, and we look forward to continuing to serve you. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Denial of Repeated Requests – No Further Appeal Allowed",
+      "subject_en": "Final Decision – Request Denied (Case #{TicketID})",
+      "english": "Your case (#{TicketID}) has undergone multiple reviews, including at the supervisor level. We recognize the time and effort you’ve put into submitting your requests and appeals. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Request submitted: {Summary_of_Request} Decision Explanation (Process Overview): After repeated reviews and careful consideration, the supervisor team has determined that your request cannot be approved. This decision reflects: {Reason_1} (e.g., request falls outside policy requirements); {Reason_2} (e.g., insufficient or repetitive evidence provided); {Reason_3} (if applicable). Clarification & Finality: This is the final decision for Case #{TicketID}. No further appeals or duplicate requests will be reviewed. The decision has been documented and is considered closed. Closing (Set Expectations): We understand this may be disappointing. However, repeated requests strain our ability to provide timely support to all users. We appreciate your understanding as we maintain fairness and consistency across the Jinnar platform. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Manual Adjustment of Worker Ratings – Supervisor Override",
+      "subject_en": "Supervisor Override – Worker Rating Adjustment (Case #{TicketID})",
+      "english": "Your case (#{TicketID}) was escalated for supervisor review regarding your worker rating. After a full review of the circumstances, the supervisor team has applied a manual adjustment to ensure fairness. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Original rating: {Original_Rating} → Adjusted rating: {New_Rating} Decision Explanation (Process Overview): This adjustment was made because: {Reason_1} (e.g., rating submitted in bad faith or unrelated to job performance); {Reason_2} (e.g., evidence showed customer feedback was inaccurate); {Reason_3} (if applicable). The supervisor override ensures that your rating accurately reflects your work quality and is not unfairly impacted by isolated or improper reviews. Clarification & Finality: The updated rating is now reflected in your worker profile. This decision is final and cannot be appealed further. Please note that all other ratings remain unchanged. Closing (Set Expectations): Thank you for your continued professionalism. Jinnar is committed to maintaining fairness in ratings so workers are judged based on accurate, verified performance. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Badge Suspension – Supervisor Decision Notice",
+      "subject_en": "Badge Suspension Notice – Case #{TicketID}",
+      "english": "Your case (#{TicketID}) has been reviewed by a supervisor, and a decision has been made regarding your platform badge status. Case type: {Case_Type} Related job(s): #{JobID_List} Concern identified: {Summary_of_Complaint_or_Violation} Decision Explanation (Process Overview): After reviewing the evidence and your account history, the supervisor team has determined that your badge will be suspended. This action was taken because: {Reason_1} (e.g., violation of platform safety standards); {Reason_2} (e.g., repeated negative feedback despite prior warnings); {Reason_3} (if applicable). Clarification & Finality: The badge suspension is effective immediately. You may continue using the platform, but your badge benefits (visibility, priority ranking, customer trust signals) will be removed. The suspension will last for {Suspension_Period}, after which your eligibility will be re-evaluated. This decision is final and cannot be appealed during the suspension period. Closing (Set Expectations): We encourage you to use this time to focus on improving service quality and compliance with platform rules. Regaining badge status depends on consistent performance and adherence to Jinnar’s standards. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Special Handling of High-Value Job Dispute",
+      "subject_en": "Supervisor Review – High-Value Job Dispute (Case #{TicketID})",
+      "english": "Your dispute under Case #{TicketID} has been escalated for special handling because it involves a high-value job. We understand the significance of this matter and have applied additional review steps to ensure fairness. Case type: {Case_Type} Job ID: #{JobID} Job value: {Job_Value} Decision Explanation (Process Overview): For disputes involving high-value jobs, the supervisor team applies a more comprehensive review, which includes: Cross-checking all payment, contract, and communication records; Consulting senior compliance or financial review teams if required; Considering both customer and worker impact to ensure balanced resolution. Outcome Clarification: The supervisor team has reached a decision: {Summary_of_Decision} (e.g., partial refund granted, compensation split applied, no refund issued, additional payment approved). Clarification & Finality: This decision is final for Case #{TicketID}. All actions have been logged and verified for accuracy and accountability. Future disputes will continue to follow this escalation framework if they meet high-value criteria. Closing (Set Expectations): We appreciate your cooperation during this review. By applying extra diligence to high-value cases, Jinnar ensures transparency and fairness in matters that carry significant impact. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust On behalf of Jinnar Compliance & Finance Team {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Partial Refund or Split Compensation Decision",
+      "subject_en": "Partial Refund / Split Compensation Decision – Case #{TicketID}",
+      "english": "Your case (#{TicketID}) was escalated for supervisor review due to a payment dispute. We’ve now completed a thorough review to ensure fairness for all parties involved. Case type: {Case_Type} Job ID: #{JobID} on {Job_Date} Amount in dispute: {Disputed_Amount} Decision Explanation (Process Overview): After reviewing job records, communication history, and submitted evidence, the supervisor team has determined that responsibility for the dispute is shared between both parties. To ensure a fair resolution, the following decision has been applied: A partial refund of {Refund_Amount} will be issued to {Customer_Name}. A compensation adjustment of {Compensation_Amount} will be applied to {Worker_Name}. This ensures that both sides are recognized for their roles while keeping the outcome consistent with Jinnar’s fairness policies. Clarification & Finality: This decision is final for Case #{TicketID}. Refunds and compensation will be processed within {Processing_Timeline}. Future disputes will be reviewed independently and do not guarantee the same outcome. Closing (Set Expectations): We appreciate the cooperation of both customer and worker during this process. By applying a split resolution, Jinnar upholds fairness and trust for all parties involved. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust On behalf of Jinnar Compliance & Finance Team {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Compensation Denied – Final Explanation with Supporting Policy",
+      "subject_en": "Compensation Request Denied – Final Decision (Case #{TicketID})",
+      "english": "Your request for compensation under Case #{TicketID} has been reviewed at the supervisor level. We understand the importance of this matter and want to ensure you have a clear explanation of the outcome. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Compensation requested: {Requested_Amount} Decision Explanation (Process Overview): After reviewing the evidence, job records, and Jinnar’s policies, the supervisor team has determined that the compensation request cannot be approved. This decision was made because: {Reason_1} (e.g., issue was outside Jinnar’s responsibility or control); {Reason_2} (e.g., insufficient evidence provided to support the claim); {Reason_3} (e.g., request fell outside the policy timeframe). Supporting Policy Reference: According to Jinnar’s {Policy_Name} (Section {Policy_Section}), compensation is only approved when {Policy_Condition}. Your request did not meet these conditions. Clarification & Finality: This is the final decision for Case #{TicketID}. No further appeals or repeat requests will be reviewed. The decision has been documented in your case file. Closing (Set Expectations): We appreciate your understanding. While this request could not be approved, we remain committed to fairness and transparency in every case we handle. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Coaching Note to Tier 1 Agent – Improve Ticket Tagging",
+      "subject_en": "Coaching Note – Improve Ticket Tagging (Case #{TicketID})",
+      "english": "I’ve reviewed your handling of Case #{TicketID} and wanted to share some feedback on ticket tagging accuracy. Accurate tagging is critical because it ensures that escalations are routed properly, metrics remain reliable, and recurring issues can be tracked effectively. Case type submitted: {Tag_Used} Correct tag: {Correct_Tag} Impact observed: {Impact_Example} (e.g., delay in escalation, misclassification of risk, inaccurate reporting). Decision Explanation (Coaching Focus): The ticket was incorrectly tagged, which caused {Describe_Consequence}. Correct tagging should follow this guideline: {Guideline_1} (e.g., “Use Safety & Risk tags when any complaint involves tools, harassment, or unsafe behavior”). {Guideline_2} (e.g., “Use Payment Dispute only when the issue directly involves disputed charges or refunds”). {Guideline_3} (if applicable). Action Steps for Improvement: Review the Ticket Tagging Guide in the Knowledge Base. Confirm tags against the case summary before closing or escalating. Ask a supervisor for clarification if the correct category is unclear. Closing (Encouragement): This is a learning opportunity, not a reprimand. Correct tagging improves efficiency across the team and helps us maintain customer and worker trust. Please apply this adjustment going forward. Signature: Thanks, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 2
+    },
+    {
+      "name": "Feedback to Tier 1 Agent – Escalated Case Preventable",
+      "subject_en": "Feedback – Escalated Case Could Have Been Prevented (Case #{TicketID})",
+      "english": "I reviewed Case #{TicketID}, which was escalated to Tier 2. After assessing your handling of the case, I believe the escalation could have been avoided with a different approach. Case type: {Case_Type} Escalated reason: {Escalation_Reason} Preventable factor: {Preventable_Action} Decision Explanation (Coaching Focus): The escalation was triggered because {Describe_Specific_Mistake_or_Missed_Action}. With a few adjustments, you could have fully resolved this at Tier 1. For example: {Guideline_1} (e.g., confirming refund policy timeline with customer immediately). {Guideline_2} (e.g., requesting documentation before escalating to supervisor). {Guideline_3} (if applicable). Action Steps for Improvement: Review the escalation checklist before forwarding a case. Apply Tier 1 tools/resources (e.g., policy guide, knowledge base) more thoroughly. Confirm all simple resolutions are attempted before marking a case for escalation. Closing (Encouragement): This feedback is meant to help you strengthen your independence in resolving customer and worker cases. Preventing unnecessary escalations saves time and ensures customers receive faster solutions. Signature: Thanks, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 2
+    },
+    {
+      "name": "Commendation to Tier 1 Agent – Good Case Handling",
+      "subject_en": "Commendation – Excellent Handling of Case #{TicketID}",
+      "english": "I reviewed Case #{TicketID} and want to recognize your excellent handling of the situation. Your approach demonstrated professionalism and strong problem-solving skills. Case type: {Case_Type} Customer/worker concern: {Summary_of_Issue} Positive outcome: {Summary_of_Resolution} Decision Explanation (Recognition Focus): Here’s what stood out in your handling of this case: {Strength_1} (e.g., clear and empathetic communication with customer); {Strength_2} (e.g., accurate application of Jinnar’s refund policy); {Strength_3} (if applicable, e.g., proactive steps taken to avoid escalation). Your work directly contributed to resolving the case at Tier 1 without needing escalation, saving time for both the customer and our team. Impact on Team/Platform: Improved customer satisfaction; Reduced escalation workload; Reinforced Jinnar’s reputation for fairness and reliability. Closing (Encouragement): Keep up this strong performance. Consistent, thoughtful handling like this sets a high standard for Tier 1 support. Signature: Thanks, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 2
+    },
+    {
+      "name": "Correction to Tier 1 Agent – Policy Misinterpretation",
+      "subject_en": "Correction – Policy Misinterpretation (Case #{TicketID})",
+      "english": "I reviewed Case #{TicketID} and noticed that a policy misinterpretation affected how the case was handled. I want to clarify the correct approach so you can apply it consistently moving forward. Case type: {Case_Type} Reported issue: {Summary_of_Issue} Policy section: {Policy_Name}, Section {Policy_Section} Decision Explanation (Correction Focus): The error occurred when {Describe_Incorrect_Action}. According to policy, the correct approach should have been: {Correct_Action_1}; {Correct_Action_2}; {Correct_Action_3} (if applicable). Action Steps for Improvement: Revisit {Policy_Name/Knowledge_Base_Link} to reinforce the correct interpretation. Apply the escalation checklist if unsure about policy boundaries. Ask for quick supervisor confirmation before making a decision when policy seems unclear. Closing (Encouragement): This is not a reprimand, but a learning opportunity. Policies can be complex, and it’s better to clarify early than risk an incorrect outcome. I’m confident you’ll apply this correction effectively in future cases. Signature: Thanks, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 2
+    },
+    {
+      "name": "Supervisor Review Completed – Ticket Can Be Closed by Tier 1",
+      "subject_en": "Supervisor Review Completed – Ticket Closure Authorized (Case #{TicketID})",
+      "english": "I’ve completed the supervisor review for Case #{TicketID}. At this point, no further Tier 2 action is needed, and the ticket can now be closed at Tier 1. Case type: {Case_Type} Supervisor outcome: {Summary_of_Decision} Next steps: {Action_For_Tier1} Decision Explanation (Guidance Focus): The review confirmed {Summary_of_Findings}, which means the case can be resolved at Tier 1 by: Communicating the outcome clearly to the customer/worker; Confirming that any approved actions (e.g., refunds, credits, account notes) have been logged or scheduled; Marking the ticket as “Closed” in the system. Closing (Encouragement): Thank you for escalating this case appropriately. Please go ahead and finalize closure on your end. This ensures our records stay clean and the customer/worker has a clear resolution. Signature: Thanks, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 2
+    },
+    {
+      "name": "Follow-Up Reminder to Tier 1 – Awaiting Action Before Closure",
+      "subject_en": "Reminder – Action Required Before Closure (Case #{TicketID})",
+      "english": "This is a reminder regarding Case #{TicketID}. The supervisor review is complete, but the ticket is still open because final Tier 1 action is required before closure. Case type: {Case_Type} Supervisor outcome: {Summary_of_Supervisor_Decision} Pending step: {Action_Still_Required} Decision Explanation (Guidance Focus): To finalize this case, please complete the following: {Step_1} (e.g., send resolution notice to customer/worker); {Step_2} (e.g., confirm refund/credit has been processed); {Step_3} (if applicable). Only after these steps are completed should the ticket be marked as Closed in the system. Closing (Encouragement): Please complete the pending action(s) as soon as possible. Prompt closure ensures accurate records and avoids unnecessary follow-ups. Let me know if you encounter any issues finishing this task. Signature: Thanks, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 2
+    },
+    {
+      "name": "Escalation Report Sent to Tier 3 Manager",
+      "subject_en": "Escalation Report – Case #{TicketID} Sent to Tier 3 Manager",
+      "english": "Please find below the formal escalation report for Case #{TicketID}. This case required Tier 3 oversight due to its complexity and potential compliance implications. Case type: {Case_Type} Related job(s): #{JobID_List} Escalation reason: {Escalation_Reason} Decision Explanation (Report Content): The escalation includes: Summary of Events: {Summary_of_Events} Actions Taken by Tier 1: {Tier1_Actions} Actions Taken by Tier 2: {Tier2_Actions} Outstanding Issues: {Outstanding_Issues} Recommended Next Steps: {Supervisor_Recommendation} Supporting Documents (Attached or Linked): Customer/worker communication logs; Evidence submitted (screenshots, invoices, chat transcripts, etc.); Supervisor decision notes. Closing (Next Steps): The case is now formally in your queue for Tier 3 action. Please confirm receipt of this report, and I’ll remain available for clarification or supporting follow-up. Signature: Thanks, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 2
+    },
+    {
+      "name": "Complex Case Summary for Weekly Review",
+      "subject_en": "Weekly Complex Case Summary – Case #{TicketID}",
+      "english": "As part of the weekly review process, please find below a summary of Case #{TicketID}, which has been classified as complex due to the nature of the dispute and extended supervisor involvement. Case type: {Case_Type} Related job(s): #{JobID_List} Initial report date: {Opened_Date} Summary of Events: {Timeline_Event_1} (e.g., customer submitted refund request on {Date}). {Timeline_Event_2} (e.g., worker disputed claim with documentation). {Timeline_Event_3} (e.g., supervisor applied interim suspension pending review). Key Issues Identified: {Issue_1} (e.g., conflicting evidence between parties). {Issue_2} (e.g., potential policy overlap). {Issue_3} (if applicable). Supervisor Actions Taken: {Action_1} (e.g., approved partial refund). {Action_2} (e.g., referred safety component to compliance team). {Action_3} (if applicable). Outstanding Risks / Considerations: {Risk_1} (e.g., potential reputational impact if escalated publicly). {Risk_2} (e.g., repeat complaints from same customer/worker). Recommendation for Weekly Review: The case should be tracked in weekly discussions due to {Reason_for_Weekly_Review}. Suggested next step: {Recommendation}. Closing (Next Steps): I will monitor the case closely and provide follow-up in next week’s report or sooner if developments occur. Signature: Thanks, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 2
+    },
+    {
+      "name": "Fraud or Risk Case Documentation Note",
+      "subject_en": "Fraud/Risk Case Documentation – Case #{TicketID}",
+      "english": "Please find below the documentation summary for Case #{TicketID}, which has been categorized as a fraud/risk case. This record ensures compliance with reporting standards and provides a clear audit trail. Case type: {Case_Type} Related account(s): {Account_List} Initial report date: {Opened_Date} Case Summary: Reported concern: {Summary_of_Complaint} Parties involved: {Customer/Worker_Names} Financial impact: {Estimated_Impact} Supervisor Review Notes: {Finding_1} (e.g., suspicious transaction pattern detected). {Finding_2} (e.g., account activity inconsistent with profile). {Finding_3} (if applicable). Actions Taken: {Action_1} (e.g., account frozen pending investigation). {Action_2} (e.g., reported to compliance team). {Action_3} (if applicable, e.g., evidence preserved for legal use). Risk Classification: Severity: {Low/Medium/High} Immediate risk mitigated: {Yes/No} Escalated to Tier 3 or external authority: {Yes/No} Closing (Next Steps): This documentation has been logged in the fraud/risk tracker. Case #{TicketID} will remain under monitoring until final closure. Signature: Thanks, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 2
+    },
+    {
+      "name": "Supervisor Override Log – Adjustment Explanation",
+      "subject_en": "Supervisor Override Log – Case #{TicketID}",
+      "english": "This note documents the supervisor override applied in Case #{TicketID}. The override was necessary to ensure fairness and proper resolution when standard system rules or automated workflows could not fully address the issue. Case type: {Case_Type} Related job/account: {JobID_or_Account} Override date: {Override_Date} Reason for Override: {Reason_1} (e.g., customer refund fell just outside standard policy window but was clearly justified). {Reason_2} (e.g., automated rating adjustment did not reflect evidence). {Reason_3} (if applicable). Actions Taken: {Action_1} (e.g., manual refund of {Refund_Amount} approved). {Action_2} (e.g., worker rating updated from {Old_Rating} to {New_Rating}). {Action_3} (if applicable). Justification for Override: This override ensures: {Benefit_1} (e.g., fairness to customer/worker). {Benefit_2} (e.g., consistency with platform values). {Benefit_3} (if applicable). Documentation & Finality: The override has been logged in the system for auditing. This adjustment is final and does not establish precedent for unrelated cases. All impacted parties have been notified of the decision. Closing (Next Steps): Please note this override in the weekly case summary if broader trends emerge. No additional Tier 3 escalation is required at this time. Signature: Thanks, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 2
+    },
+    {
+      "name": "Final Case Resolution Report Filed",
+      "subject_en": "Final Case Resolution Report – Case #{TicketID}",
+      "english": "This report documents the final resolution of Case #{TicketID}. The supervisor review and all necessary actions have been completed, and the case is now formally closed. Case type: {Case_Type} Related job(s): #{JobID_List} Report period: {Opened_Date} – {Closed_Date} Summary of Case Events: {Event_1} (e.g., customer submitted dispute on {Date}) {Event_2} (e.g., worker provided supporting documents) {Event_3} (e.g., supervisor reviewed evidence and applied outcome) Final Resolution: Decision: {Summary_of_Decision} (e.g., refund granted, account suspended, no violation found). Actions taken: {Actions_List} Communication sent: {Notices_Sent} (customer/worker notifications). Supporting Notes: {Note_1} (e.g., this case sets precedent for refund handling beyond policy). {Note_2} (if applicable). Closure Confirmation: Status: Closed Logged in: {System_or_Tracker_Name} All parties notified: Yes/No Closing (Next Steps): No further action is required. This report has been filed for compliance and weekly reporting purposes. Signature: Thanks, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 2
+    },
+    {
+      "name": "Supervisor Escalation Log – Awaiting Tier 3 Feedback",
+      "subject_en": "Escalation Log – Awaiting Tier 3 Feedback (Case #{TicketID})",
+      "english": "This is a status update for Case #{TicketID}, which has been escalated to Tier 3 for further review. At present, we are awaiting Tier 3 feedback before proceeding with final resolution. Case type: {Case_Type} Related job/account: {JobID_or_Account} Escalated on: {Escalation_Date} Summary of Supervisor Handling to Date: Initial findings: {Supervisor_Findings} Actions taken at Tier 2: {Actions_List} Reason for Tier 3 escalation: {Escalation_Reason} Pending Tier 3 Input: {Pending_Review_1} (e.g., compliance/legal interpretation) {Pending_Review_2} (e.g., financial approval for large compensation) {Pending_Review_3} (if applicable) Current Status: Case remains open at Tier 2 but cannot progress until Tier 3 provides guidance. Interim safety or account measures remain in effect. Closing (Next Steps): I will file an updated note once Tier 3 feedback has been received. Please confirm receipt of this log so it can be tracked in the escalation system. Signature: Thanks, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 2
+    },
+    {
+      "name": "Tier 3 Response Implemented – Supervisor Confirmation",
+      "subject_en": "Tier 3 Response Implemented – Case #{TicketID}",
+      "english": "This note confirms that the Tier 3 response has been implemented for Case #{TicketID}. Supervisor actions have been completed in alignment with Tier 3’s directives. Case type: {Case_Type} Related job/account: {JobID_or_Account} Escalated on: {Escalation_Date} Tier 3 decision received: {Tier3_Decision_Date} Tier 3 Decision Summary: {Decision_Point_1} (e.g., permanent account closure required) {Decision_Point_2} (e.g., refund/compensation approved) {Decision_Point_3} (if applicable) Supervisor Implementation Actions: {Action_1} (e.g., account suspension finalized) {Action_2} (e.g., refund of {Refund_Amount} processed) {Action_3} (if applicable, e.g., final notices sent to parties) Status Update: Case #{TicketID} is now closed at Tier 2. All affected users have been notified. Actions have been logged in the compliance and risk system for audit purposes. Closing (Next Steps): No further Tier 2 action is required unless Tier 3 reopens the case. Please confirm receipt for final recordkeeping. Signature: Thanks, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 2
+    },
+    {
+      "name": "Why This Escalation Required Supervisor Review",
+      "subject_en": "Explanation of Escalation – Case #{TicketID}",
+      "english": "We want to provide clarity about why your case (#{TicketID}) required review at the supervisor level. Transparency is important, and this explanation helps you understand how escalation decisions are made. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Issue reported: {Summary_of_Issue} Decision Explanation (Educational Focus): Some cases involve policy complexity or sensitive circumstances that cannot be resolved at the first support level. Your case was escalated because: {Reason_1} (e.g., overlapping policies required interpretation); {Reason_2} (e.g., the request involved a timeline or exception beyond Tier 1 authority); {Reason_3} (if applicable). At the supervisor level, additional steps were taken: A deeper review of platform policies and past cases; Verification of all evidence and account activity; Ensuring the outcome balanced fairness and platform rules. Outcome Clarification: The final decision was: {Summary_of_Decision}. This reflects the supervisor team’s responsibility to handle complex issues with greater authority and discretion. Closing (Set Expectations): We hope this explanation provides transparency into why escalation was necessary. Thank you for your patience during the process. Escalations are designed to protect fairness and maintain trust across Jinnar. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Explaining Fraud/Risk Policy to Customer",
+      "subject_en": "Understanding Fraud and Risk Policy – Case #{TicketID}",
+      "english": "We want to provide transparency regarding your case (#{TicketID}), which was reviewed under Jinnar’s Fraud and Risk Policy. This explanation helps clarify how the policy works and why it was applied. Case type: {Case_Type} Concern raised: {Summary_of_Fraud_or_Risk_Concern} Case outcome: {Summary_of_Decision} Educational Explanation (Policy Overview): Jinnar’s Fraud and Risk Policy exists to protect all users from unsafe or dishonest activity. The policy covers issues such as: Use of false or misleading account details; Payment irregularities, chargebacks, or refund abuse; Attempts to bypass the platform’s safety rules; Repeated suspicious behavior that puts customers or workers at risk. How It Was Applied in Your Case: In Case #{TicketID}, the policy was applied because: {Reason_1} (e.g., irregular payment patterns detected); {Reason_2} (e.g., multiple accounts linked to same user); {Reason_3} (if applicable). Outcome Clarification: Decision: {Summary_of_Decision} (e.g., temporary freeze, permanent restriction, reinstatement). All actions were taken to protect both you and the wider Jinnar community. Closing (Set Expectations): We encourage you to review the Fraud and Risk Policy here: {Policy_Link}. Following these guidelines will help avoid future escalations and maintain trust on the platform. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust On behalf of Jinnar Compliance Team {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Explaining Badge Revocation Decision to Worker",
+      "subject_en": "Badge Revocation Decision – Case #{TicketID}",
+      "english": "We want to explain the outcome of Case #{TicketID}, which involved a review of your badge status. Transparency is important, and this message clarifies why your badge was revoked and what this means for you. Badge type: {Badge_Type} (e.g., Safety Badge, Excellence Badge) Case outcome: Badge revoked effective {Revocation_Date} Supervisor decision ID: {Decision_ID} Educational Explanation (Policy Overview): Jinnar’s badge system is designed to recognize workers who consistently meet high standards of safety, professionalism, and quality. A badge may be revoked if: {Reason_1} (e.g., repeated complaints regarding service quality); {Reason_2} (e.g., verified breach of platform safety or conduct rules); {Reason_3} (if applicable). How It Applied in Your Case: After reviewing evidence and multiple reports, we determined that {Summary_of_Findings}. Based on Jinnar’s Badge Policy (Section {Policy_Section}), your {Badge_Type} has been revoked. Outcome Clarification: Badge revoked: {Badge_Type} Effective from: {Revocation_Date} Next review date (if any): {Review_Date or “Not Applicable”} Closing (Set Expectations): While this badge revocation does not remove your access to the platform, it does affect visibility and recognition. To regain eligibility, you’ll need to demonstrate improved performance over time and meet the criteria set by the Badge Policy. You can review the full policy here: {Policy_Link}. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust On behalf of Jinnar Worker Standards Team {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Clarifying Appeal Rights and Finality of Decision",
+      "subject_en": "Clarification of Appeal Rights – Case #{TicketID}",
+      "english": "We want to ensure full transparency regarding Case #{TicketID}. This message explains your appeal rights and confirms the finality of the decision reached. Case type: {Case_Type} Final decision: {Summary_of_Decision} Decision date: {Decision_Date} Educational Explanation (Appeal Rights Overview): Jinnar’s policy allows for appeals only under specific conditions: {Appeal_Condition_1} (e.g., new evidence not previously submitted). {Appeal_Condition_2} (e.g., a clear error in applying policy). {Appeal_Condition_3} (if applicable). In your case, the supervisor review confirmed that: {Finding_1} (e.g., all evidence was considered). {Finding_2} (e.g., no policy error was identified). {Finding_3} (if applicable). Outcome Clarification: As a result, Case #{TicketID} is now closed, and the decision is final. No further appeals will be accepted unless new, verifiable information is provided under the conditions listed above. Closing (Set Expectations): We understand that escalations can be stressful, and we appreciate your cooperation throughout this process. Our goal is to provide fairness while ensuring consistency with Jinnar’s policies. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust On behalf of Jinnar Compliance Team {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "How to Avoid Future Escalations – Best Practices for Customers/Workers",
+      "subject_en": "How to Avoid Future Escalations – Best Practices (Case #{TicketID})",
+      "english": "We value your participation on the Jinnar platform. Following the resolution of Case #{TicketID}, we’d like to share some best practices to help avoid future escalations. These practices are designed to ensure smoother experiences for both customers and workers. Case type: {Case_Type} Related job: #{JobID} on {Job_Date} Outcome: {Summary_of_Decision} Educational Explanation (Best Practices): Escalations can often be avoided by following simple, proactive steps. Based on this case, we recommend: Clear Communication: Always confirm details (time, scope, payment, special requests) before starting work. Accurate Documentation: Share receipts, photos, or updates within the app for transparency. Policy Awareness: Review Jinnar’s {Policy_Name} so you know your rights and responsibilities. Timely Updates: Notify the other party (customer or worker) immediately if issues arise. Respectful Conduct: Maintain professionalism to build trust and reduce conflict. Outcome Clarification (Why This Matters): By following these best practices, you reduce the likelihood of escalations, speed up case handling, and improve your reputation on the platform. Closing (Set Expectations): Thank you for working with us to resolve Case #{TicketID}. Applying these best practices will help ensure a smoother and more positive experience on Jinnar going forward. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Public Review Response – Supervisor Clarification",
+      "subject_en": "Supervisor Clarification Regarding Your Public Review – Case #{TicketID}",
+      "english": "We noticed your recent public review regarding Case #{TicketID}. As a Tier 2 Supervisor, I want to ensure the situation is clarified accurately and respectfully. Case type: {Case_Type} Job ID: #{JobID} on {Job_Date} Review posted: {Review_Date} Clarification & Supervisor Statement: We take all public feedback seriously, and we want to provide context for transparency. After full review, here are the confirmed facts: {Fact_1} (e.g., refund was processed on {Date}); {Fact_2} (e.g., safety complaint investigated and worker suspended pending outcome); {Fact_3} (if applicable). It is important to note that {Clarification_Point} so that future readers of this review understand the platform’s response accurately. Outcome Clarification: The case has been resolved as follows: {Summary_of_Resolution}. Steps have been taken to prevent similar issues in the future. Closing (Tone of Respect): We respect your right to share your experience, and we hope this clarification helps provide balance for the community. Jinnar remains committed to fairness, safety, and transparency for both customers and workers. Signature: Regards, {Supervisor_Name} Tier 2 Supervisor — Jinnar Safety & Trust On behalf of Jinnar Community Trust Team {Supervisor_Contact_Email} | {Support_Phone}",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 2
+    },
+    {
+      "name": "Final Decision – No Further Appeals Allowed",
+      "subject_en": "Final Determination – Case Closure",
+      "english": "After a comprehensive review by the Tier 3 Case Review Board, this matter has reached its final resolution. This determination is conclusive, and no further appeals or reconsiderations will be accepted. We respectfully remind you to review our Terms of Service and applicable regulations to ensure future compliance.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Account Termination – Legal Grounds Provided",
+      "subject_en": "Permanent Account Termination – Legal Grounds",
+      "english": "Following a formal investigation conducted by Tier 3 Compliance and Legal Oversight, your account has been permanently terminated. This decision is based on repeated breaches of our Terms of Service, in alignment with [cite relevant national or sector regulation]. Attached you will find a summary of violations and the legal framework supporting this decision.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Worker Banned for Repeated Policy Violations",
+      "subject_en": "Permanent Deactivation – Policy Enforcement Action",
+      "english": "After documented instances of repeated violations, your access to this platform has been permanently revoked. This action follows multiple prior warnings and is supported by the platform’s Enforcement Framework and national service regulations. You are no longer eligible to register or perform services under this network.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Customer Banned for Abuse/Fraudulent Activity",
+      "subject_en": "Account Deactivation – Fraud/Abuse Case Resolution",
+      "english": "Your account has been permanently deactivated following confirmation of fraudulent or abusive activity. This enforcement action protects other users and safeguards the platform’s operational integrity. All pending transactions remain subject to regulatory and banking review.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Escalated Safety Case – Law Enforcement Notified",
+      "subject_en": "Mandatory Reporting – Escalated Safety Case",
+      "english": "This case involves safety concerns that fall beyond platform jurisdiction. In compliance with statutory obligations, Tier 3 has formally referred this matter to law enforcement. You may be contacted directly by the relevant authorities for further proceedings.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Data Privacy Breach – Official Notification & Guidance",
+      "subject_en": "Data Protection Incident – Official Notification",
+      "english": "We are notifying you of a data privacy incident affecting your account, identified under Tier 3 Data Oversight review. This disclosure is made in compliance with [GDPR/CCPA/local law]. Please review the attached guidance on protective measures and your rights under applicable data protection law.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Regulatory Compliance Notice to Affected User",
+      "subject_en": "Regulatory Compliance Notice – User Advisory",
+      "english": "Pursuant to [specific law/regulation], we are required to notify you of the following compliance measures related to your case: [Insert compliance requirement]. [Insert impact on user rights/obligations]. This notification fulfills our legal obligations under current regulatory frameworks.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Formal Warning – Violation of National Labor/Service Laws",
+      "subject_en": "Formal Warning – Labor/Service Law Compliance",
+      "english": "Our Tier 3 Compliance Unit has determined that your recent conduct may constitute a breach of national labor/service laws. This notice serves as a formal warning under both platform policy and applicable legislation. Further violations may result in permanent suspension, legal referral, or enforcement under statutory provisions.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Final Escalation Acknowledged – Under Direct Manager Review",
+      "subject_en": "Final Escalation Acknowledgment – Case in Review",
+      "english": "Your case has been escalated to the Tier 3 Case Review Board, the highest authority within the platform’s resolution framework. The matter is currently under direct managerial and legal oversight. A final determination will be issued shortly. No higher escalation levels exist beyond this stage.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Government Inquiry Response – Limited Disclosure to Customer",
+      "subject_en": "Government Inquiry – Limited Disclosure Notification",
+      "english": "Your case has been included in an official government inquiry. Consistent with applicable law, only limited information was provided to regulators. Due to legal restrictions, no further disclosure can be made at this time.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Cross-Border Data Compliance Notice",
+      "subject_en": "International Data Compliance – User Notification",
+      "english": "Your case involves data transfers subject to international regulation, including [GDPR/CCPA/other relevant law]. In compliance with these frameworks, this notice outlines: The lawful basis for data transfer. Your rights under international data protection law. Applicable safeguards in place. Please review the attached compliance summary for further details.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Restricted Disclosure Notice – Information Cannot Be Shared",
+      "subject_en": "Restricted Disclosure – Information Withheld",
+      "english": "We acknowledge your request for further details. However, certain information is legally restricted and cannot be disclosed under [insert law/regulation]. We remain committed to transparency within the limits of statutory and contractual obligations.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Internal Legal Hold Notification",
+      "subject_en": "Legal Hold Directive – Preservation of Records",
+      "english": "Attention: [Internal Teams/Managers], Effective immediately, all records associated with Case [Case ID] are placed under legal hold. No modification, deletion, or archival of related communications, files, or logs is permitted until this directive is formally lifted. This order is binding under Tier 3 Legal Affairs oversight.",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 3
+    },
+    {
+      "name": "High-Value Payment Dispute – Manager Final Review",
+      "subject_en": "High-Value Payment Dispute – Final Tier 3 Review",
+      "english": "Your payment dispute has been escalated to Tier 3 Management for final review due to the high financial value involved. This matter is under comprehensive legal and financial assessment. A conclusive determination will be issued once all compliance and audit checks are complete.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Large Refund/Compensation Approved – Exception Notice",
+      "subject_en": "Refund/Compensation Approved – Exception Granted",
+      "english": "Following a Tier 3 managerial review, an exception has been authorized for your refund/compensation request. This approval recognizes the unique circumstances of your case and is not intended to establish precedent. Funds will be processed in accordance with banking regulations and standard timelines.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Refund Request Permanently Denied – Legal Policy Reference",
+      "subject_en": "Refund Request – Final Denial with Legal Basis",
+      "english": "Your refund request has been reviewed at the Tier 3 level. After careful legal and compliance evaluation, it has been permanently denied. This determination is supported by Section [X] of our Terms of Service and reinforced by [insert applicable law/regulation]. This decision is final and not subject to further reconsideration.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Escalated Fraudulent Payment Case – Bank Investigation Opened",
+      "subject_en": "Fraudulent Payment Case – Bank Investigation Initiated",
+      "english": "Your case has been classified as a suspected fraudulent payment. In accordance with Tier 3 protocol, the matter has been formally escalated to our banking partners and regulators for investigation. You may be contacted by the financial institution or authorities directly.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "PR-Sensitive Complaint – Response Under Manager Oversight",
+      "subject_en": "Complaint Under Executive Oversight – PR-Sensitive Matter",
+      "english": "Your complaint has been identified as highly sensitive with potential reputational implications. Tier 3 Management has assumed direct oversight to ensure a measured and transparent resolution. You will receive coordinated updates under executive supervision.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Worker Strike/Protest Case – Customer Communication Prepared",
+      "subject_en": "Worker Service Disruption – Official Customer Communication",
+      "english": "We are aware of the worker service disruption impacting your engagement. Tier 3 Management is actively addressing the matter in compliance with labor laws and platform service commitments. You will receive timely updates and alternative arrangements where applicable.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "High-Profile Client Complaint – Immediate Resolution Measures",
+      "subject_en": "Escalated Complaint – Executive Resolution Measures",
+      "english": "Your complaint has been escalated to Tier 3 due to its high-profile status. Immediate corrective measures are being coordinated under executive oversight to protect both customer interests and platform reputation. A senior case officer will provide you with direct updates until closure.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Class-Action Risk Complaint – Coordinated Manager Response",
+      "subject_en": "Coordinated Response – Class-Action Risk Complaint",
+      "english": "Your case falls within a category that may pose class-action or multi-party legal risk. Tier 3 Management has initiated a coordinated compliance and legal response. You will be updated in accordance with regulatory timelines and communication protocols.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Large Payout Delay – Worker Assurance Message",
+      "subject_en": "High-Value Payout Delay – Assurance from Management",
+      "english": "Your high-value payout has been delayed due to [banking/regulatory] clearance requirements. Tier 3 Finance has verified that the delay is procedural, and your funds remain secure. We are coordinating directly with financial institutions to ensure expedited release.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Suspicious Cross-Border Payment Flagged – Compliance Review",
+      "subject_en": "Cross-Border Payment Flagged – Compliance Review",
+      "english": "A recent cross-border payment associated with your account has been flagged under compliance protocols. Tier 3 has escalated the matter to regulatory review in line with [AML/FinCEN/local financial law]. Pending verification, funds may be temporarily held. You will be informed of the outcome once the review concludes.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Scheduled Maintenance – Service Downtime Notice",
+      "subject_en": "Scheduled Maintenance – Advance Notification",
+      "english": "Please be advised that scheduled maintenance will take place on [date/time, timezone]. During this period, certain services may be temporarily unavailable. This work is essential to ensure long-term reliability, security, and compliance with updated service standards. We appreciate your understanding and cooperation.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Unexpected Outage – Immediate Apology & ETA for Recovery",
+      "subject_en": "Service Interruption – Immediate Notification",
+      "english": "We are currently experiencing an unplanned service disruption. Tier 3 Operations and Engineering teams are actively working to restore full functionality, with an estimated recovery time of [insert ETA]. We sincerely apologize for the inconvenience caused and commit to providing updates until normal service is restored.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Policy Update – Legal/Compliance Change Announcement",
+      "subject_en": "Policy Update – Compliance with New Regulations",
+      "english": "In alignment with recent regulatory changes, we are updating our Terms of Service and operational policies effective [effective date]. Key updates include: [Brief description of change 1]. [Brief description of change 2]. We encourage you to review the updated policy, available [here/link]. Thank you for your continued trust as we uphold the highest standards of compliance.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "New Worker Safety Rules Implemented",
+      "subject_en": "New Worker Safety Regulations – Immediate Effect",
+      "english": "Effective [effective date], updated safety standards and procedures will apply to all service engagements. These rules are designed in compliance with [national labor/safety law] and reflect our platform’s commitment to worker protection. Please review the attached safety guidelines to ensure full compliance.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Public Apology – Service Failure Acknowledged",
+      "subject_en": "Public Statement – Service Disruption Apology",
+      "english": "We extend our sincere apologies for the service disruption that occurred on [date]. Tier 3 Management accepts full responsibility for the impact this incident caused to your experience. Corrective measures are being implemented immediately to prevent recurrence. Your trust is of paramount importance, and we are committed to earning it every day.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Transparency Report – Safety & Compliance Statistics",
+      "subject_en": "Transparency Report – Annual Compliance & Safety Overview",
+      "english": "As part of our ongoing commitment to accountability, Tier 3 Compliance is publishing the latest Transparency Report. This report includes key statistics on: Reported safety incidents. Resolution timelines. Compliance enforcement measures. We encourage you to review the full report [link] to understand the actions taken to protect our community.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Data Protection Update – Privacy Regulation Alignment",
+      "subject_en": "Data Protection Update – Strengthening User Privacy",
+      "english": "We are enhancing our data protection framework to align with evolving privacy regulations, including [GDPR/CCPA/local law]. Key improvements include: Enhanced encryption and storage safeguards. Revised user consent and access procedures. Improved cross-border data compliance protocols. These measures reflect our commitment to safeguarding your personal information under the highest international standards.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Partnership/Alliance Launch Announcement",
+      "subject_en": "Strategic Partnership Announcement – Strengthening Our Services",
+      "english": "We are pleased to announce a strategic partnership with [Partner Name], effective [date]. This collaboration, developed under Tier 3 oversight, will enhance our ability to deliver secure, reliable, and compliant services to our community. Further details will be shared in the coming weeks, including how this alliance benefits workers and customers directly.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Directive to Supervisors – Temporary New Escalation Rules",
+      "subject_en": "Directive – Updated Escalation Rules (Temporary Measure)",
+      "english": "Attention Supervisors, Effective immediately, all escalation handling must follow the revised Tier 3 directives: [Insert rule 1]. [Insert rule 2]. [Insert rule 3]. These measures remain in force until further notice and must be applied consistently across all cases. Failure to comply will result in case audits and corrective action.",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 3
+    },
+    {
+      "name": "Follow-Up on Supervisor Case Mishandling",
+      "subject_en": "Case Oversight Follow-Up – Corrective Action Required",
+      "english": "Dear [Supervisor Name], A recent review has identified deficiencies in your handling of case [Case ID]. Key issues include: [Insert issue 1]. [Insert issue 2]. You are required to implement corrective actions within [X timeframe]. Tier 3 will conduct a follow-up audit to confirm compliance.",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 3
+    },
+    {
+      "name": "Recognition for Supervisor – Exceptional Case Handling",
+      "subject_en": "Commendation – Exceptional Case Oversight",
+      "english": "Dear [Supervisor Name], Tier 3 Management formally recognizes your exemplary handling of case [Case ID]. Your approach demonstrated: Clear adherence to compliance standards. Professional communication. Effective resolution under challenging circumstances. This recognition will be noted in your performance record.",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 3
+    },
+    {
+      "name": "Training Update Instruction to All Supervisors",
+      "subject_en": "Mandatory Training Update – Supervisor Briefing",
+      "english": "Attention Supervisors, In alignment with Tier 3 directives, all supervisors are required to attend the upcoming compliance and escalation training on [date]. Topics will include: Updated legal obligations. Revised escalation pathways. Enhanced documentation protocols. Attendance is mandatory, and completion will be logged in training records.",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 3
+    },
+    {
+      "name": "Escalation Volume Report – Tier 2 Managers Notified",
+      "subject_en": "Escalation Volume Report – Immediate Action Required",
+      "english": "Dear Tier 2 Managers, The most recent report indicates a significant increase in escalation volume: [Insert volume data/statistics]. Tier 3 requires all Tier 2 managers to: Rebalance workloads. Address recurrent case drivers. Submit a corrective action plan within [X days]. Failure to implement measures will result in direct Tier 3 intervention.",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 3
+    },
+    {
+      "name": "Manager’s Case Review Summary – Distributed Internally",
+      "subject_en": "Tier 3 Review Summary – Escalated Case Trends",
+      "english": "Attention Managers, Tier 3 has completed a quarterly review of escalated cases. Key findings: [Insert finding 1]. [Insert finding 2]. [Insert finding 3]. This report is shared for internal awareness and to strengthen supervisory practices. Recommendations for improvement must be incorporated into team workflows immediately.",
+      "swahili": "N/A - Internal Use Only.",
+      "tier": 3
+    },
+    {
+      "name": "Response to Media Inquiry (Template)",
+      "subject_en": "Official Media Response – Case Inquiry",
+      "english": "Dear [Media Contact], We acknowledge receipt of your inquiry regarding [topic/case reference]. As a matter of policy, and in line with our legal and compliance obligations, we can confirm that: The matter is under active review at the highest level. Appropriate measures are being implemented to safeguard affected parties. Further details cannot be disclosed at this stage due to privacy and regulatory restrictions. For verified updates, please refer to our official press releases or direct communication from our Executive Communications Office.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Investor/Partner Inquiry – Case Handling Summary",
+      "subject_en": "Investor/Partner Update – Escalated Case Summary",
+      "english": "Dear [Investor/Partner Name], In response to your inquiry regarding [case/incident reference], Tier 3 Oversight confirms that: The case was escalated to the highest compliance and legal review level. Corrective measures have been implemented in alignment with applicable regulations. The platform’s operational integrity and user protections remain intact. Please find attached a high-level case summary for your confidential review.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Government/Regulator Follow-Up – Formal Communication",
+      "subject_en": "Regulatory Follow-Up – Compliance Submission",
+      "english": "To [Regulatory Body/Authority], In accordance with your directive dated [date], Tier 3 Management submits the following update regarding case [Case ID]. [Summary of compliance measures taken]. [Supporting documentation attached]. We remain committed to full cooperation with your office and to ensuring ongoing alignment with regulatory requirements.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Insurance Claim Notice – Worker/Customer Accident Case",
+      "subject_en": "Insurance Claim Notification – Accident Case Submission",
+      "english": "To [Insurance Provider], Please be advised that a claim is being submitted regarding [worker/customer name], incident reference [Case ID]. This notice is provided by Tier 3 Oversight to initiate the claims process in accordance with the policy agreement dated [policy reference]. All relevant documentation and initial incident reports are attached for your review.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Legal Counsel Notification – High-Risk Case Summary",
+      "subject_en": "High-Risk Case Escalation – Counsel Notification",
+      "english": "To [Legal Counsel Name], Tier 3 Oversight has identified case [Case ID] as high-risk with potential legal implications. This notification ensures your office is fully briefed and engaged at the earliest stage. Attached are: Case chronology and key evidence. Compliance review notes. Recommended next steps. We request your formal legal guidance to determine immediate and long-term strategy.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Confidential Regulator Response – Restricted Information Shared",
+      "subject_en": "Confidential Submission – Restricted Regulatory Response",
+      "english": "To [Regulatory Body], In response to your official request, Tier 3 Oversight provides the enclosed documentation related to case [Case ID]. This information is classified and may not be disclosed outside authorized regulatory channels. The platform asserts confidentiality protections and expects adherence to data handling laws under [applicable regulation].",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Suspension of Entire Account Group – Fraud Ring Detected",
+      "subject_en": "Account Suspension Notice – Fraudulent Network Identified",
+      "english": "Following a comprehensive Tier 3 investigation, a network of linked fraudulent accounts has been identified and suspended. This measure was necessary to protect customers, workers, and the platform’s operational integrity. Affected accounts will not be reinstated. Further details may be provided to authorities as part of ongoing enforcement actions.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Market-Wide Service Fee Update – Public Notice",
+      "subject_en": "Service Fee Adjustment – Official Announcement",
+      "english": "Effective [date], service fees across the platform will be updated as follows: [Insert adjustment details]. This decision was reviewed and approved at the Tier 3 executive level to reflect regulatory compliance, operational sustainability, and industry standards. We remain committed to fairness, transparency, and reinvestment into platform safety and reliability.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Clarification on False Public Allegations – Official Response",
+      "subject_en": "Official Clarification – Public Allegation Response",
+      "english": "It has come to our attention that false allegations regarding [topic] have circulated publicly. Tier 3 Oversight has conducted a full review and confirms that these claims are unsubstantiated and inaccurate. The platform remains fully compliant with regulatory obligations and continues to operate under the highest ethical standards.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Emergency Response Message – Natural Disaster Impact",
+      "subject_en": "Emergency Response – Service Impact Notification",
+      "english": "We are closely monitoring the impact of [natural disaster/event] on platform operations in affected regions. Tier 3 Crisis Management has activated emergency protocols to safeguard users and maintain essential services. We will continue to issue updates as conditions evolve. Our priority remains the safety of our workers, customers, and communities.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Platform Security Breach Contained – Customer Assurance",
+      "subject_en": "Security Update – Incident Contained",
+      "english": "Tier 3 Security Oversight confirms that a recent security breach was identified and contained. No further unauthorized access is occurring. Corrective measures, including [insert measures], have been implemented in compliance with [cybersecurity law/regulation]. You may review additional protective guidance in the attached notice. Your trust is our highest responsibility.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "CEO/Executive Note – Personal Apology or Acknowledgment",
+      "subject_en": "A Message from Our Executive Leadership",
+      "english": "On behalf of the platform’s leadership, I extend a direct and personal acknowledgment regarding [incident/issue]. We recognize the disruption this has caused and accept full responsibility for ensuring corrective action at the highest level. Tier 3 Oversight and Executive Management are united in our commitment to restoring confidence and preventing recurrence.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Executive Commendation – Public Worker/Community Recognition",
+      "subject_en": "Official Commendation – Worker/Community Recognition",
+      "english": "Tier 3 Executive Oversight wishes to formally recognize [worker/group/community] for their exemplary contribution during [event/case]. Their professionalism and commitment embody the standards we uphold across the platform. We thank them for setting a model of excellence for all.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    },
+    {
+      "name": "Fatality/Severe Injury Case – Official Acknowledgment",
+      "subject_en": "Serious Incident Notification – Safety Acknowledgment",
+      "english": "It is with deep regret that we acknowledge a severe safety incident resulting in [fatality/severe injury]. Tier 3 Crisis Oversight is working directly with authorities, insurers, and family representatives to ensure appropriate response and support. Out of respect for those affected, details will remain limited. Our highest priority is the dignity and well-being of all involved.",
+      "swahili": "N/A - T2/T3 is English only.",
+      "tier": 3
+    }
+  ]
+}

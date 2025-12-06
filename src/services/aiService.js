@@ -1,49 +1,92 @@
+// File: aiService.js
+
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import SupportTicket from "../models/SupportTicket.js"; 
 import { configDotenv } from "dotenv";
 import User from "../models/User.js";
 import { sendPushNotification } from "./pushNotificationService.js";
+// Assuming 'response-templates.json' is accessible
+import templatesData from './responses-templates.json' with { type: 'json' };
 
 
-configDotenv(); // Make sure this is called to load .env variables
+configDotenv();
 
-// Initialize Gemini (Make sure GEMINI_API_KEY is in your .env)
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// --- HELPER TO GET TEMPLATE TITLES (Crucial for AI suggestion) ---
+// --- HELPER TO GET ALL TEMPLATE TITLES (No role restriction) ---
+const getTemplateTitlesForAnalysis = () => {
+  // Flatten all templates from every tier into a single array
+  return Object.values(templatesData)
+    .flat()                 // Combine arrays from each key
+    .map(t => t.name);      // Return only the template names
+};
+
+
+
+/**
+ * Analyzes the incoming support ticket using the Gemini API.
+ */
+
+
+
 
 export const analyzeTicket = async (ticketId) => {
-  try {
-    // 1. Fetch the ticket with necessary details
-    const ticket = await SupportTicket.findById(ticketId).populate("user", "name email");
-    
-    if (!ticket) return;
+  configDotenv();
+  const genAI = new GoogleGenerativeAI("AIzaSyCD4ZtNcCY7NJ-wD87FJ0vMfUBSIErNFgk");
 
-    // 2. Extract the text to analyze
-    // We combine Subject + First Message for context
-    const firstMessage = ticket.conversation.length > 0 ? ticket.conversation[0].message : "";
+  try {
+    console.log("===========================================");
+    console.log("🧪 Starting AI analysis for ticket:", ticketId);
+
+    // Fetch full ticket
+    const ticket = await SupportTicket.findById(ticketId).populate("assignedTo", "role");
+
+    if (!ticket) {
+      console.log("❌ Ticket not found:", ticketId);
+      return;
+    }
+
+    console.log("📦 Loaded Ticket:");
+    console.log(JSON.stringify(ticket, null, 2));
+
+    const firstMessage = ticket.conversation.length > 0
+      ? ticket.conversation[0].message
+      : "";
+
     const ticketContext = `Subject: ${ticket.subject}\nMessage: ${firstMessage}`;
 
-    // 3. Configure the Model
+    const assignedAgentRole = ticket.assignedTo?.role || "support";
+    console.log("👤 Assigned Agent Role:", assignedAgentRole);
+
+    const relevantTemplateTitles = getTemplateTitlesForAnalysis(assignedAgentRole);
+
+    console.log("📋 Template Titles Returned:", relevantTemplateTitles);
+
+    if (relevantTemplateTitles.length === 0) {
+      console.log("⚠️ WARNING: No template titles found for role:", assignedAgentRole);
+    }
+
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash-lite",
-       // Use a more recent model
-      generationConfig: { responseMimeType: "application/json" }, // FORCE JSON output
+      generationConfig: { responseMimeType: "application/json" },
     });
 
-    // 4. The Prompt
     const prompt = `
-      You are a Support Assistant for Jinnar.com. Analyze this support ticket.
+      You are a specialized Support Assistant for Jinnar. Analyze this support ticket.
 
       Ticket Content:
       ${ticketContext}
 
+      Available Template Titles for the Agent (${assignedAgentRole}):
+      ${relevantTemplateTitles.join('\n')}
+
       Task:
       1. Categorize into: [billing, technical, dispute, general, spam].
-      2. Analyze Sentiment (1-10, where 1 is furious, 10 is happy).
-      3. Assign Priority (1-5, where 5 is critical/urgent).
+      2. Analyze Sentiment (1-10).
+      3. Assign Priority (1-5).
       4. Check for Fraud/Risk (Boolean).
-      5. Generate a concise, descriptive subject line for the ticket (max 10 words).
-      6. Write a professional, empathetic draft response (sign off as "Jinnar Support").
-      7. Provide a confidence score (0.0 to 1.0) for how well the draft response resolves the user's issue.
+      5. Generate a concise subject (max 10 words).
+      6. Suggest the TOP 3 MOST RELEVANT TEMPLATE TITLES from the list.
+      7. Write a brief internal note explaining the primary choice.
 
       Output strict JSON:
       {
@@ -51,66 +94,85 @@ export const analyzeTicket = async (ticketId) => {
         "sentiment": number,
         "priority": number,
         "is_fraud": boolean,
-        "draft_response": "string",
         "subject": "string",
-        "confidence_score": number
+        "suggested_templates": ["string", "string", "string"],
+        "template_justification": "string"
       }
     `;
 
-    // 5. Generate and Parse
-    const result = await model.generateContent(prompt);
-    const aiData = JSON.parse(result.response.text());
+    console.log("📝 Final Prompt Sent to Gemini:");
+    console.log(prompt);
 
-    // 6. Update Database
-    // Always update the ticket subject with the AI-generated one for consistency.
+const result = await model.generateContent({
+  contents: [
+    {
+      role: "user",
+      parts: [{ text: prompt }]
+    }
+  ]
+});
+    console.log("🤖 Gemini Raw Response Object:");
+    console.dir(result, { depth: null });
+
+const responseText = result?.response?.text();
+    console.log("🧵 Gemini Response Text:", responseText);
+
+    if (!responseText) {
+      console.log("❌ Gemini returned NO response text!");
+      return;
+    }
+
+    let aiData;
+    try {
+      aiData = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error("❌ JSON PARSING FAILED! Response text was:");
+      console.error(responseText);
+      throw parseError;
+    }
+
+    console.log("✅ Parsed AI Data:", aiData);
+
+    // Save analysis
     ticket.subject = aiData.subject;
+
     ticket.aiAnalysis = {
       isAnalyzed: true,
       category: aiData.category,
       sentimentScore: aiData.sentiment,
       priorityScore: aiData.priority,
       fraudFlag: aiData.is_fraud,
-      suggestedResponse: aiData.draft_response,
-      confidenceScore: aiData.confidence_score,
+      suggestedTemplates: aiData.suggested_templates,
+      templateJustification: aiData.template_justification,
       analyzedAt: new Date(),
     };
 
-    // Optional: Auto-update the main priority field if it's critical
     if (aiData.priority >= 4) {
       ticket.priority = "urgent";
     }
 
     await ticket.save();
-    console.log(`✅ AI Analyzed Ticket: ${ticket.ticketId}`);
+    console.log(`✅ Ticket Updated Successfully: ${ticket.ticketId}`);
 
   } catch (error) {
-    console.error("❌ AI Analysis Failed:", error.message);
-    // We swallow the error so the main server keeps running
+    console.error("❌ AI Analysis Failed:", error);
   }
 };
 
+
+
 /**
  * Automatically assigns a ticket to the least-loaded support agent.
- * This function avoids the "Zero Ticket Bug" by querying users first.
- * @param {string} ticketId The ID of the ticket to assign.
  */
 export const autoAssignTicket = async (ticketId) => {
   try {
-    // 1. Find the least-loaded agent using an aggregation pipeline
     const agents = await User.aggregate([
-      // Step 1: Find all potential agents
-      {
-        $match: {
-          role: { $in: ["support", "supervisor", "super_admin"] },
-        },
-      },
-      // Step 2: Look up their assigned tickets
+      { $match: { role: { $in: ["support", "supervisor", "super_admin"] } } },
       {
         $lookup: {
-          from: "supporttickets", // The collection name for SupportTicket model
+          from: "supporttickets", 
           let: { agentId: "$_id" },
           pipeline: [
-            // Step 3: Filter for open/in_progress tickets only
             {
               $match: {
                 $expr: {
@@ -125,22 +187,9 @@ export const autoAssignTicket = async (ticketId) => {
           as: "activeTickets",
         },
       },
-      // Step 4: Create a field with the count of active tickets
-      {
-        $addFields: {
-          openTicketCount: { $size: "$activeTickets" },
-        },
-      },
-      // Step 5: Sort by the count (ascending) to find the least busy
-      {
-        $sort: {
-          openTicketCount: 1,
-        },
-      },
-      // Step 6: Get the top result
-      {
-        $limit: 1,
-      },
+      { $addFields: { openTicketCount: { $size: "$activeTickets" } } },
+      { $sort: { openTicketCount: 1 } },
+      { $limit: 1 },
     ]);
 
     const bestAgent = agents[0];
@@ -149,24 +198,21 @@ export const autoAssignTicket = async (ticketId) => {
       return;
     }
 
-    // 7. Assign the ticket to the found agent
     const ticket = await SupportTicket.findById(ticketId);
     if (!ticket || ticket.assignedTo) {
       console.log("🤖 Auto-assign: Ticket already assigned or not found.");
-      return; // Don't re-assign if it's already been handled
+      return;
     }
 
     ticket.assignedTo = bestAgent._id;
     ticket.assignmentHistory.push({
       assignedTo: bestAgent._id,
       assignedAt: new Date(),
-      // assignedBy is omitted for system assignments
     });
 
     await ticket.save();
     console.log(`🤖 Auto-assigned Ticket ${ticket.ticketId} to Agent ${bestAgent.name} (Active Tickets: ${bestAgent.openTicketCount})`);
 
-    // 8. Notify the assigned agent
     if (bestAgent.fcmTokens?.length > 0) {
       const notification = {
         title: "New Ticket Assigned",
