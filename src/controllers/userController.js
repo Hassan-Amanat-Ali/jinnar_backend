@@ -178,7 +178,10 @@ export const updateUser = async (req, res) => {
       name,
       bio,
       email,
+      mobileNumber,
       skills,
+      categories,
+      subcategories,
       languages,
       yearsOfExperience,
       selectedAreas,
@@ -197,6 +200,8 @@ export const updateUser = async (req, res) => {
 
     // Parse arrays/objects if sent as JSON strings
     let parsedSkills = skills;
+    let parsedCategories = categories;
+    let parsedSubcategories = subcategories;
     let parsedLanguages = languages;
     let parsedSelectedAreas = selectedAreas;
     let parsedPreferredAreas = preferredAreas;
@@ -209,6 +214,10 @@ export const updateUser = async (req, res) => {
     try {
       if (typeof skills === "string" && skills)
         parsedSkills = JSON.parse(skills);
+      if (typeof categories === "string" && categories)
+        parsedCategories = JSON.parse(categories);
+      if (typeof subcategories === "string" && subcategories)
+        parsedSubcategories = JSON.parse(subcategories);
       if (typeof languages === "string" && languages)
         parsedLanguages = JSON.parse(languages);
       // Removed parsing for selectedAreas and preferredAreas - now handled as arrays of strings
@@ -258,6 +267,8 @@ export const updateUser = async (req, res) => {
       if (
         bio ||
         skills ||
+        categories ||
+        subcategories ||
         languages ||
         yearsOfExperience ||
         selectedAreas ||
@@ -273,7 +284,7 @@ export const updateUser = async (req, res) => {
         );
         return res.status(403).json({
           error:
-            "Buyers cannot update seller-specific fields (bio, skills, languages, yearsOfExperience, selectedAreas, availability, gigs, portfolioImages, videos, certificates)",
+            "Buyers cannot update seller-specific fields (bio, skills, categories, subcategories, languages, yearsOfExperience, selectedAreas, availability, gigs, portfolioImages, videos, certificates)",
         });
       }
     }
@@ -307,6 +318,23 @@ export const updateUser = async (req, res) => {
       }
 
       user.email = email;
+    }
+
+    if (mobileNumber !== undefined) {
+      if (mobileNumber) {
+        // Validate mobile number format (E.164 format)
+        const mobileRegex = /^\+[1-9]\d{1,14}$/;
+        if (!mobileRegex.test(mobileNumber)) {
+          return res.status(400).json({
+            error: "Mobile number must be in E.164 format (e.g., +1234567890)",
+          });
+        }
+        user.mobileNumber = mobileNumber;
+        console.log("mobileNumber updated:", user.mobileNumber);
+      } else {
+        // Allow clearing the mobile number
+        user.mobileNumber = null;
+      }
     }
 
     // ✅ Handle profilePicture (now a simple URL string)
@@ -363,6 +391,26 @@ export const updateUser = async (req, res) => {
             .json({ error: "Skills must be an array of strings" });
         }
         user.skills = parsedSkills.map((s) => s.trim());
+      }
+      if (parsedCategories !== undefined) {
+        if (!Array.isArray(parsedCategories)) {
+          console.log("Invalid categories:", parsedCategories);
+          return res
+            .status(400)
+            .json({ error: "Categories must be an array" });
+        }
+        user.categories = parsedCategories;
+        console.log("Categories updated:", user.categories);
+      }
+      if (parsedSubcategories !== undefined) {
+        if (!Array.isArray(parsedSubcategories)) {
+          console.log("Invalid subcategories:", parsedSubcategories);
+          return res
+            .status(400)
+            .json({ error: "Subcategories must be an array" });
+        }
+        user.subcategories = parsedSubcategories;
+        console.log("Subcategories updated:", user.subcategories);
       }
       if (parsedLanguages !== undefined) {
         if (
@@ -866,6 +914,8 @@ export const getMyProfile = async (req, res) => {
       profilePicture: user.profilePicture,
       bio: user.bio || "",
       skills: user.skills || [],
+      categories: user.categories || [],
+      subcategories: user.subcategories || [],
       languages: user.languages || [],
       yearsOfExperience: user.yearsOfExperience || 0,
       selectedAreas: user.selectedAreas || [],

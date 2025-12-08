@@ -133,6 +133,18 @@ const userSchema = new mongoose.Schema(
         trim: true,
       },
     ],
+    categories: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Category",
+      },
+    ],
+    subcategories: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "SubCategory",
+      },
+    ],
     languages: [
       {
         type: String,
