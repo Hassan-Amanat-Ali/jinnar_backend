@@ -206,6 +206,12 @@ router.patch( // Changed from POST to PATCH
   AdminController.suspendUser
 );
 
+router.delete(
+  "/users/:id",
+  authorize("super_admin"),
+  AdminController.deleteUser
+);
+
 // =============================================================================
 // 5. CONTENT MANAGEMENT (Skills/Categories)
 // =============================================================================
