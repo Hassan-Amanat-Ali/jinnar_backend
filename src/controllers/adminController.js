@@ -2,6 +2,7 @@ import User from "../models/User.js";
 import Order from "../models/Order.js";
 import Gig from "../models/Gig.js";
 import Transaction from "../models/Transaction.js";
+import Wallet from "../models/Wallet.js";
 import Category from "../models/Category.js";
 import SubCategory from "../models/SubCategory.js";
 import { sendNotification } from "./notificationController.js";
@@ -118,6 +119,65 @@ class AdminController {
       res.json({ message: `User ${suspend ? "suspended" : "reinstated"}.` });
     } catch (error) {
       res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async deleteUser(req, res) {
+    const { id } = req.params;
+
+    try {
+      const user = await User.findById(id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found." });
+      }
+
+      if (["support", "supervisor", "super_admin"].includes(user.role)) {
+        return res.status(403).json({ error: "Cannot delete an admin user." });
+      }
+      
+      // Check for money in wallet
+      const wallet = await Wallet.findOne({ userId: id });
+      if (wallet && wallet.balance > 0) {
+        return res.status(400).json({
+          error: "User cannot be deleted.",
+          reason: `User has a wallet balance of ${wallet.balance}. Please ensure the balance is zero before deletion.`,
+        });
+      }
+
+      // Check for active Orders
+      const activeOrders = await Order.countDocuments({
+        $or: [{ buyerId: id }, { sellerId: id }],
+        status: { $in: ["pending", "offer_pending", "accepted"] },
+      });
+
+      if (activeOrders > 0) {
+        return res.status(400).json({
+          error: "User cannot be deleted.",
+          reason: `This user has ${activeOrders} in-progress order(s). Please resolve these before deletion.`,
+        });
+      }
+
+      // If checks pass, deactivate user's gigs
+      if (user.role === 'seller') {
+        await Gig.updateMany({ sellerId: id }, { $set: { status: 'suspended' } });
+      }
+
+      // Soft-delete the user
+      user.isSuspended = true;
+      user.suspensionDetails = {
+        reason: "Account permanently deactivated by administrator.",
+        suspendedAt: new Date(),
+      };
+      // Anonymize email to free it up for new registrations
+      user.email = `${user.email}.${Date.now()}.deleted`;
+      user.fcmTokens = []; // Clear FCM tokens to stop notifications
+
+      await user.save();
+
+      res.status(200).json({ message: "User has been safely deactivated and their gigs have been suspended." });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ error: "An error occurred during user deletion.", details: error.message });
     }
   }
 
