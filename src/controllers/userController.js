@@ -196,8 +196,7 @@ export const updateUser = async (req, res) => {
     } = req.body;
 
     // Log request body for debugging
-    console.log("Request body:", req.body);
-
+console.log("Request body:", JSON.stringify(req.body, null, 2));
     // Parse arrays/objects if sent as JSON strings
     let parsedSkills = skills;
     let parsedCategories = categories;
@@ -434,24 +433,60 @@ export const updateUser = async (req, res) => {
         user.yearsOfExperience = yearsOfExperience;
       }
       if (selectedAreas !== undefined) {
-        // Use selectedAreas directly from req.body
         if (!Array.isArray(selectedAreas)) {
           return res.status(400).json({
-            error: "selectedAreas must be an array of address strings",
+            error: "selectedAreas must be an array.",
           });
         }
-        try {
-          user.selectedAreas =
-            await geocodeAddressArrayToGeoJsonPoints(selectedAreas);
-          console.log("selectedAreas updated:", user.selectedAreas);
-        } catch (geocodeErr) {
-          console.error(
-            "Geocoding failed for selectedAreas:",
-            geocodeErr.message
+
+        // Check if the array contains address strings or GeoJSON points
+        if (selectedAreas.length > 0 && typeof selectedAreas[0] === "string") {
+          // It's an array of address strings, geocode them
+          try {
+            user.selectedAreas =
+              await geocodeAddressArrayToGeoJsonPoints(selectedAreas);
+            console.log(
+              "selectedAreas updated from addresses:",
+              user.selectedAreas
+            );
+          } catch (geocodeErr) {
+            console.error(
+              "Geocoding failed for selectedAreas:",
+              geocodeErr.message
+            );
+            return res.status(400).json({
+              error: `Failed to geocode one or more selectedAreas: ${geocodeErr.message}`,
+            });
+          }
+        } else if (
+          selectedAreas.length > 0 &&
+          typeof selectedAreas[0] === "object"
+        ) {
+          // It's an array of GeoJSON points, validate and assign
+          const isValidGeoJson = selectedAreas.every(
+            (area) =>
+              area.type === "Point" &&
+              Array.isArray(area.coordinates) &&
+              area.coordinates.length === 2 &&
+              typeof area.coordinates[0] === "number" &&
+              typeof area.coordinates[1] === "number"
           );
-          return res.status(400).json({
-            error: `Failed to geocode one or more selectedAreas: ${geocodeErr.message}`,
-          });
+
+          if (!isValidGeoJson) {
+            return res.status(400).json({
+              error:
+                "Invalid GeoJSON format in selectedAreas. Each element must be a Point with a coordinates array of two numbers.",
+            });
+          }
+          user.selectedAreas = selectedAreas;
+          console.log(
+            "selectedAreas updated from GeoJSON:",
+            user.selectedAreas
+          );
+        } else {
+          // It's an empty array, which is valid
+          user.selectedAreas = [];
+          console.log("selectedAreas set to empty array.");
         }
       }
       if (parsedAvailability !== undefined) {
@@ -528,6 +563,8 @@ export const updateUser = async (req, res) => {
             });
           }
         }
+        user.portfolioImages = parsedPortfolioImages.map((url) => ({ url }));
+        console.log("portfolioImages updated:", user.portfolioImages);
       }
       if (parsedVideos !== undefined) {
         if (!Array.isArray(parsedVideos)) {
@@ -543,6 +580,8 @@ export const updateUser = async (req, res) => {
             });
           }
         }
+        user.videos = parsedVideos.map((url) => ({ url }));
+        console.log("videos updated:", user.videos);
       }
       if (parsedCertificates !== undefined) {
         if (!Array.isArray(parsedCertificates)) {
@@ -561,11 +600,7 @@ export const updateUser = async (req, res) => {
           }
         }
         // ✅ Assign the arrays of strings directly
-        user.portfolioImages = parsedPortfolioImages.map((url) => ({ url }));
-        user.videos = parsedVideos.map((url) => ({ url }));
         user.certificates = parsedCertificates.map((url) => ({ url }));
-        console.log("portfolioImages updated:", user.portfolioImages);
-        console.log("videos updated:", user.videos);
         console.log("certificates updated:", user.certificates);
       }
       // Handle gigs (seller-only)
@@ -694,24 +729,62 @@ export const updateUser = async (req, res) => {
     } else if (user.role === "buyer") {
       // Buyer-specific updates
       if (preferredAreas !== undefined) {
-        // Use preferredAreas directly from req.body
         if (!Array.isArray(preferredAreas)) {
           return res.status(400).json({
-            error: "preferredAreas must be an array of address strings",
+            error: "preferredAreas must be an array.",
           });
         }
-        try {
-          user.preferredAreas =
-            await geocodeAddressArrayToGeoJsonPoints(preferredAreas);
-          console.log("preferredAreas updated:", user.preferredAreas);
-        } catch (geocodeErr) {
-          console.error(
-            "Geocoding failed for preferredAreas:",
-            geocodeErr.message
+        // Check if the array contains address strings or GeoJSON points
+        if (
+          preferredAreas.length > 0 &&
+          typeof preferredAreas[0] === "string"
+        ) {
+          // It's an array of address strings, geocode them
+          try {
+            user.preferredAreas =
+              await geocodeAddressArrayToGeoJsonPoints(preferredAreas);
+            console.log(
+              "preferredAreas updated from addresses:",
+              user.preferredAreas
+            );
+          } catch (geocodeErr) {
+            console.error(
+              "Geocoding failed for preferredAreas:",
+              geocodeErr.message
+            );
+            return res.status(400).json({
+              error: `Failed to geocode one or more preferredAreas: ${geocodeErr.message}`,
+            });
+          }
+        } else if (
+          preferredAreas.length > 0 &&
+          typeof preferredAreas[0] === "object"
+        ) {
+          // It's an array of GeoJSON points, validate and assign
+          const isValidGeoJson = preferredAreas.every(
+            (area) =>
+              area.type === "Point" &&
+              Array.isArray(area.coordinates) &&
+              area.coordinates.length === 2 &&
+              typeof area.coordinates[0] === "number" &&
+              typeof area.coordinates[1] === "number"
           );
-          return res.status(400).json({
-            error: `Failed to geocode one or more preferredAreas: ${geocodeErr.message}`,
-          });
+
+          if (!isValidGeoJson) {
+            return res.status(400).json({
+              error:
+                "Invalid GeoJSON format in preferredAreas. Each element must be a Point with a coordinates array of two numbers.",
+            });
+          }
+          user.preferredAreas = preferredAreas;
+          console.log(
+            "preferredAreas updated from GeoJSON:",
+            user.preferredAreas
+          );
+        } else {
+          // It's an empty array, which is valid
+          user.preferredAreas = [];
+          console.log("preferredAreas set to empty array.");
         }
       }
     }
@@ -749,10 +822,10 @@ export const updateUser = async (req, res) => {
       user: updatedUser,
     });
   } catch (error) {
-    console.error("Update User Error:", error.message, error.stack);
+    console.log("Update User Error:", error.message, error.stack);
     return res
       .status(500)
-      .json({ error: "Internal Server Error", details: error.message });
+      .json({ error: "Internal Server Error", details: error.message, stack: error.stack });
   }
 };
 
