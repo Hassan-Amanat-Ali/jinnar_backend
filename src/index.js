@@ -40,7 +40,7 @@ connectDb().then(async() => {
   await agenda.every('1 day', 'auto-close-resolved-tickets');
 
 
-  await botService.train(); // Use load() for faster startup
+  await botService.load(); // Use load() for faster startup
   await initializeRecommendationEngine();
 }).catch((err) => {
   console.error('Error connecting to MongoDB:', err);
