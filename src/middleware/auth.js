@@ -102,3 +102,36 @@ export const authorize = (rolesParam) => {
     }
   };
 };
+
+// 3. Protect-Optional.
+
+export const protectOptional = async (req, res, next) => {
+  let token;
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    try {
+      token = req.headers.authorization.split(" ")[1];
+
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      // Attempt to find user
+      const user = await User.findById(decoded.id).select("-password");
+
+      // If user exists and isn't suspended, attach to req
+      if (user && !user.isSuspended) {
+        req.user = user;
+      }
+    } catch (error) {
+      console.error("Optional Auth Error (Treating as Guest):", error.message);
+      // Do NOT return error here. We simply let req.user remain undefined.
+    }
+  }
+
+  // Always proceed. 
+  // If req.user is set, controller acts as User. 
+  // If req.user is undefined, controller acts as Guest.
+  next();
+};
