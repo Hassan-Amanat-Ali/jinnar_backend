@@ -3,6 +3,7 @@ import Gig from "../models/Gig.js";
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import { _submitUserForVerificationLogic } from "./userController.js";
 
 // ------------------------
 //    STORAGE HELPERS
@@ -371,8 +372,19 @@ export const uploadIdentityDocument = async (req, res) => {
     user.identityDocuments = [doc];
     await user.save();
 
+    // Automatically submit for verification after successful upload
+    const verificationResult = await _submitUserForVerificationLogic(id);
+
+    let responseMessage = "Identity document uploaded successfully.";
+    if (verificationResult.success) {
+      responseMessage += " Your verification request has been submitted for review.";
+    } else {
+      // We don't want to fail the whole upload if submission fails (e.g., already pending), so we just add a note.
+      responseMessage += ` Note: ${verificationResult.message}`;
+    }
+
     return res.status(200).json({
-      message: "Identity document uploaded successfully",
+      message: responseMessage,
       file: doc,
       userId: user._id,
     });

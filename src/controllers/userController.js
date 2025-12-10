@@ -1064,42 +1064,55 @@ export const getSellerReviews = async (req, res) => {
   }
 };
 
+// --- NEW: Internal helper for submitting verification ---
+export const _submitUserForVerificationLogic = async (userId) => {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    return { success: false, message: "User not found." };
+  }
+
+  // 1. Check current status
+  if (user.verificationStatus === "approved") {
+    return { success: false, message: "User is already verified." };
+  }
+  if (user.verificationStatus === "pending") {
+    return { success: false, message: "Verification is already pending." };
+  }
+
+  // 2. Check if documents exist
+  if (!user.identityDocuments || user.identityDocuments.length === 0) {
+    return {
+      success: false,
+      message: "Please upload at least one identity document before submitting.",
+    };
+  }
+
+  // 3. Update status and save
+  user.verificationStatus = "pending";
+  await user.save();
+
+  return {
+    success: true,
+    message: "Your verification request has been submitted and is now pending review.",
+  };
+};
+
 // --- NEW: Submit for Verification ---
 export const submitForVerification = async (req, res) => {
   try {
     const { id } = req.user;
-    const user = await User.findById(id);
+    const result = await _submitUserForVerificationLogic(id);
 
-    if (!user) {
-      return res.status(404).json({ error: "User not found." });
+    if (!result.success) {
+      // Map internal messages to appropriate HTTP status codes
+      const statusCode = result.message.includes("not found") ? 404 : 400;
+      return res.status(statusCode).json({ error: result.message });
     }
-
-    // 1. Check current status
-    if (user.verificationStatus === "approved") {
-      return res.status(400).json({ error: "User is already verified." });
-    }
-    if (user.verificationStatus === "pending") {
-      return res
-        .status(400)
-        .json({ error: "Verification is already pending." });
-    }
-
-    // 2. Check if documents exist
-    if (!user.identityDocuments || user.identityDocuments.length === 0) {
-      return res.status(400).json({
-        error:
-          "Please upload at least one identity document before submitting.",
-      });
-    }
-
-    // 3. Update status and save
-    user.verificationStatus = "pending";
-    await user.save();
 
     // 4. Respond
     res.status(200).json({
-      message:
-        "Your verification request has been submitted and is now pending review.",
+      message: result.message,
     });
   } catch (error) {
     console.error("Submit for Verification Error:", error);
