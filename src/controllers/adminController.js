@@ -106,17 +106,30 @@ class AdminController {
         return res.status(403).json({ error: "Cannot suspend admins." });
       }
 
+      if (suspend) {
+        // Notify BEFORE saving so we can use the existing FCM tokens
+        await sendNotification(
+          userId,
+          "system",
+          `Your account has been suspended. Reason: ${reason || "No reason provided."}`
+        );
+        // Clear tokens to effectively "log out" devices from push
+        user.fcmTokens = [];
+      }
+
       user.isSuspended = suspend;
       user.suspensionDetails = suspend ? { reason, suspendedAt: new Date() } : undefined;
       await user.save();
 
-      await sendNotification(
-        userId,
-        "system",
-        `Your account has been ${suspend ? "suspended" : "reinstated"}.`
-      );
+      if (!suspend) {
+        await sendNotification(
+          userId,
+          "system",
+          `Your account has been reinstated.`
+        );
+      }
 
-      res.json({ message: `User ${suspend ? "suspended" : "reinstated"}.` });
+      res.json({ message: `User ${suspend ? "suspended and logged out of all devices" : "reinstated"}.` });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
@@ -168,8 +181,8 @@ class AdminController {
         reason: "Account permanently deactivated by administrator.",
         suspendedAt: new Date(),
       };
-      // Anonymize email to free it up for new registrations
-      user.email = `${user.email}.${Date.now()}.deleted`;
+      
+      // We do NOT anonymize email/phone to prevent the user from signing up again with the same credentials.
       user.fcmTokens = []; // Clear FCM tokens to stop notifications
 
       await user.save();

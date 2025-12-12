@@ -14,53 +14,72 @@ const pointSchema = new mongoose.Schema(
     },
   },
   { _id: false },
-); // Important: prevent _id in array items
+);
 
 const userSchema = new mongoose.Schema(
   {
-    // Add this near top-level fields in your userSchema:
-    fcmTokens: [
-      {
-        token: { type: String, required: true },
-        deviceInfo: { type: String, default: null }, // optional - phone model, etc.
-        createdAt: { type: Date, default: Date.now },
-      },
-    ],
-    profilePicture: {
-      type: String,
-      default: null,
-    },
-
-    name: {
-      type: String,
-      required: false,
-      trim: true,
-      maxlength: [100, "Name cannot exceed 100 characters"],
-    },
+    // --- AUTH FIELDS (Flexible Email OR Mobile) ---
     email: {
       type: String,
-      unique: true,
       lowercase: true,
       trim: true,
       match: [/\S+@\S+\.\S+/, "Invalid email address"],
-      required: [true, "Email is required"],
+      // Sparse allows multiple documents to have 'null' for this field, 
+      // but if a value exists, it must be unique.
+      unique: true, 
+      sparse: true, 
+      default: undefined
     },
-    password: {
-      type: String,
-      required: false, // Not strictly required to allow migration of old accounts
-      minlength: [6, "Password must be at least 6 characters long"],
-      select: false, // Do not return password by default
-    },
-
     mobileNumber: {
       type: String,
-      required: false,
       trim: true,
       match: [
         /^\+[1-9]\d{1,14}$/,
         "Mobile number must be in E.164 format (e.g., +1234567890)",
       ],
+      unique: true,
+      sparse: true, 
+      default: undefined
     },
+    password: {
+      type: String,
+      required: false,
+      minlength: [6, "Password must be at least 6 characters long"],
+      select: false,
+    },
+
+    // --- NEW: FOR SECURE CONTACT SWITCHING ---
+    tempContact: {
+      type: { type: String, enum: ['email', 'mobileNumber'] },
+      value: String,
+      code: String,
+      expires: Date
+    },
+
+    // --- STANDARD PROFILE FIELDS ---
+    name: {
+      type: String,
+      required: false, // Required only for sellers (enforced in controller)
+      trim: true,
+      maxlength: [100, "Name cannot exceed 100 characters"],
+    },
+    role: {
+      type: String,
+      enum: ["buyer", "seller", "support", "supervisor", "regional_manager", "super_admin"],
+      required: true,
+      default: "buyer",
+    },
+    profilePicture: {
+      type: String,
+      default: null,
+    },
+    fcmTokens: [
+      {
+        token: { type: String, required: true },
+        deviceInfo: { type: String, default: null },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
     address: {
       type: String,
       trim: true,
@@ -71,30 +90,25 @@ const userSchema = new mongoose.Schema(
       type: pointSchema,
       default: null,
     },
-    role: {
-      type: String,
-      enum: [
-        "buyer",
-        "seller",
-        "support",
-        "supervisor",
-        "regional_manager",
-        "super_admin",
-      ],
-      required: true,
-      default: "buyer",
-    },
+
+    // --- VERIFICATION & STATUS ---
     isVerified: {
       type: Boolean,
       default: false,
     },
-    // NEW: Detailed verification status
     verificationStatus: {
       type: String,
-      enum: ["unsubmitted","pending", "approved", "rejected"],
+      enum: ["unsubmitted", "pending", "approved", "rejected"],
       default: "unsubmitted",
     },
-    // NEW: To hold URLs of uploaded ID documents
+    verificationCode: {
+      type: String,
+      default: null,
+    },
+    verificationCodeExpires: {
+      type: Date,
+      default: null,
+    },
     identityDocuments: [
       {
         documentType: {
@@ -106,7 +120,6 @@ const userSchema = new mongoose.Schema(
         uploadedAt: { type: Date, default: Date.now },
       },
     ],
-    // NEW: For suspending users
     isSuspended: {
       type: Boolean,
       default: false,
@@ -115,49 +128,25 @@ const userSchema = new mongoose.Schema(
       reason: String,
       suspendedAt: Date,
     },
-    verificationCode: {
-      type: String,
-      default: null,
-    },
-    verificationCodeExpires: {
-      type: Date,
-      default: null,
-    },
+
+    // --- SELLER SPECIFIC FIELDS ---
     bio: {
       type: String,
       maxlength: 500,
     },
-    skills: [
-      {
-        type: String,
-        trim: true,
-      },
-    ],
-    categories: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Category",
-      },
-    ],
-    subcategories: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "SubCategory",
-      },
-    ],
-    languages: [
-      {
-        type: String,
-        trim: true,
-      },
-    ],
-    yearsOfExperience: {
-      type: Number,
-      min: 0,
+    skills: [{ type: String, trim: true }],
+    categories: [{ type: mongoose.Schema.Types.ObjectId, ref: "Category" }],
+    subcategories: [{ type: mongoose.Schema.Types.ObjectId, ref: "SubCategory" }],
+    languages: [{ type: String, trim: true }],
+    yearsOfExperience: { type: Number, min: 0 },
+    selectedAreas: [pointSchema],
+    preferredAreas: [pointSchema],
+    
+    // --- TRANSACTIONS & ACTIVITY ---
+    wallet: {
+        balance: { type: Number, default: 0 },
+        transactions: [] // Define transaction schema if needed
     },
-    selectedAreas: [pointSchema], // seller-specific
-    preferredAreas: [pointSchema], // buyer-specificto your existing User schema
-
     notifications: [
       {
         type: {
@@ -165,48 +154,21 @@ const userSchema = new mongoose.Schema(
           enum: ["order", "message", "wallet", "system"],
           required: true,
         },
-        content: {
-          type: String,
-          required: true,
-        },
-        relatedId: {
-          type: mongoose.Schema.Types.ObjectId,
-          default: null,
-        },
+        content: { type: String, required: true },
+        relatedId: { type: mongoose.Schema.Types.ObjectId, default: null },
         isRead: { type: Boolean, default: false },
         createdAt: { type: Date, default: Date.now },
       },
     ],
-
-    orderHistory: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Order",
-      },
-    ],
+    orderHistory: [{ type: mongoose.Schema.Types.ObjectId, ref: "Order" }],
+    
+    // --- RATINGS ---
     rating: {
-      // Average rating for sellers, calculated from reviews
-      average: {
-        type: Number,
-        default: 0,
-        min: 0,
-        max: 5,
-      },
-      count: {
-        type: Number,
-        default: 0,
-        min: 0,
-      },
+      average: { type: Number, default: 0, min: 0, max: 5 },
+      count: { type: Number, default: 0, min: 0 },
     },
-    lastRecommendedAt: {
-      type: Date,
-      default: null,
-    },
-    averageResponseTime: {
-      type: Number, // in minutes
-      default: null,
-    },
-    // Stores individual reviews left by buyers for this user (seller)
+    lastRecommendedAt: { type: Date, default: null },
+    averageResponseTime: { type: Number, default: null },
     reviews: [
       {
         orderId: { type: mongoose.Schema.Types.ObjectId, ref: "Order" },
@@ -216,35 +178,19 @@ const userSchema = new mongoose.Schema(
         createdAt: { type: Date, default: Date.now },
       },
     ],
-    portfolioImages: [
-      {
-        url: String,
-      },
-    ],
-    videos: [
-      {
-        url: String,
-      },
-    ],
-    certificates: [
-      {
-        url: String,
-      },
-    ],
+
+    // --- MEDIA ---
+    portfolioImages: [{ url: String }],
+    videos: [{ url: String }],
+    certificates: [{ url: String }],
+    
+    // --- AVAILABILITY ---
     availability: {
       type: [
         {
           day: {
             type: String,
-            enum: [
-              "Monday",
-              "Tuesday",
-              "Wednesday",
-              "Thursday",
-              "Friday",
-              "Saturday",
-              "Sunday",
-            ],
+            enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
             required: true,
           },
           timeSlots: [
@@ -259,6 +205,7 @@ const userSchema = new mongoose.Schema(
       default: [],
       validate: {
         validator: function (v) {
+          if (!v) return true;
           const days = v.map((slot) => slot.day);
           return new Set(days).size === days.length;
         },
@@ -269,16 +216,23 @@ const userSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// Indexes
 userSchema.index({ "wallet.transactions.createdAt": -1 });
 userSchema.index({ "wallet.transactions.paymentMethod": 1 });
 userSchema.index({ "availability.day": 1 });
 userSchema.index({ selectedAreas: "2dsphere" });
 userSchema.index({ location: "2dsphere" });
-// userSchema.index({ 'preferredAreas': '2dsphere' });
 userSchema.index({ "notifications.createdAt": -1 });
-// For efficient notification retrieval
 
-// Hash password before saving
+// Ensure at least one auth method is present before saving
+userSchema.pre('save', function(next) {
+  if (!this.email && !this.mobileNumber) {
+    return next(new Error('Either email or mobile number is required'));
+  }
+  next();
+});
+
+// Hash password
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) {
     return next();
@@ -288,7 +242,7 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-// Compare password method
+// Compare password
 userSchema.methods.comparePassword = async function (candidatePassword) {
   const bcrypt = await import("bcryptjs");
   return await bcrypt.compare(candidatePassword, this.password);
