@@ -26,6 +26,6 @@ router.get("/reports/me", protect, getMyReports);
 router.post("/submit-verification", protect, submitForVerification);
 
 // --- NEW: Admin route to get full user details ---
-router.get("/details/:id", protect, authorize("super_admin"),getUserDetailsForAdmin);
+router.get("/details/:id", protect, authorize("support", "supervisor", "super_admin"), getUserDetailsForAdmin);
 
 export default router;

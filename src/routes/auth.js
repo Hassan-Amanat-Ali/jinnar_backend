@@ -11,8 +11,6 @@ import {
   verifyContactChange,
 } from "../controllers/authController.js";
 import { protect } from "../middleware/auth.js";
-// import { ussdHandler } from '../controllers/ussdController.js';
-import { body, validationResult } from "express-validator";
 
 const router = express.Router();
 

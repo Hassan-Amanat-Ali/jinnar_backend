@@ -83,7 +83,7 @@ export const getMyReports = async (req, res) => {
  */
 export const getAllReports = async (req, res) => {
   try {
-    const { status, reason, page = 1, limit = 10 } = req.query;
+    const { status, reason, page = 1, limit = 10, search } = req.query;
     const skip = (page - 1) * limit;
 
     // Build Filter Query
@@ -91,8 +91,36 @@ export const getAllReports = async (req, res) => {
     if (status) query.status = status;
     if (reason) query.reason = reason;
 
+    // If search is provided, we need to search by reporter or reported user names
+    let finalQuery = query;
+
+    if (search && search.trim()) {
+      const User = (await import("../models/User.js")).default;
+
+      // Search for users matching the search term
+      const searchRegex = new RegExp(search.trim(), 'i');
+      const matchingUsers = await User.find({
+        $or: [
+          { name: searchRegex },
+          { email: searchRegex },
+          { mobileNumber: searchRegex }
+        ]
+      }).select('_id');
+
+      const userIds = matchingUsers.map(u => u._id);
+
+      // Add user search to query
+      finalQuery = {
+        ...query,
+        $or: [
+          { reporterId: { $in: userIds } },
+          { reportedUserId: { $in: userIds } }
+        ]
+      };
+    }
+
     // Fetch reports with populated details
-    const reports = await Report.find(query)
+    const reports = await Report.find(finalQuery)
       .populate("reporterId", "name email mobileNumber profilePicture") // Who filed it?
       .populate("reportedUserId", "name email mobileNumber isSuspended") // Who is the bad actor?
       .populate("gigId", "title") // Related Gig
@@ -101,7 +129,7 @@ export const getAllReports = async (req, res) => {
       .skip(skip)
       .limit(parseInt(limit));
 
-    const total = await Report.countDocuments(query);
+    const total = await Report.countDocuments(finalQuery);
 
     res.json({
       reports,
@@ -129,7 +157,8 @@ export const getReportDetails = async (req, res) => {
       .populate("reportedUserId", "name email mobileNumber isSuspended")
       .populate("gigId", "title status")
       .populate("orderId")
-      .populate("resolvedBy", "name");
+      .populate("resolvedBy", "name")
+      .populate("internalNotes.addedBy", "name role");
 
     if (!report) return res.status(404).json({ error: "Report not found" });
 
@@ -147,7 +176,7 @@ export const getReportDetails = async (req, res) => {
 export const updateReportStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, adminNote } = req.body; 
+    const { status, adminNote, action } = req.body;
     const adminId = req.user.id;
 
     // Validate Status
@@ -156,35 +185,126 @@ export const updateReportStatus = async (req, res) => {
       return res.status(400).json({ error: "Invalid status provided" });
     }
 
-    const report = await Report.findById(id);
+    const report = await Report.findById(id)
+      .populate("reporterId", "name email mobileNumber")
+      .populate("reportedUserId", "name email mobileNumber");
+
     if (!report) return res.status(404).json({ error: "Report not found" });
 
-    // Update Fields
+    // Update Report Fields
     report.status = status;
-    report.adminNote = adminNote || report.adminNote; // Optional note
-    report.resolvedBy = adminId; // Mark which admin touched this
-    
+    report.resolvedBy = adminId;
+
     if (status === "resolved" || status === "dismissed") {
       report.resolvedAt = new Date();
     }
 
+    // Add internal note if provided
+    if (adminNote && adminNote.trim()) {
+      report.internalNotes.push({
+        note: adminNote,
+        addedBy: adminId,
+        addedAt: new Date(),
+      });
+      report.adminNote = adminNote; // Keep the latest note as main admin note
+    }
+
+    // Handle different actions
+    let actionMessage = "";
+
+    if (action === "suspend" && report.reportedUserId && report.reportedUserId._id) {
+      // Suspend the reported user
+      const User = (await import("../models/User.js")).default;
+      const reportedUser = await User.findById(report.reportedUserId._id);
+
+      if (!reportedUser) {
+        return res.status(404).json({ error: "Reported user not found" });
+      }
+
+      if (["support", "supervisor", "super_admin"].includes(reportedUser.role)) {
+        return res.status(403).json({ error: "Cannot suspend admin users" });
+      }
+
+      if (!reportedUser.isSuspended) {
+        // Notify before suspending
+        await sendNotification(
+          reportedUser._id,
+          "system",
+          `Your account has been suspended due to: ${report.reason}. ${adminNote ? `Admin Note: ${adminNote}` : ""}`
+        );
+
+        // Add to suspension history
+        if (!reportedUser.suspensionHistory) {
+          reportedUser.suspensionHistory = [];
+        }
+
+        reportedUser.suspensionHistory.push({
+          reason: report.reason,
+          suspendedAt: new Date(),
+          suspendedBy: adminId,
+          relatedReport: report._id,
+          internalNote: adminNote || "",
+        });
+
+        // Update current suspension details
+        reportedUser.isSuspended = true;
+        reportedUser.suspensionDetails = {
+          reason: report.reason,
+          suspendedAt: new Date(),
+          suspendedBy: adminId,
+          relatedReport: report._id,
+          internalNote: adminNote || "",
+        };
+
+        // Clear FCM tokens to log out user
+        reportedUser.fcmTokens = [];
+
+        await reportedUser.save();
+
+        report.actionTaken = "suspended";
+        actionMessage = " and user has been suspended";
+      } else {
+        actionMessage = " (user was already suspended)";
+      }
+
+    } else if (action === "warn" && report.reportedUserId && report.reportedUserId._id) {
+      // Send warning notification to the user
+      await sendNotification(
+        report.reportedUserId._id,
+        "system",
+        `Warning: Your recent activity has been flagged. Reason: ${report.reason}. Please review our community guidelines. ${adminNote ? `Note: ${adminNote}` : ""}`
+      );
+
+      report.actionTaken = "warned";
+      actionMessage = " and warning has been sent to user";
+
+    } else if (action === "dismiss") {
+      report.actionTaken = "dismissed";
+      actionMessage = "";
+    } else {
+      report.actionTaken = status === "resolved" ? "resolved" : "none";
+    }
+
     await report.save();
 
-    // Notify the User who filed the report
-    await sendNotification(
-      report.reporterId,
-      "system",
-      `Your report (Reason: ${report.reason}) has been updated to: ${status.toUpperCase()}.`,
-      report._id,
-      "Report"
-    );
+    // Notify the reporter (person who filed the report)
+    if (report.reporterId && report.reporterId._id) {
+      await sendNotification(
+        report.reporterId._id,
+        "system",
+        `Your report (Reason: ${report.reason}) has been ${status.toUpperCase()}. Thank you for helping keep our community safe.`,
+        report._id,
+        "Report"
+      );
+    }
 
     res.json({ 
-      message: `Report marked as ${status}`, 
-      report 
+      message: `Report marked as ${status}${actionMessage}`,
+      report
     });
 
   } catch (error) {
+    console.error("Update Report Error:", error);
     res.status(500).json({ error: "Failed to update report", details: error.message });
   }
 };

@@ -127,7 +127,36 @@ const userSchema = new mongoose.Schema(
     suspensionDetails: {
       reason: String,
       suspendedAt: Date,
+      suspendedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+      relatedReport: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Report",
+      },
+      internalNote: String,
     },
+    suspensionHistory: [
+      {
+        reason: String,
+        suspendedAt: Date,
+        suspendedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        reinstatedAt: Date,
+        reinstatedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        relatedReport: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Report",
+        },
+        internalNote: String,
+      },
+    ],
 
     // --- SELLER SPECIFIC FIELDS ---
     bio: {

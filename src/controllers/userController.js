@@ -1124,8 +1124,13 @@ export const submitForVerification = async (req, res) => {
 export const getUserDetailsForAdmin = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  // 1. Fetch user details
-  const user = await User.findById(id).select("-password");
+  // 1. Fetch user details with populated suspension history
+  const user = await User.findById(id)
+    .select("-password")
+    .populate("suspensionDetails.suspendedBy", "name role")
+    .populate("suspensionHistory.suspendedBy", "name role")
+    .populate("suspensionHistory.reinstatedBy", "name role");
+
   if (!user) {
     return res.status(404).json({ error: "User not found" });
   }

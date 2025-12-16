@@ -113,12 +113,40 @@ class AdminController {
           "system",
           `Your account has been suspended. Reason: ${reason || "No reason provided."}`
         );
+
+        // Add to suspension history
+        if (!user.suspensionHistory) {
+          user.suspensionHistory = [];
+        }
+
+        user.suspensionHistory.push({
+          reason: reason || "No reason provided",
+          suspendedAt: new Date(),
+          suspendedBy: req.user.id, // Current admin
+          internalNote: reason || "",
+        });
+
+        // Update current suspension details
+        user.suspensionDetails = {
+          reason: reason || "No reason provided",
+          suspendedAt: new Date(),
+          suspendedBy: req.user.id,
+          internalNote: reason || "",
+        };
+
         // Clear tokens to effectively "log out" devices from push
         user.fcmTokens = [];
+      } else {
+        // Reinstatement - update last suspension history entry
+        if (user.suspensionHistory && user.suspensionHistory.length > 0) {
+          const lastSuspension = user.suspensionHistory[user.suspensionHistory.length - 1];
+          lastSuspension.reinstatedAt = new Date();
+          lastSuspension.reinstatedBy = req.user.id;
+        }
+        user.suspensionDetails = undefined;
       }
 
       user.isSuspended = suspend;
-      user.suspensionDetails = suspend ? { reason, suspendedAt: new Date() } : undefined;
       await user.save();
 
       if (!suspend) {

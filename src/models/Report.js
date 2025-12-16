@@ -59,6 +59,26 @@ const reportSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    // Internal notes visible only to admins (for history tracking)
+    internalNotes: [
+      {
+        note: String,
+        addedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        addedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    // Action taken on this report
+    actionTaken: {
+      type: String,
+      enum: ["none", "warned", "suspended", "resolved", "dismissed"],
+      default: "none",
+    },
     resolvedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User", // The Admin who handled it
