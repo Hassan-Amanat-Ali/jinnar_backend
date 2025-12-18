@@ -13,6 +13,7 @@ import { sendNotification } from "./notificationController.js";
 export const createJobRequest = async (req, res) => {
   try {
     const { id: buyerId } = req.user;
+
     const {
       gigId,
       date,
@@ -24,38 +25,53 @@ export const createJobRequest = async (req, res) => {
       emergency,
     } = req.body;
 
+    // ✅ Validation
     if (!gigId || !date || !timeSlot || !jobDescription || !lat || !lng) {
-      return res
-        .status(400)
-        .json({
-          error: "gigId, date, timeSlot, description, lat, lng are required",
-        });
+      return res.status(400).json({
+        error: "gigId, date, timeSlot, description, lat, lng are required",
+      });
     }
 
+    // ✅ Find gig
     const gig = await Gig.findById(gigId);
-    if (!gig) return res.status(404).json({ error: "Gig not found" });
-    if (gig.sellerId.toString() === buyerId)
-      return res
-        .status(400)
-        .json({ error: "You cannot create a job request for your own gig" });
-    
+    if (!gig) {
+      return res.status(404).json({ error: "Gig not found" });
+    }
+
+    // ❌ Buyer cannot book own gig
+    if (gig.sellerId.toString() === buyerId) {
+      return res.status(400).json({
+        error: "You cannot create a job request for your own gig",
+      });
+    }
+
+    const EMERGENCY_FEE = 15;
     let jobPrice = 0;
-    // For fixed-price gigs, check funds and set the price. For negotiable, price remains 0.
+
+    // ✅ Pricing logic
     if (gig.pricing && gig.pricing.method === "fixed") {
       jobPrice = gig.pricing.price;
-      const buyerWallet = await Wallet.findOne({ userId: buyerId }); // Use Wallet model directly
+
+      // 👉 Add emergency surcharge
+      if (emergency === true) {
+        jobPrice += EMERGENCY_FEE;
+      }
+
+      // ✅ Wallet check
+      const buyerWallet = await Wallet.findOne({ userId: buyerId });
       if (!buyerWallet) {
         return res.status(404).json({ error: "Buyer wallet not found" });
       }
 
       if (buyerWallet.balance < jobPrice) {
         return res.status(402).json({
-          error: "Insufficient funds in wallet.",
-          message: `Your balance is ${buyerWallet.balance}, but the job requires ${jobPrice}. Please top up your wallet.`,
+          error: "Insufficient funds in wallet",
+          message: `Your balance is ${buyerWallet.balance}, but the job requires ${jobPrice}`,
         });
       }
     }
 
+    // ✅ Create order
     const newJob = await Order.create({
       gigId,
       sellerId: gig.sellerId,
@@ -66,32 +82,21 @@ export const createJobRequest = async (req, res) => {
       image: image || null,
       location: { lat, lng },
       emergency: emergency || false,
-      price: jobPrice, // Store the job price with the order
+      basePrice: gig.pricing?.price || 0,
+      emergencyFee: emergency ? EMERGENCY_FEE : 0,
+      price: jobPrice,
     });
 
-    // Update the transaction with the newJob's ID - This block is no longer needed here
-    // if (jobPrice > 0) {
-    //   const buyerWallet = await Wallet.findOne({ userId: buyerId });
-    //   if (buyerWallet) {
-    //     const transaction = buyerWallet.transactions.find(
-    //       (tx) => tx.description === "Funds held for new job request" && tx.status === "pending" && tx.amount === jobPrice
-    //     );
-    //     if (transaction) {
-    //       transaction.orderId = newJob._id;
-    //       await buyerWallet.save();
-    //     }
-    //   }
-    // }
-
-    // 👇 Notify seller about new job request
+    // 🔔 Notify seller
     await sendNotification(
       gig.sellerId,
       "booking",
       `You have a new job request for "${gig.title}"`,
       newJob._id,
-      "Order",
+      "Order"
     );
 
+    // ✅ Success response
     res.status(201).json({
       success: true,
       message: "Job request created successfully",
@@ -99,9 +104,13 @@ export const createJobRequest = async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating job request:", error);
-    res.status(500).json({ error: "Server error", details: error.message });
+    res.status(500).json({
+      error: "Server error",
+      details: error.message,
+    });
   }
 };
+
 
 /**
  * @description Seller creates a custom price offer for a negotiable job.

@@ -14,4 +14,8 @@ add your skills and services.
 -AI integration into HQ jinnar
 
 
+---
 
+## API Guide for Frontend Developers
+
+For instructions on how to interact with the backend API, please see the [Frontend API Guide](FRONTEND_API_GUIDE.md).

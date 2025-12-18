@@ -8,10 +8,12 @@ import nodemailer from "nodemailer";
 configDotenv();
 
 // --- CONFIGURATION ---
-
+console.log(process.env.SMTP_USER);
 // 1. Nodemailer Transporter
 const transporter = nodemailer.createTransport({
-  host: "127.0.0.1",
+   host: "127.0.0.1",
+  // host: "195.110.58.111",
+
   port: 587,
   secure: false,
   auth: {
@@ -131,8 +133,8 @@ const sendVerificationEmail = async (user, code, context = "verification") => {
         subject: subject,
         html: body,
       };
-      await transporter.sendMail(mailOptions);
-      console.log(`Email sent to ${user.email}`);
+var   response=   await transporter.sendMail(mailOptions);
+      console.log(`Email sent to ${user.email} response ${response}`);
     } catch (emailError) {
       console.error("Error sending email:", emailError);
       throw new Error("Failed to send verification email.");

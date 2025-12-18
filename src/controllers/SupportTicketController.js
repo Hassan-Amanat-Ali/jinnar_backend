@@ -14,8 +14,8 @@ configDotenv();
 // ===============================================================================================
 
 const transporter = nodemailer.createTransport({
-   host: "127.0.0.1", 
- // host :"195.110.58.111",
+    host: "127.0.0.1", 
+  // host :"195.110.58.111",
   port: 587,
   secure: false, 
   auth: {
