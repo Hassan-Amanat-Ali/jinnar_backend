@@ -53,7 +53,7 @@ const haversineDistance = (lat1, lng1, lat2, lng2) => {
 export const findWorkers = asyncHandler(async (req, res) => {
   const {
     skills,
-    address, // Accept address instead of lat, lng
+    address,
     radius = 10,
     sortBy = "rating.average",
     sortOrder = "desc",
@@ -64,24 +64,22 @@ export const findWorkers = asyncHandler(async (req, res) => {
   let parsedLat = null;
   let parsedLng = null;
 
+  // -------------------------
+  // Geocode address (optional)
+  // -------------------------
   if (address) {
     try {
       const geocodedLocation = await getCoordinatesFromAddress(address);
       if (geocodedLocation) {
         parsedLat = geocodedLocation.lat;
         parsedLng = geocodedLocation.lng;
-      } else {
-        console.warn("Geocoding returned no coordinates for address:", address);
       }
-    } catch (geocodeError) {
-      console.error(
-        "Geocoding failed for findWorkers address:",
-        address,
-        geocodeError
-      );
-      return res
-        .status(500)
-        .json({ error: "Failed to geocode address for worker search" });
+    } catch (err) {
+      console.error("Geocoding failed:", err);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to geocode address",
+      });
     }
   }
 
@@ -90,15 +88,20 @@ export const findWorkers = asyncHandler(async (req, res) => {
   const parsedLimit = parseInt(limit, 10);
 
   // -------------------------
-  // Build skills filter (optional)
+  // Base query
   // -------------------------
-  let query = { role: "seller" ,   isSuspended: false,
- };
+  const query = {
+    role: "seller",
+    isSuspended: false,
+  };
 
+  // -------------------------
+  // Skills filter (optional)
+  // -------------------------
   if (skills) {
     const skillArr = Array.isArray(skills)
       ? skills
-      : skills.split(",").map((s) => s.trim().toLowerCase());
+      : skills.split(",").map((s) => s.trim());
 
     const regexArr = skillArr.map((skill) => new RegExp(`^${skill}$`, "i"));
     query.skills = { $in: regexArr };
@@ -108,8 +111,21 @@ export const findWorkers = asyncHandler(async (req, res) => {
   // Fetch sellers
   // -------------------------
   let sellers = await User.find(query).select(`
-    name profilePicture skills languages yearsOfExperience rating bio selectedAreas portfolioImages preferredAreas
-  `);
+    name
+    profilePicture
+    bio
+    skills
+    languages
+    yearsOfExperience
+    rating
+    availability
+    portfolioImages
+    verificationStatus
+    averageResponseTime
+    preferredAreas
+    categories
+  `)
+  .populate("categories", "name");
 
   // -------------------------
   // Distance filtering (optional)
@@ -118,12 +134,14 @@ export const findWorkers = asyncHandler(async (req, res) => {
     sellers = sellers
       .map((seller) => {
         let minDistance = null;
+
         const areas = Array.isArray(seller.preferredAreas)
           ? seller.preferredAreas
           : [];
 
-        areas.forEach((area) => {
-          if (!area?.coordinates || area.coordinates.length < 2) return;
+        for (const area of areas) {
+          if (!area?.coordinates || area.coordinates.length < 2) continue;
+
           const [lng2, lat2] = area.coordinates;
           const distanceKm = haversineDistance(
             parsedLat,
@@ -131,35 +149,75 @@ export const findWorkers = asyncHandler(async (req, res) => {
             lat2,
             lng2
           );
-          if (minDistance === null || distanceKm < minDistance)
-            minDistance = distanceKm;
-        });
 
-        return { ...seller.toObject(), distance: minDistance };
+          if (minDistance === null || distanceKm < minDistance) {
+            minDistance = distanceKm;
+          }
+        }
+
+        return {
+          ...seller.toObject(),
+          distance: minDistance,
+        };
       })
       .filter(
-        (seller) => seller.distance !== null && seller.distance <= parsedRadius
+        (seller) =>
+          seller.distance !== null && seller.distance <= parsedRadius
       );
   }
 
   // -------------------------
-  // Sorting
+  // Safe nested sorting
   // -------------------------
+  const getNestedValue = (obj, path) =>
+    path.split(".").reduce((o, k) => o?.[k], obj) ?? 0;
+
   sellers.sort((a, b) => {
-    let valA = a[sortBy] ?? 0;
-    let valB = b[sortBy] ?? 0;
+    const valA = getNestedValue(a, sortBy);
+    const valB = getNestedValue(b, sortBy);
     return sortOrder === "desc" ? valB - valA : valA - valB;
   });
 
   // -------------------------
+  // Map public worker profile
+  // -------------------------
+  const mapWorker = (seller) => ({
+    id: seller._id,
+    name: seller.name,
+    profilePicture: seller.profilePicture,
+    bio: seller.bio,
+    skills: seller.skills,
+    languages: seller.languages,
+    categories: seller.categories,
+    yearsOfExperience: seller.yearsOfExperience,
+
+    rating: {
+      average: seller.rating?.average ?? 0,
+      count: seller.rating?.count ?? 0,
+    },
+
+    distance: seller.distance ?? null,
+    availability: seller.availability,
+    portfolioImages: seller.portfolioImages,
+    responseTime: seller.averageResponseTime,
+    verificationStatus: seller.verificationStatus,
+  });
+
+  const mappedSellers = sellers.map(mapWorker);
+
+  // -------------------------
   // Pagination
   // -------------------------
-  const totalResults = sellers.length;
-  const paginatedSellers = sellers.slice(
+  const totalResults = mappedSellers.length;
+
+  const paginatedSellers = mappedSellers.slice(
     (parsedPage - 1) * parsedLimit,
     parsedPage * parsedLimit
   );
 
+  // -------------------------
+  // Response
+  // -------------------------
   res.json({
     success: true,
     data: paginatedSellers,
@@ -171,6 +229,7 @@ export const findWorkers = asyncHandler(async (req, res) => {
     },
   });
 });
+
 
 export const updateUser = async (req, res) => {
   try {
