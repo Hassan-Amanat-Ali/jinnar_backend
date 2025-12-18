@@ -8,7 +8,9 @@ const agenda = new Agenda({
     address: process.env.MONGO_URI,
     collection: "agendaJobs",
   },
-  processEvery: "1 minute", // How often agenda checks for new jobs
+  processEvery: "10 seconds", // Check for jobs every 10 seconds
+  maxConcurrency: 1, // One job at a time
+  lockLimit: 1, // Only one instance per job
 });
 
 export default agenda;

@@ -46,6 +46,7 @@ const transactionSchema = new mongoose.Schema(
 
     pawapayDepositId: { type: String, index: true, sparse: true },
     pawapayPayoutId: { type: String, index: true, sparse: true },
+    providerTransactionId: { type: String, default: null, sparse: true },
 
     jobId: {
       type: mongoose.Schema.Types.ObjectId,

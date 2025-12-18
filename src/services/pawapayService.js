@@ -355,6 +355,114 @@ class PawaPayController {
       };
     }
   }
+
+  // Get active configuration - countries and providers
+  static async getActiveConfiguration(operationType = "DEPOSIT") {
+    try {
+      if (!["DEPOSIT", "PAYOUT"].includes(operationType)) {
+        throw new Error(
+          "Invalid operationType. Must be 'DEPOSIT' or 'PAYOUT'",
+        );
+      }
+
+      const url = `${BASE_URL}/v2/active-conf?operationType=${operationType}`;
+      const options = {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${process.env.PAWAPAY_API_TOKEN || "eyJraWQiOiIxIiwiYWxnIjoiRVMyNTYifQ.eyJ0dCI6IkFBVCIsInN1YiI6IjEyNDAyIiwibWF2IjoiMSIsImV4cCI6MjA3OTE4NzI0OSwiaWF0IjoxNzYzNjU0NDQ5LCJwbSI6IkRBRixQQUYiLCJqdGkiOiI2OTJkZmM1Zi1hZDQ3LTRkZmEtYmE3Ny1hZjk0MGJiZmJmZTcifQ.hESvBRpDzxaBUv5QHzPOtj9ia0Ic4dfooc5XFCGbSx1ly0Wl6VWqkNpvwZ6egQnVXVtvZwLZBrgemE63AoFmIQ"}`,
+          "Content-Type": "application/json",
+        },
+      };
+
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `HTTP error! Status: ${response.status}, Details: ${errorText}`,
+        );
+      }
+
+      const data = await response.json();
+      logger.info(
+        `Active configuration fetched successfully for ${operationType}`,
+      );
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error) {
+      console.error(
+        `Fetching active configuration failed for ${operationType}`,
+        error,
+      );
+      logger.error("Fetching active configuration failed", {
+        operationType,
+        error: error.message,
+      });
+      return {
+        success: false,
+        error: error.message || "Failed to fetch active configuration",
+      };
+    }
+  }
+
+  // Get payout status from PawaPay
+  static async getPayoutStatus(payoutId) {
+    try {
+      if (!payoutId) {
+        throw new Error("Payout ID is required");
+      }
+
+      const url = `${BASE_URL}/v2/payouts/${payoutId}`;
+      const options = {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${process.env.PAWAPAY_API_TOKEN || "eyJraWQiOiIxIiwiYWxnIjoiRVMyNTYifQ.eyJ0dCI6IkFBVCIsInN1YiI6IjEyNDAyIiwibWF2IjoiMSIsImV4cCI6MjA3OTE4NzI0OSwiaWF0IjoxNzYzNjU0NDQ5LCJwbSI6IkRBRixQQUYiLCJqdGkiOiI2OTJkZmM1Zi1hZDQ3LTRkZmEtYmE3Ny1hZjk0MGJiZmJmZTcifQ.hESvBRpDzxaBUv5QHzPOtj9ia0Ic4dfooc5XFCGbSx1ly0Wl6VWqkNpvwZ6egQnVXVtvZwLZBrgemE63AoFmIQ"}`,
+          "Content-Type": "application/json",
+        },
+      };
+
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `HTTP error! Status: ${response.status}, Details: ${errorText}`,
+        );
+      }
+
+      const data = await response.json();
+      logger.info(`Payout status fetched successfully for ${payoutId}`);
+
+      // Return both raw response and the data object
+      if (data.status === "FOUND" && data.data) {
+        return {
+          success: true,
+          data: data.data,
+        };
+      } else if (data.status === "NOT_FOUND") {
+        return {
+          success: false,
+          error: "Payout not found",
+        };
+      }
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error) {
+      console.error(`Fetching payout status failed for ${payoutId}`, error);
+      logger.error("Fetching payout status failed", {
+        payoutId,
+        error: error.message,
+      });
+      return {
+        success: false,
+        error: error.message || "Failed to fetch payout status",
+      };
+    }
+  }
 }
 
 export default PawaPayController;

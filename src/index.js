@@ -17,6 +17,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import mongoose from 'mongoose';
 import { initializeRecommendationEngine } from './services/recommendationService.js';
 import agenda from './config/agenda.js';
+import PayoutMonitorService from './services/payoutMonitorService.js';
 import '../scripts/ticket-maintenance.js';
 
 
@@ -34,11 +35,26 @@ connectDb().then(async() => {
   // Start Agenda.js scheduler
   await agenda.start();
   console.log('Agenda.js scheduler started');
+
+  // Define payout monitoring job BEFORE scheduling
+  agenda.define('check-pending-payouts', async () => {
+    console.log('🔄 [PAYOUT MONITOR] Running payout status check job...');
+    try {
+      await PayoutMonitorService.checkPendingPayouts();
+      console.log('✅ [PAYOUT MONITOR] Payout status check completed successfully');
+    } catch (error) {
+      console.error('❌ [PAYOUT MONITOR] Payout monitoring job failed:', error);
+    }
+  });
+
+  // Schedule jobs - AFTER definition
+  await agenda.every('1 minute', 'check-pending-payouts');
+  console.log('📅 [PAYOUT MONITOR] Job scheduled to run every 1 minute');
   
-  // Schedule jobs
   await agenda.every('30 minutes', 'monitor-sla-breaches');
   await agenda.every('1 day', 'auto-close-resolved-tickets');
 
+  console.log('✅ All scheduled jobs configured');
 
   await botService.load(); // Use load() for faster startup
   await initializeRecommendationEngine();

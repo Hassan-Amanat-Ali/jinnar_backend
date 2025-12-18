@@ -4,6 +4,7 @@ import PawaPayController from "../services/pawapayService.js"; // your existing 
 import logger from "../utils/logger.js";
 import { validatePayoutRequest } from "../utils/validators.js";
 import PawaPayService from "../services/pawapayService.js";
+import PayoutMonitorService from "../services/payoutMonitorService.js";
 import crypto from "crypto";
 
 // Simple helper to get or create wallet
@@ -47,6 +48,10 @@ class WalletController {
   static async deposit(req, res) {
     const { phoneNumber, amount, provider, currency, country } = req.body;
     const userId = req.user.id; // from protect middleware
+
+
+    
+
 
     if (!phoneNumber || !amount || !provider || !currency || !country) {
       return res
@@ -139,6 +144,19 @@ class WalletController {
         return res.status(400).json({ error: validationError });
       }
 
+      // Get wallet and check balance
+      const wallet = await getUserWallet(userId);
+      const numAmount = Number(amount);
+
+      if (wallet.balance < numAmount) {
+        return res.status(400).json({
+          success: false,
+          error: "Insufficient balance for payout",
+          currentBalance: wallet.balance,
+          requestedAmount: numAmount,
+        });
+      }
+
       // initiate payout with provider
       const result = await PawaPayService.createPayout({
         provider,
@@ -156,20 +174,23 @@ class WalletController {
       const tx = await Transaction.create({
         userId,
         type: "withdrawal",
-        amount: Number(amount),
+        amount: numAmount,
         status: "pending",
         paymentMethod: provider,
         pawapayPayoutId: payoutId,
         country: country,
         currency: currency,
         description: `Payout via ${provider}`,
+        applied: false, // Will be marked as applied when confirmed
       });
 
-      // add pending nested wallet transaction (do NOT deduct balance yet)
-      const wallet = await getUserWallet(userId);
+      // Deduct balance immediately when payout is initiated
+      wallet.balance -= numAmount;
+
+      // Add pending nested wallet transaction
       wallet.transactions.push({
         type: "withdrawal",
-        amount: Number(amount),
+        amount: numAmount,
         status: "pending",
         paymentMethod: provider,
         description: `Payout via ${provider}`,
@@ -179,12 +200,17 @@ class WalletController {
       });
       await wallet.save();
 
+      logger.info(
+        `Payout initiated: User ${userId} amount=${numAmount} payoutId=${payoutId}`,
+      );
+
       res
         .status(201)
         .json({
           success: true,
           message: "Payout initiated; awaiting confirmation",
           payoutId,
+          newBalance: wallet.balance,
           providerResult: result,
         });
     } catch (error) {
@@ -210,6 +236,113 @@ class WalletController {
       });
     } catch (err) {
       res.status(500).json({ success: false, message: "Server error : ", err });
+    }
+  }
+
+  // Get available countries and their providers
+  static async getCountriesAndProviders(req, res) {
+    const { operationType = "DEPOSIT" } = req.query;
+
+    try {
+      // Validate operationType
+      if (!["DEPOSIT", "PAYOUT"].includes(operationType)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid operationType. Must be 'DEPOSIT' or 'PAYOUT'",
+        });
+      }
+
+      const result = await PawaPayService.getActiveConfiguration(operationType);
+
+      if (!result.success) {
+        return res.status(400).json({
+          success: false,
+          message: result.error,
+        });
+      }
+
+      // Format the response - map countries and providers correctly
+      const formattedData = {
+        success: true,
+        companyName: result.data.companyName,
+        operationType,
+        countries: result.data.countries.map((country) => ({
+          countryCode: country.country,
+          countryName: country.displayName.en,
+          countryNameFr: country.displayName.fr,
+          prefix: country.prefix,
+          flag: country.flag,
+          providers: country.providers.map((provider) => ({
+            providerId: provider.provider,
+            displayName: provider.displayName,
+            logo: provider.logo,
+            nameDisplayedToCustomer: provider.nameDisplayedToCustomer || "",
+            currencies: provider.currencies.map((currency) => ({
+              code: currency.currency,
+              displayName: currency.displayName,
+              operationDetails: currency.operationTypes[operationType] || null,
+            })),
+          })),
+        })),
+      };
+
+      res.json(formattedData);
+    } catch (err) {
+      logger.error("Failed to fetch countries and providers", err);
+      res.status(500).json({
+        success: false,
+        message: "Server error",
+        error: err.message,
+      });
+    }
+  }
+
+  // Check status of a specific payout immediately
+  static async checkPayoutStatus(req, res) {
+    const { payoutId } = req.params;
+
+    if (!payoutId) {
+      return res.status(400).json({
+        success: false,
+        message: "Payout ID is required",
+      });
+    }
+
+    try {
+      const result = await PayoutMonitorService.checkSpecificPayout(payoutId);
+
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+
+      res.json(result);
+    } catch (err) {
+      logger.error(`Error checking payout status for ${payoutId}`, err);
+      res.status(500).json({
+        success: false,
+        message: "Server error",
+        error: err.message,
+      });
+    }
+  }
+
+  // Get payout statistics
+  static async getPayoutStats(req, res) {
+    try {
+      const result = await PayoutMonitorService.getPayoutStats();
+
+      if (!result.success) {
+        return res.status(500).json(result);
+      }
+
+      res.json(result);
+    } catch (err) {
+      logger.error("Error fetching payout stats", err);
+      res.status(500).json({
+        success: false,
+        message: "Server error",
+        error: err.message,
+      });
     }
   }
 }
