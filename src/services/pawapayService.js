@@ -4,7 +4,7 @@ import { validatePhoneNumber, validateAmount } from "../utils/validators.js";
 import dotenv from "dotenv";
 
 const BASE_URL =
-  process.env.PAWAPAY_BASE_URL || "https://api.sandbox.pawapay.io";
+  process.env.PAWAPAY_BASE_URL || "https://api.pawapay.io";
 
 class PawaPayController {
   static initialize() {
@@ -369,7 +369,7 @@ class PawaPayController {
       const options = {
         method: "GET",
         headers: {
-          Authorization: `Bearer ${process.env.PAWAPAY_API_TOKEN || "eyJraWQiOiIxIiwiYWxnIjoiRVMyNTYifQ.eyJ0dCI6IkFBVCIsInN1YiI6IjEyNDAyIiwibWF2IjoiMSIsImV4cCI6MjA3OTE4NzI0OSwiaWF0IjoxNzYzNjU0NDQ5LCJwbSI6IkRBRixQQUYiLCJqdGkiOiI2OTJkZmM1Zi1hZDQ3LTRkZmEtYmE3Ny1hZjk0MGJiZmJmZTcifQ.hESvBRpDzxaBUv5QHzPOtj9ia0Ic4dfooc5XFCGbSx1ly0Wl6VWqkNpvwZ6egQnVXVtvZwLZBrgemE63AoFmIQ"}`,
+          Authorization: `Bearer ${process.env.PAWAPAY_API_TOKEN || "eyJraWQiOiIxIiwiYWxnIjoiRVMyNTYifQ.eyJ0dCI6IkFBVCIsInN1YiI6IjE5NjAiLCJtYXYiOiIxIiwiZXhwIjoyMDgxNTkzODQ1LCJpYXQiOjE3NjYwNjEwNDUsInBtIjoiREFGLFBBRiIsImp0aSI6IjI4NWJjOTUxLWRhNjItNGRkYi04YzEwLWI2MTU5ZjE0YzhhYyJ9.zaRMiinyQKijuG2IHpaKCJuzMNkpyf8y_FZLRz4xR5W5I3tESJ-6KtJTYaaQQRQtLKIeU6iLAe8cH4Sn1dbqDw"}`,
           "Content-Type": "application/json",
         },
       };
