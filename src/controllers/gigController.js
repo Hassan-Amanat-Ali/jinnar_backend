@@ -32,7 +32,7 @@ export const searchGigs = async (req, res) => {
             coordinates: [parseFloat(lng), parseFloat(lat)],
           },
           distanceField: "distance", // Output field for distance (in meters)
-          maxDistance: (parseFloat(radius) || 10) * 1000, // Convert km to meters
+          maxDistance: (parseFloat(radius) || 10000000) * 1000, // Convert km to meters
           key: "location", // The index key
           spherical: true,
           // Optimization: Apply status check inside geoNear to reduce initial set
@@ -116,7 +116,12 @@ export const searchGigs = async (req, res) => {
           as: "sellerInfo",
         },
       },
-      { $unwind: "$sellerInfo" } // Convert array to object
+{
+  $unwind: {
+    path: "$sellerInfo",
+    preserveNullAndEmptyArrays: true
+  }
+}
     );
 
     // --- STAGE 4: FILTER BY SELLER STATS ---
