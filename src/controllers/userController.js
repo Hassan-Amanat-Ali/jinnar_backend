@@ -92,7 +92,8 @@ export const findWorkers = asyncHandler(async (req, res) => {
   // -------------------------
   // Build skills filter (optional)
   // -------------------------
-  let query = { role: "seller" };
+  let query = { role: "seller" ,   isSuspended: false,
+ };
 
   if (skills) {
     const skillArr = Array.isArray(skills)
