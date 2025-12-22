@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema(
       sparse: true, 
       default: undefined
     },
-    mobileNumber: {
+        mobileNumber: {
       type: String,
       trim: true,
       match: [
@@ -216,20 +216,33 @@ const userSchema = new mongoose.Schema(
     // --- AVAILABILITY ---
     availability: {
       type: [
-        {
-          day: {
-            type: String,
-            enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-            required: true,
-          },
-          timeSlots: [
-            {
+        new mongoose.Schema(
+          {
+            day: {
               type: String,
-              enum: ["morning", "afternoon", "evening"],
+              enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
               required: true,
             },
-          ],
-        },
+            timeSlots: [
+              {
+                type: String,
+                enum: ["morning", "afternoon", "evening"],
+                required: true,
+              },
+            ],
+            // Optional detailed slot start/end (HH:mm)
+            start: { type: String, default: undefined },
+            end: { type: String, default: undefined },
+            // Optional breaks/unavailable ranges inside the main slot
+            breaks: [
+              {
+                start: { type: String, required: true },
+                end: { type: String, required: true },
+              },
+            ],
+          },
+          { _id: false }
+        ),
       ],
       default: [],
       validate: {

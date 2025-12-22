@@ -1,7 +1,6 @@
 import User from "../models/User.js";
 import Gig from "../models/Gig.js";
 import asyncHandler from "express-async-handler";
-import { calculateDistance } from "../utils/helpers.js";
 import Order from "../models/Order.js";
 import SupportTicket from "../models/SupportTicket.js";
 import Wallet from "../models/Wallet.js";
@@ -248,22 +247,19 @@ export const updateUser = async (req, res) => {
       preferredAreas,
       availability,
       gigs,
-      profilePicture, // ✅ Changed from profileImage to match schema
+      profilePicture,
       portfolioImages,
       videos,
       certificates,
-      address, // Add address here
+      address,
     } = req.body;
 
-    // Log request body for debugging
-console.log("Request body:", JSON.stringify(req.body, null, 2));
+
     // Parse arrays/objects if sent as JSON strings
     let parsedSkills = skills;
     let parsedCategories = categories;
     let parsedSubcategories = subcategories;
     let parsedLanguages = languages;
-    let parsedSelectedAreas = selectedAreas;
-    let parsedPreferredAreas = preferredAreas;
     let parsedGigs = gigs;
     let parsedAvailability = availability;
     let parsedPortfolioImages = portfolioImages;
@@ -289,17 +285,6 @@ console.log("Request body:", JSON.stringify(req.body, null, 2));
         parsedVideos = JSON.parse(videos);
       if (typeof certificates === "string" && certificates)
         parsedCertificates = JSON.parse(certificates);
-      // console.log("Parsed fields:", {
-      //   parsedSkills,
-      //   parsedLanguages,
-      //   parsedSelectedAreas,
-      //   parsedPreferredAreas,
-      //   parsedGigs,
-      //   parsedAvailability,
-      //   parsedPortfolioImages,
-      //   parsedVideos,
-      //   parsedCertificates,
-      // });
     } catch (parseErr) {
       console.error("JSON Parse Error:", parseErr.message);
       return res.status(400).json({
@@ -556,6 +541,25 @@ console.log("Request body:", JSON.stringify(req.body, null, 2));
             .status(400)
             .json({ error: "Availability must be an array" });
         }
+
+        const timeRe = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+        const overlaps = (arr) => {
+          // arr: [{start,end}] times as HH:mm
+          const toMinutes = (t) => {
+            const [hh, mm] = t.split(":");
+            return parseInt(hh, 10) * 60 + parseInt(mm, 10);
+          };
+          const sorted = arr
+            .map((b) => ({ start: toMinutes(b.start), end: toMinutes(b.end) }))
+            .sort((a, b) => a.start - b.start);
+          for (let i = 0; i < sorted.length; i++) {
+            if (sorted[i].start >= sorted[i].end) return true; // invalid single range
+            if (i > 0 && sorted[i].start < sorted[i - 1].end) return true; // overlap
+          }
+          return false;
+        };
+
         for (let i = 0; i < parsedAvailability.length; i++) {
           const slot = parsedAvailability[i];
           if (
@@ -575,16 +579,17 @@ console.log("Request body:", JSON.stringify(req.body, null, 2));
               error: `Availability at index ${i} has invalid day; must be a valid weekday`,
             });
           }
+
+          // timeSlots must be an array if provided (existing contract)
           if (!Array.isArray(slot.timeSlots) || slot.timeSlots.length === 0) {
             console.log(`Invalid timeSlots at index ${i}:`, slot.timeSlots);
             return res.status(400).json({
               error: `Availability at index ${i} must have a non-empty timeSlots array`,
             });
           }
+
           for (let j = 0; j < slot.timeSlots.length; j++) {
-            if (
-              !["morning", "afternoon", "evening"].includes(slot.timeSlots[j])
-            ) {
+            if (!["morning", "afternoon", "evening"].includes(slot.timeSlots[j])) {
               console.log(
                 `Invalid time slot at index ${i}, position ${j}:`,
                 slot.timeSlots[j]
@@ -594,7 +599,55 @@ console.log("Request body:", JSON.stringify(req.body, null, 2));
               });
             }
           }
+
+          // Optional detailed times
+          if ((slot.start && !timeRe.test(slot.start)) || (slot.end && !timeRe.test(slot.end))) {
+            return res.status(400).json({ error: `Invalid time format for start/end at availability index ${i}. Expected HH:mm` });
+          }
+
+          if (slot.start && slot.end) {
+            const [sh, sm] = slot.start.split(":");
+            const [eh, em] = slot.end.split(":");
+            const sMinutes = parseInt(sh, 10) * 60 + parseInt(sm, 10);
+            const eMinutes = parseInt(eh, 10) * 60 + parseInt(em, 10);
+            if (sMinutes >= eMinutes) {
+              return res.status(400).json({ error: `Start must be before end for availability at index ${i}` });
+            }
+          }
+
+          // Validate breaks if provided
+          if (slot.breaks !== undefined) {
+            if (!Array.isArray(slot.breaks)) {
+              return res.status(400).json({ error: `breaks for availability index ${i} must be an array` });
+            }
+            for (let b = 0; b < slot.breaks.length; b++) {
+              const br = slot.breaks[b];
+              if (!br.start || !br.end) {
+                return res.status(400).json({ error: `break at index ${b} for availability ${i} must have start and end` });
+              }
+              if (!timeRe.test(br.start) || !timeRe.test(br.end)) {
+                return res.status(400).json({ error: `Invalid time format in breaks at availability ${i}, break ${b}. Expected HH:mm` });
+              }
+            }
+            // check overlaps and containment if main start/end provided
+            if (overlaps(slot.breaks)) {
+              return res.status(400).json({ error: `Overlapping or invalid break ranges in availability index ${i}` });
+            }
+            if (slot.start && slot.end) {
+              const toMin = (t) => { const [h,m] = t.split(":"); return parseInt(h,10)*60+parseInt(m,10); };
+              const s = toMin(slot.start);
+              const e = toMin(slot.end);
+              for (const br of slot.breaks) {
+                const bs = toMin(br.start);
+                const be = toMin(br.end);
+                if (bs < s || be > e) {
+                  return res.status(400).json({ error: `Breaks must be within the main availability range for availability index ${i}` });
+                }
+              }
+            }
+          }
         }
+
         const days = parsedAvailability.map((slot) => slot.day);
         if (new Set(days).size !== days.length) {
           console.log("Duplicate days in availability:", days);

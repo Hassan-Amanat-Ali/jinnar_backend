@@ -342,7 +342,7 @@ export const getAllJobRequests = async (req, res) => {
     const jobs = await Order.find({
       sellerId: sellerId,
     })
-      .populate("buyerId", "name profileImage")
+      .populate("buyerId", "name profilePicture")
       .sort({ createdAt: -1 });
 
     res.json({ jobs });
@@ -362,7 +362,7 @@ export const getPendingJobRequests = async (req, res) => {
       sellerId: sellerId,
       status: "pending",
     })
-      .populate("buyerId", "name profileImage")
+      .populate("buyerId", "name profilePicture")
       .sort({ createdAt: -1 });
 
     res.json({ jobs });
@@ -382,7 +382,7 @@ export const getCompletedJobRequests = async (req, res) => {
       sellerId: sellerId,
       status: "completed",
     })
-      .populate("buyerId", "name profileImage")
+      .populate("buyerId", "name profilePicture")
       .sort({ createdAt: -1 });
 
     res.json({ jobs });
@@ -402,7 +402,7 @@ export const getOngoingJobRequests = async (req, res) => {
       sellerId: sellerId,
       status: "accepted",
     })
-      .populate("buyerId", "name profileImage")
+      .populate("buyerId", "name profilePicture")
       .sort({ createdAt: -1 });
 
     res.json({ jobs });
@@ -422,7 +422,7 @@ export const getDeclinedJobRequests = async (req, res) => {
       sellerId: sellerId,
       status: "rejected",
     })
-      .populate("buyerId", "name profileImage")
+      .populate("buyerId", "name profilePicture")
       .sort({ createdAt: -1 });
 
     res.json({ jobs });
@@ -442,7 +442,7 @@ export const getCancelledJobRequests = async (req, res) => {
       sellerId: sellerId,
       status: "cancelled",
     })
-      .populate("buyerId", "name profileImage")
+      .populate("buyerId", "name profilePicture")
       .sort({ createdAt: -1 });
 
     res.json({ jobs });
@@ -465,7 +465,7 @@ export const getAvailableJobs = async (req, res) => {
       buyerId: { $ne: id },
       declinedBy: { $ne: id },
     })
-      .populate("buyerId", "name profileImage")
+      .populate("buyerId", "name profilePicture")
       .sort({ createdAt: -1 })
       .limit(20);
     res.json({ jobs });
@@ -854,15 +854,15 @@ export const getMyOrders = async (req, res) => {
   try {
     const { id } = req.user;
 
-    console.log("User Role : ", req.user);
+
     let filter = {};
     filter = {
       $or: [{ buyerId: id }, { sellerId: id }],
     };
 
     const jobs = await Order.find(filter)
-      .populate("buyerId", "name profileImage")
-      .populate("sellerId", "name profileImage")
+      .populate("buyerId", "name profilePicture")
+      .populate("sellerId", "name profilePicture").populate("gigId", "title price images")
       .sort({ createdAt: -1 });
 
     res.json({ orders: jobs });
@@ -963,8 +963,8 @@ export const getOrderById = async (req, res) => {
 
     // Fetch order with populated buyer and seller
     const order = await Order.findById(id)
-      .populate("buyerId", "name profileImage")
-      .populate("sellerId", "name profileImage")
+      .populate("buyerId", "name profilePicture email mobileNumber")
+      .populate("sellerId", "name profilePicture")
       .populate("gigId", "title price skills images");
 
     if (!order) {
@@ -978,7 +978,6 @@ export const getOrderById = async (req, res) => {
     ) {
       return res.status(403).json({ error: "Unauthorized to view this order" });
     }
-
     res.json({ order });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch order: " + error });

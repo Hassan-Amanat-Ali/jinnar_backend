@@ -511,7 +511,7 @@ export const getGigById = asyncHandler(async (req, res) => {
 
   const gig = await Gig.findById(id).populate(
     "sellerId",
-    "name profilePicture",
+    "name profilePicture availability",
   );
 
   if (!gig) {
