@@ -111,7 +111,6 @@ export const createJobRequest = async (req, res) => {
   }
 };
 
-
 /**
  * @description Seller creates a custom price offer for a negotiable job.
  * @route POST /api/orders/custom-offer
@@ -135,7 +134,11 @@ export const createCustomOffer = async (req, res) => {
 
     // 1. Validate required fields for creating a new job offer
     if (!gigId || !buyerId || !date || !jobDescription || !price) {
-      return res.status(400).json({ error: "gigId, buyerId, date, jobDescription, and price are required" });
+      return res
+        .status(400)
+        .json({
+          error: "gigId, buyerId, date, jobDescription, and price are required",
+        });
     }
 
     // 2. Validate price
@@ -147,7 +150,9 @@ export const createCustomOffer = async (req, res) => {
     const gig = await Gig.findById(gigId);
     if (!gig) return res.status(404).json({ error: "Gig not found" });
     if (gig.sellerId.toString() !== sellerId) {
-      return res.status(403).json({ error: "You can only create offers for your own gigs" });
+      return res
+        .status(403)
+        .json({ error: "You can only create offers for your own gigs" });
     }
 
     // 4. Create the new order with 'offer_pending' status
@@ -159,10 +164,10 @@ export const createCustomOffer = async (req, res) => {
       timeSlot: timeSlot || null,
       jobDescription,
       image: image || null,
-      location: (lat && lng) ? { lat, lng } : null,
+      location: lat && lng ? { lat, lng } : null,
       emergency: emergency || false,
       price,
-      status: 'offer_pending', // This is a seller's offer waiting for buyer's action
+      status: "offer_pending", // This is a seller's offer waiting for buyer's action
       offerFrom: sellerId, // Mark that this order originated as a custom offer
     });
 
@@ -175,10 +180,17 @@ export const createCustomOffer = async (req, res) => {
       "Order"
     );
 
-    res.status(201).json({ message: "Custom offer sent to the buyer successfully", order: newOfferOrder });
+    res
+      .status(201)
+      .json({
+        message: "Custom offer sent to the buyer successfully",
+        order: newOfferOrder,
+      });
   } catch (error) {
     console.error("Error creating custom offer:", error);
-    res.status(500).json({ error: "Failed to create custom offer", details: error.message });
+    res
+      .status(500)
+      .json({ error: "Failed to create custom offer", details: error.message });
   }
 };
 
@@ -196,15 +208,19 @@ export const acceptCustomOffer = async (req, res) => {
       return res.status(400).json({ error: "orderId is required" });
     }
 
-    const order = await Order.findById(orderId).populate('sellerId', 'name');
+    const order = await Order.findById(orderId).populate("sellerId", "name");
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
     if (order.buyerId.toString() !== buyerId) {
-      return res.status(403).json({ error: "You are not authorized to accept this offer" });
+      return res
+        .status(403)
+        .json({ error: "You are not authorized to accept this offer" });
     }
-    if (order.status !== 'offer_pending') {
-      return res.status(400).json({ error: "This offer is not pending acceptance" });
+    if (order.status !== "offer_pending") {
+      return res
+        .status(400)
+        .json({ error: "This offer is not pending acceptance" });
     }
 
     // Check buyer's wallet for sufficient funds before accepting
@@ -247,7 +263,9 @@ export const acceptCustomOffer = async (req, res) => {
     res.json({ message: "Custom offer accepted successfully.", order });
   } catch (error) {
     console.error("Error accepting custom offer:", error);
-    res.status(500).json({ error: "Failed to accept offer", details: error.message });
+    res
+      .status(500)
+      .json({ error: "Failed to accept offer", details: error.message });
   }
 };
 
@@ -265,26 +283,38 @@ export const rejectCustomOffer = async (req, res) => {
       return res.status(400).json({ error: "orderId is required" });
     }
 
-    const order = await Order.findById(orderId).populate('sellerId', 'name');
+    const order = await Order.findById(orderId).populate("sellerId", "name");
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
     if (order.buyerId.toString() !== buyerId) {
-      return res.status(403).json({ error: "You are not authorized to reject this offer" });
+      return res
+        .status(403)
+        .json({ error: "You are not authorized to reject this offer" });
     }
-    if (order.status !== 'offer_pending') {
-      return res.status(400).json({ error: "This offer is not pending rejection" });
+    if (order.status !== "offer_pending") {
+      return res
+        .status(400)
+        .json({ error: "This offer is not pending rejection" });
     }
 
-    order.status = 'rejected'; // The entire order is now rejected.
+    order.status = "rejected"; // The entire order is now rejected.
     await order.save();
 
-    await sendNotification(order.sellerId._id, "booking", `Your custom offer for order #${order._id.toString().slice(-6)} was rejected by the buyer.`, order._id, "Order");
+    await sendNotification(
+      order.sellerId._id,
+      "booking",
+      `Your custom offer for order #${order._id.toString().slice(-6)} was rejected by the buyer.`,
+      order._id,
+      "Order"
+    );
 
     res.json({ message: "Custom offer has been rejected", order });
   } catch (error) {
     console.error("Error rejecting custom offer:", error);
-    res.status(500).json({ error: "Failed to reject offer", details: error.message });
+    res
+      .status(500)
+      .json({ error: "Failed to reject offer", details: error.message });
   }
 };
 
@@ -309,26 +339,41 @@ export const cancelCustomOffer = async (req, res) => {
 
     // 1. Verify ownership
     if (order.sellerId.toString() !== sellerId) {
-      return res.status(403).json({ error: "You are not authorized to cancel this offer" });
+      return res
+        .status(403)
+        .json({ error: "You are not authorized to cancel this offer" });
     }
 
     // 2. Verify status
-    if (order.status !== 'offer_pending') {
-      return res.status(400).json({ error: "Only an offer that is pending can be cancelled" });
+    if (order.status !== "offer_pending") {
+      return res
+        .status(400)
+        .json({ error: "Only an offer that is pending can be cancelled" });
     }
 
     // 3. Change status to 'cancelled' as the offer is withdrawn
-    order.status = 'cancelled';
+    order.status = "cancelled";
     order.canceledAt = new Date();
     await order.save();
 
     // 4. Notify buyer
-    await sendNotification(order.buyerId, "booking", `The seller has withdrawn their custom offer for order #${order._id.toString().slice(-6)}.`, order._id, "Order");
+    await sendNotification(
+      order.buyerId,
+      "booking",
+      `The seller has withdrawn their custom offer for order #${order._id.toString().slice(-6)}.`,
+      order._id,
+      "Order"
+    );
 
-    res.json({ message: "Custom offer has been successfully withdrawn.", order });
+    res.json({
+      message: "Custom offer has been successfully withdrawn.",
+      order,
+    });
   } catch (error) {
     console.error("Error cancelling custom offer:", error);
-    res.status(500).json({ error: "Failed to cancel offer", details: error.message });
+    res
+      .status(500)
+      .json({ error: "Failed to cancel offer", details: error.message });
   }
 };
 
@@ -484,8 +529,10 @@ export const acceptJob = async (req, res) => {
     const job = await Order.findById(id);
 
     // Allow accepting a 'pending' job (for fixed price) or an 'offer_pending' job (for custom offers)
-    if (!job || !['pending', 'offer_pending'].includes(job.status)) {
-      return res.status(400).json({ error: "Job not available for acceptance" });
+    if (!job || !["pending", "offer_pending"].includes(job.status)) {
+      return res
+        .status(400)
+        .json({ error: "Job not available for acceptance" });
     }
 
     job.status = "accepted";
@@ -497,8 +544,12 @@ export const acceptJob = async (req, res) => {
     if (job.price > 0) {
       const buyerWallet = await Wallet.findOne({ userId: job.buyerId });
       if (!buyerWallet) {
-        console.error(`Buyer wallet not found for accepted order ${job._id}. Funds cannot be held.`);
-        return res.status(500).json({ error: "Buyer wallet not found, cannot hold funds." });
+        console.error(
+          `Buyer wallet not found for accepted order ${job._id}. Funds cannot be held.`
+        );
+        return res
+          .status(500)
+          .json({ error: "Buyer wallet not found, cannot hold funds." });
       }
 
       // Check if funds are still sufficient (though already checked at creation, this is a safety)
@@ -506,11 +557,14 @@ export const acceptJob = async (req, res) => {
       // If the balance could have changed externally, a re-check here would be prudent.
       if (buyerWallet.balance < job.price) {
         // This scenario should ideally not happen if initial check was strong and no external debits occurred
-        console.error(`Insufficient funds in buyer wallet for accepted order ${job._id}. Balance: ${buyerWallet.balance}, Price: ${job.price}`);
+        console.error(
+          `Insufficient funds in buyer wallet for accepted order ${job._id}. Balance: ${buyerWallet.balance}, Price: ${job.price}`
+        );
         // Consider reverting job status or marking as payment_failed, but for now, throw error.
-        return res.status(402).json({ error: "Insufficient funds in wallet for holding." });
+        return res
+          .status(402)
+          .json({ error: "Insufficient funds in wallet for holding." });
       }
-
 
       buyerWallet.balance -= job.price;
       buyerWallet.onHoldBalance += job.price;
@@ -530,7 +584,7 @@ export const acceptJob = async (req, res) => {
       "booking",
       `${name || "Seller"} accepted your job request.`,
       job._id,
-      "Order",
+      "Order"
     );
 
     res.json({ message: "Job accepted" });
@@ -569,7 +623,7 @@ export const declineJob = async (req, res) => {
       "booking",
       `Your job request was declined by the seller.`,
       job._id,
-      "Order",
+      "Order"
     );
 
     res.json({ message: "Job declined successfully" });
@@ -616,11 +670,16 @@ export const cancelOrder = async (req, res) => {
     await order.save();
 
     // 💰 Release held funds if the order was accepted and had a price
-    if (order.price > 0 && statusBeforeCancel === "accepted") { // Use the old status for the check
+    if (order.price > 0 && statusBeforeCancel === "accepted") {
+      // Use the old status for the check
       const buyerWallet = await Wallet.findOne({ userId: buyerId });
       if (buyerWallet) {
         const buyerTransaction = buyerWallet.transactions.find(
-          (tx) => tx.orderId && tx.orderId.toString() === orderId.toString() && tx.type === "order_paid" && tx.status === "pending"
+          (tx) =>
+            tx.orderId &&
+            tx.orderId.toString() === orderId.toString() &&
+            tx.type === "order_paid" &&
+            tx.status === "pending"
         );
 
         if (buyerTransaction) {
@@ -629,13 +688,19 @@ export const cancelOrder = async (req, res) => {
           buyerTransaction.status = "cancelled"; // Mark buyer's transaction as cancelled
           await buyerWallet.save();
         } else {
-          console.warn(`Pending transaction not found for cancelled order ${order._id} (status: ${order.status}). Funds not released.`);
+          console.warn(
+            `Pending transaction not found for cancelled order ${order._id} (status: ${order.status}). Funds not released.`
+          );
         }
       } else {
-        console.warn(`Buyer wallet not found for cancelled order ${order._id} (status: ${order.status}). Funds not released.`);
+        console.warn(
+          `Buyer wallet not found for cancelled order ${order._id} (status: ${order.status}). Funds not released.`
+        );
       }
     } else if (order.price > 0 && !["accepted"].includes(order.status)) {
-        console.log(`Order ${order._id} was cancelled before acceptance. No funds were held.`);
+      console.log(
+        `Order ${order._id} was cancelled before acceptance. No funds were held.`
+      );
     }
 
     // ✅ Notify seller (if any)
@@ -645,7 +710,7 @@ export const cancelOrder = async (req, res) => {
         "booking",
         `A job request was canceled by the buyer.`,
         order._id,
-        "Order",
+        "Order"
       );
     }
 
@@ -749,7 +814,7 @@ export const uploadDeliverable = async (req, res) => {
       "booking",
       `${name || "Seller"} has submitted the deliverables for your job.`,
       job._id,
-      "Order",
+      "Order"
     );
 
     res.json({ message: "Work delivered. Awaiting payment." });
@@ -833,7 +898,7 @@ export const rateAndReviewOrder = async (req, res) => {
         "rating",
         `You received a new rating of ${rating}★ from a buyer.`,
         order._id,
-        "Order",
+        "Order"
       );
     }
 
@@ -854,15 +919,15 @@ export const getMyOrders = async (req, res) => {
   try {
     const { id } = req.user;
 
-
     let filter = {};
     filter = {
       $or: [{ buyerId: id }, { sellerId: id }],
     };
 
     const jobs = await Order.find(filter)
-      .populate("buyerId", "name profilePicture")
-      .populate("sellerId", "name profilePicture").populate("gigId", "title price images")
+      .populate("buyerId", "name profilePicture rating")
+      .populate("sellerId", "name profilePicture rating")
+      .populate("gigId", "title price images")
       .sort({ createdAt: -1 });
 
     res.json({ orders: jobs });
@@ -906,7 +971,11 @@ export const completeOrder = async (req, res) => {
       if (buyerWallet && sellerWallet) {
         // Find and update buyer's pending transaction
         const buyerTransaction = buyerWallet.transactions.find(
-          (tx) => tx.orderId && tx.orderId.toString() === order._id.toString() && tx.type === "order_paid" && tx.status === "pending"
+          (tx) =>
+            tx.orderId &&
+            tx.orderId.toString() === order._id.toString() &&
+            tx.type === "order_paid" &&
+            tx.status === "pending"
         );
 
         if (buyerTransaction) {
@@ -926,10 +995,11 @@ export const completeOrder = async (req, res) => {
         await buyerWallet.save();
         await sellerWallet.save();
       } else {
-        console.warn(`Wallets not found for order ${order._id}. Funds not transferred.`);
+        console.warn(
+          `Wallets not found for order ${order._id}. Funds not transferred.`
+        );
       }
-    }
-    else {
+    } else {
       console.log(`Order ${order._id} has no price. No fund transfer needed.`);
     }
 
@@ -939,7 +1009,7 @@ export const completeOrder = async (req, res) => {
       "booking",
       `The buyer has marked your order as completed.`,
       order._id,
-      "Order",
+      "Order"
     );
 
     res.json({ message: "Order marked as completed successfully", order });
