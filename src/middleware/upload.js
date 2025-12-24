@@ -139,50 +139,74 @@ export const compressFiles = async (req, res, next) => {
       const original = file.path;
       const compressed = path.join("temp", `compressed-${file.filename}`);
 
-      if (
-        ["profilePicture", "otherImages", "portfolioImages", "gigImage"].includes(
-          file.fieldname,
-        ) || file.fieldname === "gig_images" // And here
-      ) {
-        await compressImage(original, compressed);
-      } else if (file.fieldname === "videos") {
-        await compressVideo(original, compressed);
-      } else if (file.fieldname === "certificates") {
-        await compressPDF(original, compressed);
-      } else if (file.fieldname === "identityDocument") {
-        if (file.mimetype.startsWith("image/")) {
+      try {
+        // Attempt compression based on file field
+        if (
+          ["profilePicture", "otherImages", "portfolioImages", "gigImage"].includes(
+            file.fieldname,
+          ) ||
+          file.fieldname === "gig_images" // And here
+        ) {
           await compressImage(original, compressed);
-        } else {
-          await compressPDF(original, compressed);
-        }
-      } else if (file.fieldname === "attachment") {
-        if (file.mimetype.startsWith("image/")) {
-          await compressImage(original, compressed);
-        } else if (file.mimetype.startsWith("video/")) {
+        } else if (file.fieldname === "videos") {
           await compressVideo(original, compressed);
-        } else {
+        } else if (file.fieldname === "certificates") {
           await compressPDF(original, compressed);
+        } else if (file.fieldname === "identityDocument") {
+          if (file.mimetype.startsWith("image/")) {
+            await compressImage(original, compressed);
+          } else {
+            await compressPDF(original, compressed);
+          }
+        } else if (file.fieldname === "attachment") {
+          if (file.mimetype.startsWith("image/")) {
+            await compressImage(original, compressed);
+          } else if (file.mimetype.startsWith("video/")) {
+            await compressVideo(original, compressed);
+          } else {
+            await compressPDF(original, compressed);
+          }
+        } else {
+          // Unknown field - just copy original to compressed path
+          await fs.copyFile(original, compressed);
+        }
+
+        // Move compressed to uploads
+        const finalPath = await moveToUploads(
+          file.fieldname,
+          path.basename(compressed),
+        );
+        await fs.rename(compressed, finalPath);
+
+        // Update file info for controller
+        file.finalPath = finalPath;
+        // ✅ Generate URL matching the new /api/files/:folder/:filename route
+        file.url = `/api/files/${folderMap[file.fieldname]}/${path.basename(compressed)}`;
+        file.size = (await fs.stat(finalPath)).size;
+
+        // Remove original temp file
+        await fs.unlink(original).catch((err) => {
+          // ✅ Log cleanup errors instead of ignoring them
+          console.error(`⚠️ Failed to delete temp file: ${original}`, err);
+        });
+      } catch (compressErr) {
+        // Compress step failed (common on Windows if ffmpeg not found). Fallback: move original file as-is to uploads.
+        console.error("Compression failed for file", file.filename, compressErr);
+        try {
+          const finalPath = await moveToUploads(file.fieldname, file.filename);
+          await fs.rename(original, finalPath);
+          file.finalPath = finalPath;
+          file.url = `/api/files/${folderMap[file.fieldname]}/${path.basename(finalPath)}`;
+          file.size = (await fs.stat(finalPath)).size;
+        } catch (moveErr) {
+          console.error("Failed to move original file to uploads fallback:", moveErr);
+          // If we cannot move the file, return an error to the client
+          return res.status(500).json({
+            error: "File processing failed",
+            details: moveErr.message,
+          });
         }
       }
-
-      // Move to uploads folder
-      const finalPath = await moveToUploads(
-        file.fieldname,
-        path.basename(compressed),
-      );
-      await fs.rename(compressed, finalPath);
-
-      // Update file info for controller
-      file.finalPath = finalPath;
-      // ✅ Generate URL matching the new /api/files/:folder/:filename route
-      file.url = `/api/files/${folderMap[file.fieldname]}/${path.basename(compressed)}`;
-      file.size = (await fs.stat(finalPath)).size;
-
-      // Clean up temp
-      await fs.unlink(original).catch((err) => {
-        // ✅ Log cleanup errors instead of ignoring them
-        console.error(`⚠️ Failed to delete temp file: ${original}`, err);
-      });
     }
 
     next();

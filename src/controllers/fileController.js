@@ -4,7 +4,9 @@ import User from "../models/User.js";
 import Message from "../models/Message.js";
 import Report from "../models/Report.js";
 
-const privateFolders = ["identity", "chat"];
+// Keep truly private folders protected (identity). Chat files are served publicly so
+// image URLs returned in messages can be loaded directly by browsers via <img src="...">.
+const privateFolders = ["identity"];
 
 export const serveFile = async (req, res) => {
   try {
@@ -53,6 +55,11 @@ export const serveFile = async (req, res) => {
           return res.status(403).json({ error: "Forbidden" });
         }
       }
+    }
+
+    // If folder is 'chat' we intentionally allow public access so images can load in browsers
+    if (folder === 'chat') {
+      console.log(`Serving public chat file: ${filename}`);
     }
 
     // Serve file if exists

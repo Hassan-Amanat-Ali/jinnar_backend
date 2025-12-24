@@ -19,7 +19,6 @@ const messageSchema = new mongoose.Schema(
       type: { type: String, enum: ["image", "video"] },
     },
     isRead: { type: Boolean, default: false },
-    // --- NEW: For sending custom offers in chat ---
     customOffer: {
       orderId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -33,7 +32,7 @@ const messageSchema = new mongoose.Schema(
       },
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 messageSchema.index({ sender: 1, receiver: 1 });
