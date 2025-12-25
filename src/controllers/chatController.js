@@ -19,12 +19,10 @@ class ChatController {
           .status(400)
           .json({ success: false, message: "Receiver ID is required" });
       if (!message?.trim() && !req.file)
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: "Message or attachment is required",
-          });
+        return res.status(400).json({
+          success: false,
+          message: "Message or attachment is required",
+        });
 
       let attachment = null;
 
@@ -70,13 +68,11 @@ class ChatController {
         global.io.to(receiverId).emit("updateChatList", preview);
 
         // Send preview to sender (so their list updates too)
-        global.io
-          .to(senderId)
-          .emit("updateChatList", {
-            ...preview,
-            userId: receiverId,
-            unreadCount: 0,
-          });
+        global.io.to(senderId).emit("updateChatList", {
+          ...preview,
+          userId: receiverId,
+          unreadCount: 0,
+        });
       }
 
       // --- B. PUSH NOTIFICATION ---
@@ -91,7 +87,7 @@ class ChatController {
         "message", // Type
         `New message from ${populatedMessage.sender.name}: ${notifContent}`, // Content
         newMessage._id, // Related ID
-        "Message", // Related Model
+        "Message" // Related Model
       );
 
       return res.json({
@@ -123,21 +119,34 @@ class ChatController {
       if (!receiverId || !gigId || !price || !jobDescription || !date) {
         return res.status(400).json({
           success: false,
-          message: "receiverId, gigId, price, jobDescription, and date are required.",
+          message:
+            "receiverId, gigId, price, jobDescription, and date are required.",
         });
       }
 
       if (isNaN(price) || price <= 0) {
-        return res.status(400).json({ success: false, message: "Price must be a positive number." });
+        return res
+          .status(400)
+          .json({
+            success: false,
+            message: "Price must be a positive number.",
+          });
       }
 
       // 2. Verify Gig
       const gig = await Gig.findById(gigId);
       if (!gig) {
-        return res.status(404).json({ success: false, message: "Gig not found." });
+        return res
+          .status(404)
+          .json({ success: false, message: "Gig not found." });
       }
       if (gig.sellerId.toString() !== sellerId) {
-        return res.status(403).json({ success: false, message: "You can only create offers for your own gigs." });
+        return res
+          .status(403)
+          .json({
+            success: false,
+            message: "You can only create offers for your own gigs.",
+          });
       }
 
       // 3. Create the Order document with 'offer_pending' status
@@ -148,7 +157,7 @@ class ChatController {
         price,
         jobDescription,
         date,
-        status: 'offer_pending',
+        status: "offer_pending",
         offerFrom: sellerId, // Mark as a seller-initiated offer
       });
 
@@ -161,7 +170,7 @@ class ChatController {
           orderId: newOrder._id,
           price: price,
           description: jobDescription,
-          status: 'pending',
+          status: "pending",
         },
       });
 
@@ -183,13 +192,13 @@ class ChatController {
         newOrder._id,
         "Order"
       );
+      console.log(populatedMessage);
 
       return res.status(201).json({
         success: true,
         message: "Custom offer sent successfully.",
         data: populatedMessage,
       });
-
     } catch (error) {
       console.error("Send Custom Offer Error:", error);
       return res.status(500).json({
@@ -199,7 +208,6 @@ class ChatController {
       });
     }
   }
-
 
   // 2. Get Conversation
   static async getConversation(req, res) {
@@ -220,7 +228,7 @@ class ChatController {
       // Mark as read
       await Message.updateMany(
         { sender: otherUserId, receiver: userId, isRead: false },
-        { isRead: true },
+        { isRead: true }
       );
 
       return res.json({ success: true, messages });

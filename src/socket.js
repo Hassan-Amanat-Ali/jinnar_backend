@@ -91,6 +91,44 @@ const setupSocket = (server) => {
       });
     });
 
+    socket.on("sendOffer", async (data, callback) => {
+      const { receiverId, gigId, price, jobDescription, tempId } = data;
+      const senderId = userId;
+
+      try {
+        if (!receiverId || !gigId || !price || !jobDescription) {
+          throw new Error("All fields are required for custom offer");
+        }
+
+        // Save as a Message in DB
+        const newOfferMessage = await Message.create({
+          sender: senderId,
+          receiver: receiverId,
+          message: `[Custom Offer] TZS ${price}`,
+          customOffer: {
+            gigId,
+            price,
+            description: jobDescription,
+          },
+        });
+
+        const populated = await Message.findById(newOfferMessage._id)
+          .populate("sender", "name avatar")
+          .populate("receiver", "name avatar");
+
+        // Emit to both users
+        io.to(receiverId).emit("newOffer", populated);
+        io.to(senderId).emit("newOffer", populated);
+
+        updateChatListForBoth(senderId, receiverId, populated);
+
+        callback?.({ status: "ok", data: populated, tempId });
+      } catch (err) {
+        console.error(`[Socket] sendOffer error: ${err.message}`);
+        callback?.({ status: "error", error: err.message, tempId });
+      }
+    });
+
     socket.on("disconnect", () => {
       const userSockets = onlineUsers.get(userId);
 

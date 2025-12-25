@@ -5,6 +5,7 @@ import User from "../models/User.js";
 import { getUserWallet } from "./walletController.js";
 import Wallet from "../models/Wallet.js"; // Import Wallet model
 import { sendNotification } from "./notificationController.js";
+import Message from "../models/Message.js";
 
 // ───────────────────────────────────────
 // 1. CREATE JOB REQUEST (Buyer)
@@ -134,11 +135,9 @@ export const createCustomOffer = async (req, res) => {
 
     // 1. Validate required fields for creating a new job offer
     if (!gigId || !buyerId || !date || !jobDescription || !price) {
-      return res
-        .status(400)
-        .json({
-          error: "gigId, buyerId, date, jobDescription, and price are required",
-        });
+      return res.status(400).json({
+        error: "gigId, buyerId, date, jobDescription, and price are required",
+      });
     }
 
     // 2. Validate price
@@ -180,12 +179,10 @@ export const createCustomOffer = async (req, res) => {
       "Order"
     );
 
-    res
-      .status(201)
-      .json({
-        message: "Custom offer sent to the buyer successfully",
-        order: newOfferOrder,
-      });
+    res.status(201).json({
+      message: "Custom offer sent to the buyer successfully",
+      order: newOfferOrder,
+    });
   } catch (error) {
     console.error("Error creating custom offer:", error);
     res
@@ -202,22 +199,38 @@ export const createCustomOffer = async (req, res) => {
 export const acceptCustomOffer = async (req, res) => {
   try {
     const { id: buyerId } = req.user;
-    const { orderId } = req.body;
+    const { orderId, messageId } = req.body;
 
     if (!orderId) {
       return res.status(400).json({ error: "orderId is required" });
     }
 
+    if (!messageId) {
+      return res.status(400).json({ error: "messageId is required" });
+    }
+
     const order = await Order.findById(orderId).populate("sellerId", "name");
+
+    console.log("Is updating running");
+
+    const data = await Message.updateOne(
+      { _id: messageId },
+      { "customOffer.status": "accepted" }
+    );
+
+    console.log("Update data ", data);
+
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
+
     if (order.buyerId.toString() !== buyerId) {
       return res
         .status(403)
         .json({ error: "You are not authorized to accept this offer" });
     }
     if (order.status !== "offer_pending") {
+      console.log("Getting error from there ", order.status);
       return res
         .status(400)
         .json({ error: "This offer is not pending acceptance" });
