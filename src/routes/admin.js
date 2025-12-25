@@ -113,6 +113,38 @@ router.get(
   AdminAuthController.getMe
 );
 
+// Update My Profile (Name)
+router.put(
+  "/me/profile",
+  protect,
+  authorize(["support", "supervisor", "super_admin"]),
+  AdminAuthController.updateProfile
+);
+
+// Change My Password
+router.put(
+  "/me/password",
+  protect,
+  authorize(["support", "supervisor", "super_admin"]),
+  AdminAuthController.changePassword
+);
+
+// Initiate Email Update (Send OTP)
+router.post(
+  "/me/email/initiate",
+  protect,
+  authorize(["support", "supervisor", "super_admin"]),
+  AdminAuthController.initiateEmailUpdate
+);
+
+// Verify Email Update (Verify OTP & Change Email)
+router.post(
+  "/me/email/verify",
+  protect,
+  authorize(["support", "supervisor", "super_admin"]),
+  AdminAuthController.verifyEmailUpdate
+);
+
 // =============================================================================
 // 2. SUPER ADMIN: TEAM MANAGEMENT (NEW!)
 // =============================================================================

@@ -90,6 +90,16 @@ const userSchema = new mongoose.Schema(
       type: pointSchema,
       default: null,
     },
+    preferences: {
+  emailNotifications: { type: Boolean, default: true },
+  inAppNotifications: { type: Boolean, default: true },
+  twoFactorAuth: { type: Boolean, default: false },
+  language: { type: String, default: "en" } // ISO 639-1 codes
+},
+    lastLogin: {
+      type: Date,
+      default: null,
+    },
 
     // --- VERIFICATION & STATUS ---
     isVerified: {
