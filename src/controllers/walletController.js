@@ -345,6 +345,67 @@ class WalletController {
       });
     }
   }
+
+  // Get earnings data for charts
+  static async getEarnings(req, res) {
+    const userId = req.user.id;
+
+    try {
+      const wallet = await getUserWallet(userId);
+
+      // Get current month start and end dates
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+      // Filter completed order_earned transactions for current month
+      const earningTransactions = wallet.transactions.filter(tx => 
+        tx.type === 'order_earned' && 
+        tx.status === 'completed' &&
+        tx.createdAt >= monthStart &&
+        tx.createdAt <= monthEnd
+      );
+
+      // Calculate total monthly earnings
+      const monthlyEarnings = earningTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+
+      // Group earnings by week
+      const weeklyEarnings = [];
+      const weeksInMonth = Math.ceil(monthEnd.getDate() / 7);
+
+      for (let week = 0; week < weeksInMonth; week++) {
+        const weekStart = new Date(now.getFullYear(), now.getMonth(), week * 7 + 1);
+        const weekEnd = new Date(now.getFullYear(), now.getMonth(), (week + 1) * 7, 23, 59, 59);
+
+        const weekEarnings = earningTransactions
+          .filter(tx => tx.createdAt >= weekStart && tx.createdAt <= weekEnd)
+          .reduce((sum, tx) => sum + tx.amount, 0);
+
+        weeklyEarnings.push({
+          week: week + 1,
+          amount: weekEarnings,
+          startDate: weekStart,
+          endDate: weekEnd > monthEnd ? monthEnd : weekEnd
+        });
+      }
+
+      res.json({
+        success: true,
+        data: {
+          monthlyEarnings,
+          weeklyEarnings,
+          totalTransactions: earningTransactions.length
+        }
+      });
+    } catch (err) {
+      logger.error("Error fetching earnings data", err);
+      res.status(500).json({
+        success: false,
+        message: "Server error",
+        error: err.message,
+      });
+    }
+  }
 }
 
 export default WalletController;

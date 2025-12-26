@@ -180,8 +180,35 @@ class ChatController {
 
       // 5. Emit Socket.IO event for real-time update
       if (global.io) {
+        // Emit both newOffer (used by worker frontend) and newMessage (used by other places)
+        global.io.to(receiverId).emit("newOffer", populatedMessage);
+        global.io.to(sellerId).emit("newOffer", populatedMessage);
+
+        // Also emit newMessage for compatibility with consumers listening for newMessage
         global.io.to(receiverId).emit("newMessage", populatedMessage);
         global.io.to(sellerId).emit("newMessage", populatedMessage);
+
+        // Update chat list preview for both parties so sidebar updates immediately
+        const preview = {
+          userId:
+            sellerId === (populatedMessage.sender?._id || populatedMessage.sender)?._id?.toString()
+              ? populatedMessage.receiver._id
+              : populatedMessage.sender._id,
+          lastMessage: populatedMessage.message || "Custom offer",
+          lastTime: populatedMessage.createdAt,
+          lastAttachment: populatedMessage.attachment,
+          unreadCount: 1,
+        };
+
+        // Send preview to receiver (buyer)
+        global.io.to(receiverId).emit("updateChatList", preview);
+
+        // Send preview to seller (sender) — set unreadCount to 0 for the sender
+        global.io.to(sellerId).emit("updateChatList", {
+          ...preview,
+          userId: receiverId,
+          unreadCount: 0,
+        });
       }
 
       // 6. Send Push Notification to the buyer

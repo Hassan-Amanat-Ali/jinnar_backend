@@ -13,6 +13,7 @@ router.use(protect);
 router.post("/deposit", WalletController.deposit);
 router.post("/withdraw", WalletController.payout);
 router.get("/balance", WalletController.getBalance);
+router.get("/earnings", WalletController.getEarnings);
 
 // Payout monitoring endpoints (protected)
 router.get("/payout-status/:payoutId", WalletController.checkPayoutStatus);

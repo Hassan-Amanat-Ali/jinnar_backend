@@ -1046,9 +1046,16 @@ export const getOrderById = async (req, res) => {
 
     // Fetch order with populated buyer and seller
     const order = await Order.findById(id)
-      .populate("buyerId", "name profilePicture email mobileNumber")
+      .populate("buyerId", "name profilePicture email mobileNumber rating")
       .populate("sellerId", "name profilePicture")
-      .populate("gigId", "title price skills images");
+      .populate({
+        path: "gigId",
+        select: "title pricing skills images category primarySubcategory",
+        populate: [
+          { path: "category", select: "name" },
+          { path: "primarySubcategory", select: "name" }
+        ]
+      });
 
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
@@ -1074,11 +1081,57 @@ export const getSellerQuickStats = async (req, res) => {
   try {
     const { id: sellerId } = req.user;
 
-    // 1. Completed Jobs
+    // Get current month and last month date ranges
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+    // 1. Completed Jobs - Current Total
     const completedJobsCount = await Order.countDocuments({
       sellerId: sellerId,
       status: "completed",
     });
+
+
+    // Completed jobs this month (use completedAt if available, otherwise createdAt)
+    const completedThisMonth = await Order.countDocuments({
+      sellerId: sellerId,
+      status: "completed",
+      $or: [
+        { completedAt: { $gte: currentMonthStart } },
+        { completedAt: { $exists: false }, createdAt: { $gte: currentMonthStart } }
+      ]
+    });
+
+    // Completed jobs last month
+    const completedLastMonth = await Order.countDocuments({
+      sellerId: sellerId,
+      status: "completed",
+      $or: [
+        { completedAt: { $gte: lastMonthStart, $lte: lastMonthEnd } },
+        { completedAt: { $exists: false }, createdAt: { $gte: lastMonthStart, $lte: lastMonthEnd } }
+      ]
+    });
+
+    console.log('Growth Calculation Debug:', {
+      totalCompleted: completedJobsCount,
+      completedThisMonth,
+      completedLastMonth,
+      currentMonthStart,
+      lastMonthStart,
+      lastMonthEnd
+    });
+
+    // Calculate jobs completed growth percentage
+    let jobsGrowthPercentage = null;
+    if (completedLastMonth > 0) {
+      jobsGrowthPercentage = ((completedThisMonth - completedLastMonth) / completedLastMonth) * 100;
+      jobsGrowthPercentage = parseFloat(jobsGrowthPercentage.toFixed(1));
+    } else if (completedThisMonth > 0) {
+      // If there were no jobs last month but there are this month, show 100% growth
+      jobsGrowthPercentage = 100;
+    }
 
     // 2. Active Jobs (accepted status)
     const activeJobsCount = await Order.countDocuments({
@@ -1099,10 +1152,47 @@ export const getSellerQuickStats = async (req, res) => {
       }
     });
 
+    // 4. Rating Growth - Get seller's current rating and calculate growth
+    const seller = await User.findById(sellerId);
+    let ratingGrowthPercentage = null;
+    
+    if (seller && seller.reviews && seller.reviews.length > 0) {
+      // Get reviews from this month
+      const reviewsThisMonth = seller.reviews.filter(review => {
+        const reviewDate = review.createdAt || new Date(0);
+        return reviewDate >= currentMonthStart;
+      });
+
+      // Get reviews from last month
+      const reviewsLastMonth = seller.reviews.filter(review => {
+        const reviewDate = review.createdAt || new Date(0);
+        return reviewDate >= lastMonthStart && reviewDate <= lastMonthEnd;
+      });
+
+      // Calculate average ratings
+      const avgThisMonth = reviewsThisMonth.length > 0
+        ? reviewsThisMonth.reduce((sum, r) => sum + (r.rating || 0), 0) / reviewsThisMonth.length
+        : 0;
+
+      const avgLastMonth = reviewsLastMonth.length > 0
+        ? reviewsLastMonth.reduce((sum, r) => sum + (r.rating || 0), 0) / reviewsLastMonth.length
+        : 0;
+
+      // Calculate growth percentage
+      if (avgLastMonth > 0) {
+        ratingGrowthPercentage = ((avgThisMonth - avgLastMonth) / avgLastMonth) * 100;
+        ratingGrowthPercentage = parseFloat(ratingGrowthPercentage.toFixed(1));
+      } else if (avgThisMonth > 0) {
+        ratingGrowthPercentage = 100;
+      }
+    }
+
     res.json({
       completedJobs: completedJobsCount,
       activeJobs: activeJobsCount,
       pendingEarning: pendingEarning,
+      jobsGrowthPercentage: jobsGrowthPercentage,
+      ratingGrowthPercentage: ratingGrowthPercentage,
     });
   } catch (error) {
     console.error("Error fetching seller quick stats:", error);
