@@ -947,12 +947,16 @@ export const getPublicProfile = async (req, res) => {
     const { id } = req.params;
 
     // Fetch user
-    const user = await User.findById(id).select(`
+    const user = await User.findById(id)
+      .select(`
         name role bio profilePicture address location
         skills languages yearsOfExperience 
         selectedAreas portfolioImages videos certificates
         rating wallet.balance availability createdAt
-      `);
+        categories subcategories
+      `)
+      .populate("categories", "name")
+      .populate("subcategories", "name");
 
     if (!user) {
       return res.status(404).json({ error: "User not found" });
@@ -962,7 +966,10 @@ export const getPublicProfile = async (req, res) => {
     const gigs = await Gig.find({
       sellerId: id,
       status: "active",
-    }).select("title description images pricing status createdAt");
+    })
+      .select("title description images pricing status createdAt category primarySubcategory")
+      .populate("category", "name")
+      .populate("primarySubcategory", "name");
 
     // Count completed orders
     const completedOrdersCount = await Order.countDocuments({
@@ -1008,6 +1015,8 @@ export const getPublicProfile = async (req, res) => {
       address: user.address, // Add address
       location: user.location, // Add location
       skills: user.skills || [],
+      categories: user.categories || [],
+      subcategories: user.subcategories || [],
       languages: user.languages || [],
       yearsOfExperience: user.yearsOfExperience || 0,
       selectedAreas: user.selectedAreas || [],
