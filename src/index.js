@@ -5,7 +5,6 @@ import bodyParser from 'body-parser';
 import connectDb from './config/db.js';
 import rateLimit from 'express-rate-limit';
 import morgan from 'morgan';
-import YAML from 'yamljs';
 import swaggerUi from 'swagger-ui-express';
 import apiRoutes from './routes/api.js';
 import cors from 'cors';
@@ -19,6 +18,7 @@ import { initializeRecommendationEngine } from './services/recommendationService
 import agenda from './config/agenda.js';
 import PayoutMonitorService from './services/payoutMonitorService.js';
 import '../scripts/ticket-maintenance.js';
+import swaggerSpec from './config/swagger.js';
 
 
 const app = express();
@@ -81,11 +81,8 @@ if (process.env.NODE_ENV === 'production') {
   // app.use(helmet()); // Add security headers
 }
 
-//Load Swager YAML
-const swaggerDoc = YAML.load('./src/config/swagger.yaml');
-
 //Serve Swagger UI
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 
 //Routes

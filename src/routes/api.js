@@ -1,5 +1,7 @@
 import express from "express";
 import pawapayCallbackRoutes from "./pawapayCallback.js";
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "../config/swagger.js";
 import { serveFile } from "../controllers/fileController.js"; // ✅ Import the new file server
 
 import authRoutes from "./auth.js";
@@ -20,8 +22,16 @@ import categoryRoutes from "./category.js";
 import paymentRoutes from "./payment.js";
 import gigRoutes from "./gig.js";
 import imageRoutes from "./image.js"; // Import the refactored legacy image route
+import systemConfigRoutes from "./systemConfig.js";
+// import { checkMaintenanceMode } from "../middleware/maintenance.js";
 
 const router = express.Router();
+
+// ✅ Apply Maintenance Mode Check Globally
+// router.use(checkMaintenanceMode);
+
+// ✅ Swagger Documentation Route
+router.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // ✅ Add the new file serving route and protect it
 router.get("/files/:folder/:filename", serveFile);
@@ -42,6 +52,7 @@ router.use("/r", recommendationRoutes);
 router.use("/support", supportRoutes);
 router.use("/admin", adminRoutes);
 router.use("/payment", paymentRoutes);
+router.use("/config", systemConfigRoutes);
 
 router.use("/gigs", gigRoutes);
 router.use("/categories", categoryRoutes);

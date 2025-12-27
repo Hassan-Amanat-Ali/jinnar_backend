@@ -26,3 +26,5 @@ systemConfigSchema.statics.getConfig = async function() {
   }
   return config;
 };
+
+export default mongoose.model("SystemConfig", systemConfigSchema);
