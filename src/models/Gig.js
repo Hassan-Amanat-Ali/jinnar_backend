@@ -69,16 +69,34 @@ const gigSchema = new mongoose.Schema(
       },
     },
     pricing: {
-      method: {
-        type: String,
-        enum: ["fixed", "hourly", "negotiable"],
-        required: [true, "Pricing method is required"],
+      fixed: {
+        enabled: {
+          type: Boolean,
+          default: false,
+        },
+        price: {
+          type: Number,
+          min: [0, "Fixed price cannot be negative"],
+        },
       },
-      price: {
-        type: Number,
-        min: [0, "Price cannot be negative"],
-        required: function () {
-          return this.pricing?.method !== "negotiable";
+      hourly: {
+        enabled: {
+          type: Boolean,
+          default: false,
+        },
+        rate: {
+          type: Number,
+          min: [0, "Hourly rate cannot be negative"],
+        },
+        minHours: {
+          type: Number,
+          min: [0, "Minimum hours cannot be negative"],
+        },
+      },
+      inspection: {
+        enabled: {
+          type: Boolean,
+          default: true, // Inspection is always available by default
         },
       },
     },
@@ -104,5 +122,26 @@ const gigSchema = new mongoose.Schema(
 );
 
 gigSchema.index({ location: "2dsphere" });
+
+// Validation: At least one pricing option must be enabled
+gigSchema.pre('save', function(next) {
+  const hasAtLeastOneOption = 
+    this.pricing.fixed.enabled || 
+    this.pricing.hourly.enabled || 
+    this.pricing.inspection.enabled;
+  
+  if (!hasAtLeastOneOption) {
+    next(new Error('At least one pricing option must be enabled'));
+  } else {
+    // Validate that enabled options have required fields
+    if (this.pricing.fixed.enabled && !this.pricing.fixed.price) {
+      next(new Error('Fixed price is required when fixed pricing is enabled'));
+    } else if (this.pricing.hourly.enabled && !this.pricing.hourly.rate) {
+      next(new Error('Hourly rate is required when hourly pricing is enabled'));
+    } else {
+      next();
+    }
+  }
+});
 
 export default mongoose.model("Gig", gigSchema);

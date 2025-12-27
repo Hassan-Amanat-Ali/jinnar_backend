@@ -238,8 +238,13 @@ export const createGig = async (req, res, next) => {
     const {
       title,
       description,
-      pricingMethod,
-      price,
+      // New pricing structure
+      fixedEnabled,
+      fixedPrice,
+      hourlyEnabled,
+      hourlyRate,
+      minHours,
+      inspectionEnabled,
       categoryId,
       primarySubcategory,
       extraSubcategories = [], // Default to empty array
@@ -264,14 +269,24 @@ export const createGig = async (req, res, next) => {
         }
     }
 
-    // ✅ Create gig
+    // ✅ Create gig with new pricing structure
     const gig = new Gig({
       sellerId: id,
       title,
       description,
       pricing: {
-        method: pricingMethod,
-        price: pricingMethod === "negotiable" ? undefined : price,
+        fixed: {
+          enabled: fixedEnabled || false,
+          price: fixedEnabled ? fixedPrice : undefined,
+        },
+        hourly: {
+          enabled: hourlyEnabled || false,
+          rate: hourlyEnabled ? hourlyRate : undefined,
+          minHours: hourlyEnabled && minHours ? minHours : undefined,
+        },
+        inspection: {
+          enabled: inspectionEnabled !== undefined ? inspectionEnabled : true,
+        },
       },
       address, // Add address
       location, // Add location
@@ -393,8 +408,13 @@ export const updateGig = async (req, res, next) => {
     const {
       title,
       description,
-      pricingMethod,
-      price,
+      // New pricing structure
+      fixedEnabled,
+      fixedPrice,
+      hourlyEnabled,
+      hourlyRate,
+      minHours,
+      inspectionEnabled,
       primarySubcategory,
       extraSubcategories,
       address,
@@ -472,17 +492,32 @@ export const updateGig = async (req, res, next) => {
       if (extraSubcategories) gig.extraSubcategories = extraSubcategories;
     }
 
-    // ✅ PRICING
-    if (pricingMethod !== undefined) {
-      gig.pricing.method = pricingMethod;
-      if (pricingMethod === "negotiable") {
-        gig.pricing.price = undefined;
-      } else if (price !== undefined) {
-        if (price < 0) {
-          return res.status(400).json({ error: "Price cannot be negative" });
-        }
-        gig.pricing.price = price;
+    // ✅ PRICING - New multi-option structure
+    // Update fixed pricing
+    if (fixedEnabled !== undefined) {
+      gig.pricing.fixed.enabled = fixedEnabled;
+      if (fixedEnabled && fixedPrice !== undefined) {
+        gig.pricing.fixed.price = fixedPrice;
       }
+    } else if (fixedPrice !== undefined && gig.pricing.fixed.enabled) {
+      gig.pricing.fixed.price = fixedPrice;
+    }
+
+    // Update hourly pricing
+    if (hourlyEnabled !== undefined) {
+      gig.pricing.hourly.enabled = hourlyEnabled;
+      if (hourlyEnabled) {
+        if (hourlyRate !== undefined) gig.pricing.hourly.rate = hourlyRate;
+        if (minHours !== undefined) gig.pricing.hourly.minHours = minHours;
+      }
+    } else if (gig.pricing.hourly.enabled) {
+      if (hourlyRate !== undefined) gig.pricing.hourly.rate = hourlyRate;
+      if (minHours !== undefined) gig.pricing.hourly.minHours = minHours;
+    }
+
+    // Update inspection pricing
+    if (inspectionEnabled !== undefined) {
+      gig.pricing.inspection.enabled = inspectionEnabled;
     }
 
     // ✅ IMAGES (raw JSON array of URLs)

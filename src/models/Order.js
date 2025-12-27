@@ -61,6 +61,11 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    selectedPricingMethod: {
+      type: String,
+      enum: ["fixed", "hourly", "inspection"],
+      required: true,
+    },
   },
   { timestamps: true },
 );

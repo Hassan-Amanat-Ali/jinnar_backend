@@ -24,12 +24,13 @@ export const createJobRequest = async (req, res) => {
       lat,
       lng,
       emergency,
+      selectedPricingMethod,
     } = req.body;
 
     // ✅ Validation
-    if (!gigId || !date || !timeSlot || !jobDescription || !lat || !lng) {
+    if (!gigId || !date || !timeSlot || !jobDescription || !lat || !lng || !selectedPricingMethod) {
       return res.status(400).json({
-        error: "gigId, date, timeSlot, description, lat, lng are required",
+        error: "gigId, date, timeSlot, description, lat, lng, and selectedPricingMethod are required",
       });
     }
 
@@ -48,17 +49,24 @@ export const createJobRequest = async (req, res) => {
 
     const EMERGENCY_FEE = 15;
     let jobPrice = 0;
+    let basePrice = 0;
 
-    // ✅ Pricing logic
-    if (gig.pricing && gig.pricing.method === "fixed") {
-      jobPrice = gig.pricing.price;
+    // ✅ Pricing logic based on selected pricing method
+    if (selectedPricingMethod === "fixed") {
+      if (!gig.pricing?.fixed?.enabled || !gig.pricing.fixed.price) {
+        return res.status(400).json({
+          error: "Fixed pricing is not available for this gig"
+        });
+      }
+      basePrice = gig.pricing.fixed.price;
+      jobPrice = basePrice;
 
       // 👉 Add emergency surcharge
       if (emergency === true) {
         jobPrice += EMERGENCY_FEE;
       }
 
-      // ✅ Wallet check
+      // ✅ Wallet check for fixed pricing
       const buyerWallet = await Wallet.findOne({ userId: buyerId });
       if (!buyerWallet) {
         return res.status(404).json({ error: "Buyer wallet not found" });
@@ -70,6 +78,29 @@ export const createJobRequest = async (req, res) => {
           message: `Your balance is ${buyerWallet.balance}, but the job requires ${jobPrice}`,
         });
       }
+    } else if (selectedPricingMethod === "hourly") {
+      if (!gig.pricing?.hourly?.enabled || !gig.pricing.hourly.rate) {
+        return res.status(400).json({
+          error: "Hourly pricing is not available for this gig"
+        });
+      }
+      // For hourly pricing, we don't charge upfront
+      // Price will be calculated after job completion based on actual hours
+      basePrice = gig.pricing.hourly.rate;
+      jobPrice = 0; // No upfront payment for hourly
+    } else if (selectedPricingMethod === "inspection") {
+      if (!gig.pricing?.inspection?.enabled) {
+        return res.status(400).json({
+          error: "Inspection-based pricing is not available for this gig"
+        });
+      }
+      // For inspection-based, no upfront payment
+      // Worker will provide quote after inspection
+      jobPrice = 0;
+    } else {
+      return res.status(400).json({
+        error: "Invalid pricing method selected"
+      });
     }
 
     // ✅ Create order
@@ -83,7 +114,8 @@ export const createJobRequest = async (req, res) => {
       image: image || null,
       location: { lat, lng },
       emergency: emergency || false,
-      basePrice: gig.pricing?.price || 0,
+      selectedPricingMethod,
+      basePrice: basePrice,
       emergencyFee: emergency ? EMERGENCY_FEE : 0,
       price: jobPrice,
     });
