@@ -58,6 +58,7 @@ export const findWorkers = asyncHandler(async (req, res) => {
     sortOrder = "desc",
     page = 1,
     limit = 10,
+    search, // Add search parameter
   } = req.query;
 
   let parsedLat = null;
@@ -93,6 +94,17 @@ export const findWorkers = asyncHandler(async (req, res) => {
     role: "seller",
     isSuspended: false,
   };
+
+  // -------------------------
+  // Search filter (optional)
+  // -------------------------
+  if (search && search.trim()) {
+    const searchRegex = new RegExp(search.trim(), "i"); // Case-insensitive search
+    query.$or = [
+      { name: searchRegex }, // Search by worker name
+      { "categories.name": searchRegex }, // Search by category name (will need population)
+    ];
+  }
 
   // -------------------------
   // Skills filter (optional)
@@ -1095,6 +1107,15 @@ export const getMyProfile = async (req, res) => {
       //   status: "active",
     }).select("title description images pricing status createdAt");
 
+    // Calculate completed jobs count for workers
+    let completedJobsCount = 0;
+    if (user.role === "seller") {
+      completedJobsCount = await Order.countDocuments({
+        workerId: id,
+        status: "completed",
+      });
+    }
+
     // Structure response
     const profile = {
       _id: user._id,
@@ -1120,6 +1141,7 @@ export const getMyProfile = async (req, res) => {
       videos: user.videos || [],
       certificates: user.certificates || [],
       rating: user.rating || { average: 0, count: 0 },
+      completedJobs: completedJobsCount, // <-- ADDED
       wallet: {
         balance: user.wallet?.balance || 0,
         recentTransactions: user.wallet?.transactions?.slice(0, 10) || [],

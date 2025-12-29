@@ -124,8 +124,12 @@ export const searchGigs = async (req, res) => {
 }
     );
 
-    // --- STAGE 4: FILTER BY SELLER STATS ---
+    // --- STAGE 4: FILTER BY SELLER STATS & VERIFICATION ---
     const sellerMatch = {};
+    
+    // CRITICAL: Only show gigs from verified workers
+    sellerMatch["sellerInfo.verificationStatus"] = "approved";
+    
     if (minRating) {
       sellerMatch["sellerInfo.rating.average"] = { $gte: Number(minRating) };
     }
@@ -334,17 +338,21 @@ export const getAllGigs = async (req, res, next) => {
     }
 
     // -------------------------
-    // Fetch Gigs & Seller Info
+    // Fetch Gigs & Seller Info - ONLY from verified workers
     // -------------------------
-    const gigs = await Gig.find(query).populate(
-      "sellerId",
-      "name bio skills yearsOfExperience rating",
-    );
+    const gigs = await Gig.find(query).populate({
+      path: "sellerId",
+      select: "name bio skills yearsOfExperience rating verificationStatus",
+      match: { verificationStatus: "approved" }, // Only verified sellers
+    });
+
+    // Filter out gigs where seller is null (didn't match verification criteria)
+    const validGigs = gigs.filter(g => g.sellerId !== null);
 
     // -------------------------
     // Append Orders Completed per Seller
     // -------------------------
-    const sellerIds = gigs.map((g) => g.sellerId?._id);
+    const sellerIds = validGigs.map((g) => g.sellerId?._id).filter(Boolean);
 
     // Count completed orders for all sellers at once
     const completedOrders = await Order.aggregate([
@@ -359,7 +367,7 @@ export const getAllGigs = async (req, res, next) => {
     });
 
     // Inject into gig objects
-    const enrichedGigs = gigs.map((gig) => {
+    const enrichedGigs = validGigs.map((gig) => {
       const seller = gig.sellerId;
       const ordersCompleted = orderCountMap[seller._id.toString()] || 0;
 
