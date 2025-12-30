@@ -157,6 +157,7 @@ class ChatController {
         price,
         jobDescription,
         date,
+        selectedPricingMethod: "inspection", // Custom offers are always inspection-based
         status: "offer_pending",
         offerFrom: sellerId, // Mark as a seller-initiated offer
       });
@@ -183,8 +184,8 @@ class ChatController {
         // Emit both newOffer (used by worker frontend) and newMessage (used by other places)
         global.io.to(receiverId).emit("newOffer", populatedMessage);
         global.io.to(sellerId).emit("newOffer", populatedMessage);
-
-        // Also emit newMessage for compatibility with consumers listening for newMessage
+        global.io.to(receiverId).emit("updateChatList");
+        global.io.to(sellerId).emit("updateChatList");
         global.io.to(receiverId).emit("newMessage", populatedMessage);
         global.io.to(sellerId).emit("newMessage", populatedMessage);
 
@@ -209,6 +210,9 @@ class ChatController {
           userId: receiverId,
           unreadCount: 0,
         });
+        console.log("✅ Socket events emitted successfully");
+      } else {
+        console.warn("⚠️ global.io is not available");
       }
 
       // 6. Send Push Notification to the buyer

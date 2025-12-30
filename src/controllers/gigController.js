@@ -205,6 +205,9 @@ export const searchGigs = async (req, res) => {
               "sellerId.rating": "$sellerInfo.rating",
               "sellerId.yearsOfExperience": "$sellerInfo.yearsOfExperience",
               "sellerId.bio": "$sellerInfo.bio",
+              "sellerId.location": "$sellerInfo.location",
+              "sellerId.skills": "$sellerInfo.skills",
+              "sellerId.selectedAreas": "$sellerInfo.selectedAreas",
               "category": { _id: "$categoryData._id", name: "$categoryData.name" },
               "primarySubcategory": { _id: "$primarySubData._id", name: "$primarySubData.name" }
             }
@@ -219,6 +222,36 @@ export const searchGigs = async (req, res) => {
     // Format output
     const gigs = result[0].data;
     const total = result[0].metadata[0] ? result[0].metadata[0].total : 0;
+
+    // --- STAGE 8: APPEND ORDERS COMPLETED ---
+    // Extract unique seller IDs from the result
+    const sellerIds = [...new Set(gigs.map(g => g.sellerId?._id).filter(id => id))];
+
+    if (sellerIds.length > 0) {
+      // Aggregate completed orders for these sellers
+      const completedOrders = await Order.aggregate([
+        { 
+          $match: { 
+            sellerId: { $in: sellerIds }, 
+            status: "completed" 
+          } 
+        },
+        { $group: { _id: "$sellerId", count: { $sum: 1 } } }
+      ]);
+
+      // Create a map for O(1) lookup
+      const orderCountMap = {};
+      completedOrders.forEach(c => {
+        orderCountMap[c._id.toString()] = c.count;
+      });
+
+      // Attach count to each gig's sellerId object
+      gigs.forEach(gig => {
+        if (gig.sellerId) {
+          gig.sellerId.ordersCompleted = orderCountMap[gig.sellerId._id.toString()] || 0;
+        }
+      });
+    }
 
     res.json({
       gigs,
@@ -321,7 +354,8 @@ export const getAllGigs = async (req, res, next) => {
     // -------------------------
     // Build Query
     // -------------------------
-    const query = {};
+    // CRITICAL: Only show active gigs to customers
+    const query = { status: "active" };
 
     if (pricingMethod) {
       query["pricing.method"] = pricingMethod;
@@ -342,7 +376,7 @@ export const getAllGigs = async (req, res, next) => {
     // -------------------------
     const gigs = await Gig.find(query).populate({
       path: "sellerId",
-      select: "name bio skills yearsOfExperience rating verificationStatus",
+      select: "name bio skills yearsOfExperience rating verificationStatus location selectedAreas",
       match: { verificationStatus: "approved" }, // Only verified sellers
     });
 
@@ -554,11 +588,26 @@ export const getGigById = asyncHandler(async (req, res) => {
 
   const gig = await Gig.findById(id).populate(
     "sellerId",
-    "name profilePicture availability",
+    "name profilePicture availability verificationStatus",
   );
 
   if (!gig) {
     return res.status(404).json({ success: false, message: "Gig not found" });
+  }
+
+  // CRITICAL: Validate gig is active and seller is verified
+  if (gig.status !== "active") {
+    return res.status(404).json({ 
+      success: false, 
+      message: "Gig not available" 
+    });
+  }
+
+  if (!gig.sellerId || gig.sellerId.verificationStatus !== "approved") {
+    return res.status(404).json({ 
+      success: false, 
+      message: "Gig not available" 
+    });
   }
 
   res.json({ success: true, gig });

@@ -322,10 +322,14 @@ export const acceptCustomOffer = async (req, res) => {
 export const rejectCustomOffer = async (req, res) => {
   try {
     const { id: buyerId } = req.user;
-    const { orderId } = req.body;
+    const { orderId, messageId } = req.body;
 
     if (!orderId) {
       return res.status(400).json({ error: "orderId is required" });
+    }
+
+    if (!messageId) {
+      return res.status(400).json({ error: "messageId is required" });
     }
 
     const order = await Order.findById(orderId).populate("sellerId", "name");
@@ -343,8 +347,15 @@ export const rejectCustomOffer = async (req, res) => {
         .json({ error: "This offer is not pending rejection" });
     }
 
-    order.status = "rejected"; // The entire order is now rejected.
+    // Update the order status
+    order.status = "rejected";
     await order.save();
+
+    // Update the message's customOffer status
+    await Message.updateOne(
+      { _id: messageId },
+      { "customOffer.status": "rejected" }
+    );
 
     await sendNotification(
       order.sellerId._id,
