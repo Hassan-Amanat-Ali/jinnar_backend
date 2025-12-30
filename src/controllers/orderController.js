@@ -152,77 +152,77 @@ export const createJobRequest = async (req, res) => {
  * @access Seller
  */
 export const createCustomOffer = async (req, res) => {
-  try {
-    const { id: sellerId, name: sellerName } = req.user; // Seller creating the offer
-    const {
-      gigId,
-      buyerId,
-      date,
-      timeSlot,
-      jobDescription,
-      lat,
-      lng,
-      price,
-      emergency,
-      image,
-    } = req.body;
+  // try {
+  //   const { id: sellerId, name: sellerName } = req.user; // Seller creating the offer
+  //   const {
+  //     gigId,
+  //     buyerId,
+  //     date,
+  //     timeSlot,
+  //     jobDescription,
+  //     lat,
+  //     lng,
+  //     price,
+  //     emergency,
+  //     image,
+  //   } = req.body;
 
-    // 1. Validate required fields for creating a new job offer
-    if (!gigId || !buyerId || !date || !jobDescription || !price) {
-      return res.status(400).json({
-        error: "gigId, buyerId, date, jobDescription, and price are required",
-      });
-    }
+  //   // 1. Validate required fields for creating a new job offer
+  //   if (!gigId || !buyerId || !date || !jobDescription || !price) {
+  //     return res.status(400).json({
+  //       error: "gigId, buyerId, date, jobDescription, and price are required",
+  //     });
+  //   }
 
-    // 2. Validate price
-    if (isNaN(price) || price <= 0) {
-      return res.status(400).json({ error: "Price must be a positive number" });
-    }
+  //   // 2. Validate price
+  //   if (isNaN(price) || price <= 0) {
+  //     return res.status(400).json({ error: "Price must be a positive number" });
+  //   }
 
-    // 3. Verify the gig exists and belongs to the seller
-    const gig = await Gig.findById(gigId);
-    if (!gig) return res.status(404).json({ error: "Gig not found" });
-    if (gig.sellerId.toString() !== sellerId) {
-      return res
-        .status(403)
-        .json({ error: "You can only create offers for your own gigs" });
-    }
+  //   // 3. Verify the gig exists and belongs to the seller
+  //   const gig = await Gig.findById(gigId);
+  //   if (!gig) return res.status(404).json({ error: "Gig not found" });
+  //   if (gig.sellerId.toString() !== sellerId) {
+  //     return res
+  //       .status(403)
+  //       .json({ error: "You can only create offers for your own gigs" });
+  //   }
 
-    // 4. Create the new order with 'offer_pending' status
-    const newOfferOrder = await Order.create({
-      gigId,
-      sellerId,
-      buyerId,
-      date,
-      timeSlot: timeSlot || null,
-      jobDescription,
-      image: image || null,
-      location: lat && lng ? { lat, lng } : null,
-      emergency: emergency || false,
-      price,
-      status: "offer_pending", // This is a seller's offer waiting for buyer's action
-      offerFrom: sellerId, // Mark that this order originated as a custom offer
-    });
+  //   // 4. Create the new order with 'offer_pending' status
+  //   const newOfferOrder = await Order.create({
+  //     gigId,
+  //     sellerId,
+  //     buyerId,
+  //     date,
+  //     timeSlot: timeSlot || null,
+  //     jobDescription,
+  //     image: image || null,
+  //     location: lat && lng ? { lat, lng } : null,
+  //     emergency: emergency || false,
+  //     price,
+  //     status: "offer_pending", // This is a seller's offer waiting for buyer's action
+  //     offerFrom: sellerId, // Mark that this order originated as a custom offer
+  //   });
 
-    // 5. Notify buyer about the new custom offer
-    await sendNotification(
-      buyerId,
-      "booking",
-      `${sellerName} has sent you a custom offer of ${price} for "${gig.title}".`,
-      newOfferOrder._id,
-      "Order"
-    );
+  //   // 5. Notify buyer about the new custom offer
+  //   await sendNotification(
+  //     buyerId,
+  //     "booking",
+  //     `${sellerName} has sent you a custom offer of ${price} for "${gig.title}".`,
+  //     newOfferOrder._id,
+  //     "Order"
+  //   );
 
-    res.status(201).json({
-      message: "Custom offer sent to the buyer successfully",
-      order: newOfferOrder,
-    });
-  } catch (error) {
-    console.error("Error creating custom offer:", error);
-    res
-      .status(500)
-      .json({ error: "Failed to create custom offer", details: error.message });
-  }
+  //   res.status(201).json({
+  //     message: "Custom offer sent to the buyer successfully",
+  //     order: newOfferOrder,
+  //   });
+  // } catch (error) {
+  //   console.error("Error creating custom offer:", error);
+  //   res
+  //     .status(500)
+  //     .json({ error: "Failed to create custom offer", details: error.message });
+  // }
 };
 
 /**
@@ -247,12 +247,7 @@ export const acceptCustomOffer = async (req, res) => {
 
     console.log("Is updating running");
 
-    const data = await Message.updateOne(
-      { _id: messageId },
-      { "customOffer.status": "accepted" }
-    );
-
-    console.log("Update data ", data);
+   
 
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
@@ -301,6 +296,12 @@ export const acceptCustomOffer = async (req, res) => {
     order.acceptedAt = new Date();
     await order.save();
 
+     const data = await Message.updateOne(
+      { _id: messageId },
+      { "customOffer.status": "accepted" }
+    );
+
+    console.log("Update data ", data);
     // Notify the seller that their offer was accepted.
     await sendNotification(
       order.sellerId._id,
