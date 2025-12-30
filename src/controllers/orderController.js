@@ -69,8 +69,10 @@ export const createJobRequest = async (req, res) => {
       // ✅ Wallet check for fixed pricing
       const buyerWallet = await Wallet.findOne({ userId: buyerId });
       if (!buyerWallet) {
-        return res.status(404).json({ error: "Buyer wallet not found" });
-      }
+ return res.status(402).json({
+          error: "Insufficient funds in wallet",
+          message: `Your balance is 0, but the job requires ${jobPrice}`,
+        });      }
 
       if (buyerWallet.balance < jobPrice) {
         return res.status(402).json({
@@ -271,8 +273,10 @@ export const acceptCustomOffer = async (req, res) => {
     // Check buyer's wallet for sufficient funds before accepting
     const buyerWallet = await Wallet.findOne({ userId: buyerId });
     if (!buyerWallet) {
-      return res.status(404).json({ error: "Buyer wallet not found" });
-    }
+ return res.status(402).json({
+          error: "Insufficient funds in wallet",
+          message: `Your balance is 0, but the offer requires ${order.price}`,
+        });    }
     if (buyerWallet.balance < order.price) {
       return res.status(402).json({
         error: "Insufficient funds to accept the offer.",
