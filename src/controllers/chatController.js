@@ -157,9 +157,9 @@ class ChatController {
         price,
         jobDescription,
         date,
-        selectedPricingMethod: "inspection", // Custom offers are always inspection-based
+        selectedPricingMethod: "inspection", 
         status: "offer_pending",
-        offerFrom: sellerId, // Mark as a seller-initiated offer
+        offerFrom: sellerId, 
       });
 
       // 4. Create the special Message document

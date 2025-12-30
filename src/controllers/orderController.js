@@ -447,6 +447,7 @@ export const getAllJobRequests = async (req, res) => {
 
     const jobs = await Order.find({
       sellerId: sellerId,
+      status: { $ne: "offer_pending" }
     })
       .populate("buyerId", "name profilePicture")
       .sort({ createdAt: -1 });
@@ -983,6 +984,7 @@ export const getMyOrders = async (req, res) => {
     let filter = {};
     filter = {
       $or: [{ buyerId: id }, { sellerId: id }],
+      status: { $ne: "offer_pending" }
     };
 
     const jobs = await Order.find(filter)
