@@ -302,6 +302,42 @@ export const acceptCustomOffer = async (req, res) => {
     );
 
     console.log("Update data ", data);
+
+    if (global.io) {
+      const sellerId = order.sellerId._id.toString();
+      const buyerId = order.buyerId.toString();
+
+      // Fetch the updated message to send full context (optional but recommended)
+      const updatedMessage = await Message.findById(messageId)
+        .populate("sender", "name profilePicture")
+        .populate("receiver", "name profilePicture");
+
+      const payload = updatedMessage || {
+        _id: messageId,
+        orderId: order._id,
+        status: "accepted",
+        customOffer: {
+          status: "accepted",
+          orderId: order._id,
+          price: order.price,
+          description: order.jobDescription,
+        },
+        updatedAt: new Date().toISOString()
+      };
+
+      // Emit to both parties (seller sees confirmation, buyer sees own action reflected)
+      global.io.to(sellerId).emit("offerAccepted", payload);
+      global.io.to(sellerId).emit("offerStatusUpdated", payload);
+      global.io.to(buyerId).emit("offerAccepted", payload);
+      global.io.to(buyerId).emit("offerStatusUpdated", payload);
+
+      // Also refresh chat list/sidebar for both
+      global.io.to(sellerId).emit("updateChatList");
+      global.io.to(buyerId).emit("updateChatList");
+
+      console.log(`✅ Emitted offerAccepted & offerStatusUpdated for order ${order._id}`);
+    }
+
     // Notify the seller that their offer was accepted.
     await sendNotification(
       order.sellerId._id,
@@ -361,6 +397,36 @@ export const rejectCustomOffer = async (req, res) => {
       { _id: messageId },
       { "customOffer.status": "rejected" }
     );
+
+    if (global.io) {
+      const sellerId = order.sellerId._id.toString();
+      const buyerId = order.buyerId.toString();
+
+      const updatedMessage = await Message.findById(messageId)
+        .populate("sender", "name profilePicture")
+        .populate("receiver", "name profilePicture");
+
+      const payload = updatedMessage || {
+        _id: messageId,
+        orderId: order._id,
+        status: "rejected",
+        customOffer: {
+          status: "rejected",
+          orderId: order._id,
+        },
+        updatedAt: new Date().toISOString()
+      };
+
+      global.io.to(sellerId).emit("offerRejected", payload);
+      global.io.to(sellerId).emit("offerStatusUpdated", payload);
+      global.io.to(buyerId).emit("offerRejected", payload);
+      global.io.to(buyerId).emit("offerStatusUpdated", payload);
+
+      global.io.to(sellerId).emit("updateChatList");
+      global.io.to(buyerId).emit("updateChatList");
+
+      console.log(`✅ Emitted offerRejected & offerStatusUpdated for order ${order._id}`);
+    }
 
     await sendNotification(
       order.sellerId._id,

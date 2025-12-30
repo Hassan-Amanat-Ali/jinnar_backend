@@ -32,18 +32,27 @@ const setupSocket = (server) => {
   });
 
   io.on("connection", (socket) => {
-    const userId = socket.user.id;
-    console.log(`[Socket] User connected: ${userId}, socketId: ${socket.id}`);
+    // Retrieve userId from token (socket.user) or fallback to handshake/query
+    const userId = socket.user?.id || socket.handshake.auth?.userId || socket.handshake.query?.userId;
 
-    if (!onlineUsers.has(userId)) {
-      onlineUsers.set(userId, new Set());
+    if (userId) {
+      socket.join(userId);
+      console.log(`[Socket] Socket ${socket.id} joined personal room: ${userId}`);
+    } else {
+      console.warn('[Socket] Connection without userId – cannot join personal room');
     }
 
-    onlineUsers.get(userId).add(socket.id);
-    socket.join(userId);
+    console.log(`[Socket] User connected: ${userId}, socketId: ${socket.id}`);
 
-    if (onlineUsers.get(userId).size === 1) {
-      io.emit("userOnlineStatus", { userId, isOnline: true });
+    if (userId) {
+        if (!onlineUsers.has(userId)) {
+          onlineUsers.set(userId, new Set());
+        }
+        onlineUsers.get(userId).add(socket.id);
+
+        if (onlineUsers.get(userId).size === 1) {
+          io.emit("userOnlineStatus", { userId, isOnline: true });
+        }
     }
 
     socket.emit("getOnlineUsers", Array.from(onlineUsers.keys()));
