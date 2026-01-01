@@ -206,6 +206,24 @@ router.get(
 );
 
 router.get(
+  "/activity-chart",
+  authorize(["support", "supervisor", "super_admin"]),
+  AdminController.getActivityChartData
+);
+
+router.get(
+  "/recent-actions",
+  authorize(["support", "supervisor", "super_admin"]),
+  AdminController.getRecentActions
+);
+
+router.get(
+  "/quick-insights",
+  authorize(["support", "supervisor", "super_admin"]),
+  AdminController.getQuickInsights
+);
+
+router.get(
   "/financial-logs",
   authorize("super_admin"),
   AdminController.viewFinancialLogs
