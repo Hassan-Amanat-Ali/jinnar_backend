@@ -1,9 +1,9 @@
 import express from "express";
 import AdminController from "../controllers/adminController.js";
 import * as AdminAuthController from "../controllers/AdminAuthController.js";
-import { 
-  getAllTickets, 
-  getTicketById, 
+import {
+  getAllTickets,
+  getTicketById,
   replyToTicket,
   updateTicketStatus,
   assignTicket,
@@ -12,11 +12,12 @@ import {
 } from "../controllers/SupportTicketController.js";
 
 import { protect, authorize } from "../middleware/auth.js"; // Assuming this handles strings
-import { 
-  getAllReports, 
-  getReportDetails, 
-  updateReportStatus 
+import {
+  getAllReports,
+  getReportDetails,
+  updateReportStatus
 } from "../controllers/ReportController.js";
+import AdminCourseController from "../controllers/adminCourseController.js";
 
 const router = express.Router();
 
@@ -24,9 +25,9 @@ const router = express.Router();
 // Support Ticket System
 // =============================================================================
 router.get(
-  "/tickets", 
-  protect, 
-  authorize("support", "supervisor", "super_admin"), 
+  "/tickets",
+  protect,
+  authorize("support", "supervisor", "super_admin"),
   getAllTickets
 );
 
@@ -38,9 +39,9 @@ router.get(
 );
 
 router.post(
-  "/tickets/:id/reply", 
-  protect, 
-  authorize("support", "supervisor", "super_admin"), 
+  "/tickets/:id/reply",
+  protect,
+  authorize("support", "supervisor", "super_admin"),
   replyToTicket
 );
 
@@ -81,7 +82,7 @@ router.post(
 router.get(
   "/reports",
   protect, // Make sure these are imported
-  authorize("support"), 
+  authorize("support"),
   getAllReports
 );
 
@@ -215,7 +216,7 @@ router.get(
 // 4. USER MANAGEMENT (Buyers/Sellers)
 // =============================================================================
 router.get(
-  "/users", 
+  "/users",
   authorize("support"), // Support+ can view
   AdminController.getAllUsers
 );
@@ -344,6 +345,62 @@ router.post( // Or PATCH
   "/settings",
   authorize("super_admin"),
   AdminController.updatePlatformSettings
+);
+
+
+
+// =============================================================================
+// 9. COURSE & LECTURE MANAGEMENT (LMS)
+// =============================================================================
+
+// Courses
+router.post(
+  "/courses",
+  authorize(["supervisor", "super_admin"]),
+  AdminCourseController.createCourse
+);
+
+router.get(
+  "/courses",
+  authorize(["support", "supervisor", "super_admin"]),
+  AdminCourseController.getAllCoursesAdmin
+);
+
+router.get(
+  "/courses/:id",
+  authorize(["support", "supervisor", "super_admin"]),
+  AdminCourseController.getCourseById
+);
+
+router.put(
+  "/courses/:id",
+  authorize(["supervisor", "super_admin"]),
+  AdminCourseController.updateCourse
+);
+
+router.delete(
+  "/courses/:id",
+  authorize(["super_admin"]),
+  AdminCourseController.deleteCourse
+);
+
+// Lectures (Nested under courses for creation, direct for update/delete)
+router.post(
+  "/courses/:id/lectures",
+  authorize(["supervisor", "super_admin"]),
+  AdminCourseController.addLecture
+);
+
+router.put(
+  "/lectures/:id",
+  authorize(["supervisor", "super_admin"]),
+  AdminCourseController.updateLecture
+);
+
+router.delete(
+  "/lectures/:id",
+  authorize(["supervisor", "super_admin"]),
+  AdminCourseController.deleteLecture
 );
 
 export default router;

@@ -23,6 +23,7 @@ import paymentRoutes from "./payment.js";
 import gigRoutes from "./gig.js";
 import imageRoutes from "./image.js"; // Import the refactored legacy image route
 import systemConfigRoutes from "./systemConfig.js";
+import enrollmentRoutes from "./enrollmentRoutes.js";
 // import { checkMaintenanceMode } from "../middleware/maintenance.js";
 
 const router = express.Router();
@@ -57,6 +58,7 @@ router.use("/config", systemConfigRoutes);
 router.use("/gigs", gigRoutes);
 router.use("/categories", categoryRoutes);
 router.use("/faq", faqRoutes);
+router.use("/enrollments", enrollmentRoutes);
 
 // Legacy route for backward compatibility
 router.use("/images", imageRoutes);
