@@ -169,14 +169,14 @@ router.patch(
 // Get all admins
 router.get(
   "/admins",
-  authorize("super_admin"),
+  authorize(["support", "supervisor", "super_admin"]),
   AdminController.getAdmins
 );
 
 // Get a single admin by ID
 router.get(
   "/admins/:id",
-  authorize("super_admin"),
+  authorize(["support", "supervisor", "super_admin"]),
   AdminController.getAdminById
 );
 
