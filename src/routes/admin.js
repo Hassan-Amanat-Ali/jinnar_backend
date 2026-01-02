@@ -403,4 +403,29 @@ router.delete(
   AdminCourseController.deleteLecture
 );
 
+// Course Categories
+router.post(
+  "/course-categories",
+  authorize(["super_admin"]),
+  AdminCourseController.createCourseCategory
+);
+
+router.get(
+  "/course-categories",
+  authorize(["support", "supervisor", "super_admin"]),
+  AdminCourseController.getAllCourseCategories
+);
+
+router.put(
+  "/course-categories/:id",
+  authorize(["super_admin"]),
+  AdminCourseController.updateCourseCategory
+);
+
+router.delete(
+  "/course-categories/:id",
+  authorize(["super_admin"]),
+  AdminCourseController.deleteCourseCategory
+);
+
 export default router;

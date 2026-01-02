@@ -11,6 +11,8 @@ import {
   verifyContactChange,
 } from "../controllers/authController.js";
 import { protect } from "../middleware/auth.js";
+import passport from "passport";
+import "../config/passport.js"; // Ensure config is loaded
 
 const router = express.Router();
 
@@ -28,5 +30,28 @@ router.post("/change-contact/initiate", protect, initiateContactChange);
 router.post("/change-contact/verify", protect, verifyContactChange);
 
 // router.post('/ussd', ussdHandler);
+
+// Native Social Auth Routes
+router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+router.get(
+  '/google/callback',
+  passport.authenticate('google', { session: false, failureRedirect: '/login' }),
+  (req, res) => {
+    // Import controller dynamically or assume it's imported at top
+    // Since we imported named exports from authController, we need to add socialAuthCallback to imports above
+    // Or just inline the logic here or cleaner: call the controller.
+    // Let's rely on the controller method we added.
+    import("../controllers/authController.js").then(mod => mod.socialAuthCallback(req, res));
+  }
+);
+
+router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
+router.get(
+  '/github/callback',
+  passport.authenticate('github', { session: false, failureRedirect: '/login' }),
+  (req, res) => {
+    import("../controllers/authController.js").then(mod => mod.socialAuthCallback(req, res));
+  }
+);
 
 export default router;

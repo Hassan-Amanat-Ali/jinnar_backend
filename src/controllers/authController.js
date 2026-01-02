@@ -11,7 +11,7 @@ configDotenv();
 console.log(process.env.SMTP_USER);
 // 1. Nodemailer Transporter
 const transporter = nodemailer.createTransport({
-   host: "127.0.0.1",
+  host: "127.0.0.1",
   // host: "195.110.58.111",
 
   port: 587,
@@ -50,17 +50,17 @@ if (accountSid && authToken && verifySid) {
  */
 const getIdentifierType = (input) => {
   if (!input) return "invalid";
-  
+
   const emailRegex = /\S+@\S+\.\S+/;
   // Regex allowing +, spaces, dashes, parentheses, and 7-15 digits
   const phoneRegex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/im;
 
   if (emailRegex.test(input)) return "email";
-  
+
   // Clean phone input for check
   const cleanPhone = input.replace(/[\s-()]/g, '');
   if (phoneRegex.test(cleanPhone) || /^\+\d{7,15}$/.test(cleanPhone)) return "mobileNumber";
-  
+
   return "invalid";
 };
 
@@ -133,7 +133,7 @@ const sendVerificationEmail = async (user, code, context = "verification") => {
         subject: subject,
         html: body,
       };
-var   response=   await transporter.sendMail(mailOptions);
+      var response = await transporter.sendMail(mailOptions);
       console.log(`Email sent to ${user.email} response ${response}`);
     } catch (emailError) {
       console.error("Error sending email:", emailError);
@@ -172,7 +172,7 @@ export const registerUser = async (req, res) => {
     const cleanIdentifier = type === "email"
       ? identifier.toLowerCase().trim()
       : identifier.replace(/[\s-()]/g, ''); // Removing spaces/dashes for E.164 compliance
-      
+
     const query = { [type]: cleanIdentifier };
 
     const existingUser = await User.findOne(query);
@@ -206,28 +206,28 @@ export const registerUser = async (req, res) => {
       const verificationCode = generateVerificationCode();
       user.verificationCode = verificationCode;
       user.verificationCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-      
+
       // Save First
       savedUser = await user.save();
-      
+
       // Attempt Send
       await sendVerificationEmail(user, verificationCode, "verification");
 
-    } else { 
+    } else {
       // --- Mobile Flow (Twilio) ---
       // Twilio handles the code generation, so we don't save a code in DB.
-      
+
       // Save First
-      savedUser = await user.save(); 
-      
+      savedUser = await user.save();
+
       // Attempt Send
       // If this throws an error (e.g., invalid number), the catch block triggers
       await sendTwilioOtp(cleanIdentifier);
     }
 
-    return res.status(201).json({ 
+    return res.status(201).json({
       message: `Verification code sent to your ${type}`,
-      userId: savedUser._id 
+      userId: savedUser._id
     });
 
   } catch (error) {
@@ -242,9 +242,9 @@ export const registerUser = async (req, res) => {
     }
     // ----------------------
 
-    return res.status(500).json({ 
-      error: "Registration failed. Please check your phone number/email format.", 
-      details: error.message 
+    return res.status(500).json({
+      error: "Registration failed. Please check your phone number/email format.",
+      details: error.message
     });
   }
 };
@@ -347,7 +347,7 @@ export const resendVerificationCode = async (req, res, next) => {
     const cleanIdentifier = type === "email"
       ? identifier.toLowerCase().trim()
       : identifier.replace(/[\s-()]/g, ''); // Standardize to E.164
-    
+
     const query = { [type]: cleanIdentifier };
 
     // 2. Find the "Abandoned" User
@@ -362,13 +362,13 @@ export const resendVerificationCode = async (req, res, next) => {
       const verificationCode = generateVerificationCode();
       user.verificationCode = verificationCode;
       user.verificationCodeExpires = Date.now() + 10 * 60 * 1000;
-      
+
       // We use validateBeforeSave: false to avoid triggering other validation rules 
       // (like missing name for sellers) just in case.
       await user.save({ validateBeforeSave: false });
-      
+
       await sendVerificationEmail(user, verificationCode, "verification");
-    } else { 
+    } else {
       // Mobile Number: Twilio handles the regeneration logic automatically.
       // We just ask it to create a verification again.
       await sendTwilioOtp(cleanIdentifier);
@@ -510,31 +510,31 @@ export const initiateContactChange = async (req, res, next) => {
     // 5. Generate OTP and Save to Temp Storage
     if (type === 'email') {
       const verificationCode = generateVerificationCode();
-      
+
       user.tempContact = {
         type: 'email',
         value: cleanIdentifier,
         code: verificationCode,
         expires: Date.now() + 10 * 60 * 1000 // 10 minutes
       };
-      
+
       await user.save();
-      
+
       // Send Email OTP
       // We pass a dummy object { email: ... } because our helper expects a user object
       await sendVerificationEmail({ email: cleanIdentifier }, verificationCode, "verification");
 
     } else { // mobileNumber
-      
+
       user.tempContact = {
         type: 'mobileNumber',
         value: cleanIdentifier,
         expires: Date.now() + 10 * 60 * 1000
         // No code stored in DB because Twilio manages the code for SMS
       };
-      
+
       await user.save();
-      
+
       // Send Twilio OTP
       await sendTwilioOtp(cleanIdentifier);
     }
@@ -618,5 +618,27 @@ export const switchRole = async (req, res, next) => {
   } catch (error) {
     console.error("Switch Role Error:", error.message);
     return next(error);
+  }
+};
+
+export const socialAuthCallback = async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.redirect('/login?error=auth_failed');
+    }
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // Redirect to frontend with token
+    // In production, this should be a secure, HTTP-only cookie or a specific frontend URL
+    res.redirect(`/auth/success?token=${token}`); // Example redirection
+  } catch (error) {
+    console.error('Social Auth Callback Error:', error);
+    res.redirect('/login?error=server_error');
   }
 };

@@ -1,5 +1,6 @@
 import Course from "../models/Course.js";
 import Lecture from "../models/Lecture.js";
+import CourseCategory from "../models/CourseCategory.js";
 
 class AdminCourseController {
     // ===========================================================================
@@ -224,6 +225,70 @@ class AdminCourseController {
             await Course.findByIdAndUpdate(lecture.courseId, { duration: totalDuration });
 
             res.json({ message: "Lecture deleted successfully" });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    }
+
+    // ===========================================================================
+    // COURSE CATEGORY MANAGEMENT
+    // ===========================================================================
+
+    static async createCourseCategory(req, res) {
+        try {
+            const { name } = req.body;
+            if (!name) return res.status(400).json({ error: "Category name is required" });
+
+            const category = await CourseCategory.create({ name });
+            res.status(201).json({ message: "Course category created", category });
+        } catch (error) {
+            if (error.code === 11000) {
+                return res.status(400).json({ error: "Category already exists" });
+            }
+            res.status(500).json({ error: error.message });
+        }
+    }
+
+    static async getAllCourseCategories(req, res) {
+        try {
+            const categories = await CourseCategory.find({ isActive: true }).sort("name");
+            res.json(categories);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    }
+
+    static async updateCourseCategory(req, res) {
+        try {
+            const { id } = req.params;
+            const { name, isActive } = req.body;
+
+            const category = await CourseCategory.findByIdAndUpdate(
+                id,
+                { name, isActive },
+                { new: true, runValidators: true }
+            );
+
+            if (!category) return res.status(404).json({ error: "Category not found" });
+            res.json({ message: "Category updated", category });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    }
+
+    static async deleteCourseCategory(req, res) {
+        try {
+            const { id } = req.params;
+            // Check if used in any course
+            const count = await Course.countDocuments({ category: id });
+            if (count > 0) {
+                return res.status(400).json({ error: "Cannot delete category used by existing courses" });
+            }
+
+            const category = await CourseCategory.findByIdAndDelete(id);
+            if (!category) return res.status(404).json({ error: "Category not found" });
+
+            res.json({ message: "Category deleted" });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }

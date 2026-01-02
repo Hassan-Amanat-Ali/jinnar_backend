@@ -23,13 +23,13 @@ import swaggerSpec from './config/swagger.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-console.log('Environment PORT:' , PORT)
+console.log('Environment PORT:', PORT)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests
 });
 
-connectDb().then(async() => {
+connectDb().then(async () => {
   console.log('Connected to MongoDB');
 
   // Start Agenda.js scheduler
@@ -50,7 +50,7 @@ connectDb().then(async() => {
   // Schedule jobs - AFTER definition
   await agenda.every('1 minute', 'check-pending-payouts');
   console.log('📅 [PAYOUT MONITOR] Job scheduled to run every 1 minute');
-  
+
   await agenda.every('30 minutes', 'monitor-sla-breaches');
   await agenda.every('1 day', 'auto-close-resolved-tickets');
 
@@ -68,13 +68,18 @@ setupSocket(server); // This activates Socket.IO
 app.use(express.json());
 // for parsing application/xwww-form-urlencoded
 app.use(
-    bodyParser.urlencoded({
-        limit: "50mb",
-        extended: true,
-    })
+  bodyParser.urlencoded({
+    limit: "50mb",
+    extended: true,
+  })
 );
+// Initialize Passport
+import passport from 'passport';
+import './config/passport.js';
+app.use(passport.initialize());
+
 app.use('/api/auth', limiter);
- //app.use("/uploads", express.static("uploads")); // 🔴 CRITICAL: Removed for security. Files should be served via a protected route.
+//app.use("/uploads", express.static("uploads")); // 🔴 CRITICAL: Removed for security. Files should be served via a protected route.
 // app.use(upload.array())
 app.use(morgan('dev'));
 if (process.env.NODE_ENV === 'production') {
@@ -86,10 +91,10 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 
 //Routes
-app.use('/api' , apiRoutes)
+app.use('/api', apiRoutes)
 
-app.get('/', (req,res) => {
-    res.send('API Server is running...');
+app.get('/', (req, res) => {
+  res.send('API Server is running...');
 })
 
 // Serve test-chat.html at /chat-interface
@@ -106,8 +111,8 @@ app.get('/chat-interface', (req, res) => {
 
 
 server.listen(PORT, () => {
-    console.log('Server is running on port' , PORT);
-    console.log('Swagger UI is availible at /api-docs');
+  console.log('Server is running on port', PORT);
+  console.log('Swagger UI is availible at /api-docs');
 })
 
 // Mount global error handler AFTER routes
