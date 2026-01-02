@@ -10,7 +10,8 @@ import { sendTestNotification } from "../services/pushNotificationService.js";
 const router = express.Router();
 
 router.get("/", protect, getNotifications);
-router.patch("/read", protect, markAsRead);
+router.patch("/read", protect, markAsRead); // Legacy/Mark All
+router.put("/:id/read", protect, markAsRead); // RESTful single mark read
 
 // NEW: Test push notification
 router.post("/test", protect, async (req, res) => {

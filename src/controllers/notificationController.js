@@ -24,15 +24,14 @@ export const sendNotification = async (
     if (user?.fcmTokens && user.fcmTokens.length > 0) {
       const fcmToken = user.fcmTokens[0].token; // Assuming we use the first token for now
 
-      // 3️⃣ Send push notification
+      // 4️⃣ Send push notification
       await sendPushNotification(fcmToken, "New Notification", content, {
         type: type.toString(),
         relatedId: relatedId ? relatedId.toString() : null, // Convert ObjectId to string
-        relatedModel:relatedModel? relatedModel.toString() : null,
+        relatedModel: relatedModel ? relatedModel.toString() : null,
       });
-    }
-    else {
-      console.log(`No FCM token found for user: ${user.fcmTokens}`, recipientId);
+    } else {
+      // console.log(`No FCM token found for user: ${recipientId}`);
     }
   } catch (error) {
     console.error("Error sending notification:", error);
@@ -62,7 +61,8 @@ export const getNotifications = async (req, res) => {
  */
 export const markAsRead = async (req, res) => {
   const { id } = req.user; // from JWT middleware
-  const { notificationId } = req.body;
+  // Support both body (legacy) and params (RESTful)
+  const notificationId = req.params.id || req.body.notificationId;
 
   try {
     if (notificationId) {

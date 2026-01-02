@@ -87,11 +87,27 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 //Serve Swagger UI
+//Serve Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Serve Course Swagger UI
+import swaggerCourseSpec from './config/swagger-courses.js';
+app.use('/api-docs/courses', swaggerUi.serve, swaggerUi.setup(swaggerCourseSpec));
+
 
 
 //Routes
 app.use('/api', apiRoutes)
+
+// Course Upload Routes
+import courseUploadRoutes from './routes/courseUploadRoutes.js';
+app.use('/api/courses/upload', courseUploadRoutes);
+
+// Static file serving for course uploads
+// Serving uploads/courses directory at /uploads/courses
+// Note: In production, Nginx/Apache usually handles this, or use a secure middleware for restricted access
+app.use('/uploads/courses', express.static(path.join(process.cwd(), 'uploads/courses')));
+
 
 app.get('/', (req, res) => {
   res.send('API Server is running...');

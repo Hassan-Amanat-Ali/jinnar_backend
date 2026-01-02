@@ -1,8 +1,8 @@
 {
     "info": {
         "_postman_id": "c7a8b9d0-1e2f-3a4b-5c6d-7e8f9a0b1c2d",
-        "name": "Jinnar LMS Training Module",
-        "description": "Collection for Jinnar Services LMS Training Module APIs",
+        "name": "Jinnar LMS Training Module (Automated)",
+        "description": "Collection for Jinnar Services LMS Training Module APIs with automated Token and ID capturing.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "item": [
@@ -18,7 +18,11 @@
                                 "exec": [
                                     "var jsonData = pm.response.json();",
                                     "if (jsonData.userId) {",
-                                    "    pm.environment.set(\"userId\", jsonData.userId);",
+                                    "    pm.collectionVariables.set(\"userId\", jsonData.userId);",
+                                    "}",
+                                    "if (jsonData.token) {",
+                                    "    pm.collectionVariables.set(\"studentToken\", jsonData.token);",
+                                    "    console.log(\"Student Token set automatically from Signup\");",
                                     "}"
                                 ],
                                 "type": "text/javascript"
@@ -35,7 +39,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"identifier\": \"student@example.com\",\n    \"password\": \"password123\",\n    \"role\": \"buyer\",\n    \"name\": \"John Doe\"\n}"
+                            "raw": "{\n    \"identifier\": \"student{{$randomInt}}@example.com\",\n    \"password\": \"password123\",\n    \"role\": \"buyer\",\n    \"name\": \"John Doe\"\n}"
                         },
                         "url": {
                             "raw": "{{baseUrl}}/api/auth/register",
@@ -60,7 +64,7 @@
                                 "exec": [
                                     "var jsonData = pm.response.json();",
                                     "if (jsonData.token) {",
-                                    "    pm.environment.set(\"studentToken\", jsonData.token);",
+                                    "    pm.collectionVariables.set(\"studentToken\", jsonData.token);",
                                     "    console.log(\"Student Token set automatically\");",
                                     "}"
                                 ],
@@ -103,7 +107,7 @@
                                 "exec": [
                                     "var jsonData = pm.response.json();",
                                     "if (jsonData.token) {",
-                                    "    pm.environment.set(\"adminToken\", jsonData.token);",
+                                    "    pm.collectionVariables.set(\"adminToken\", jsonData.token);",
                                     "    console.log(\"Admin Token set automatically\");",
                                     "}"
                                 ],
@@ -144,6 +148,24 @@
             "item": [
                 {
                     "name": "Create Course Category",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "// Checks for _id directly or nested in a data object",
+                                    "var catId = jsonData._id || (jsonData.category && jsonData.category._id) || (jsonData.data && jsonData.data._id);",
+                                    "",
+                                    "if (catId) {",
+                                    "    pm.collectionVariables.set(\"categoryId\", catId);",
+                                    "    console.log(\"Category ID captured: \" + catId);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -158,7 +180,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"name\": \"Web Development\",\n    \"isActive\": true\n}"
+                            "raw": "{\n    \"name\": \"Web Development {{$randomInt}}\",\n    \"isActive\": true\n}"
                         },
                         "url": {
                             "raw": "{{baseUrl}}/api/admin/course-categories",
@@ -205,6 +227,24 @@
             "item": [
                 {
                     "name": "Create Course",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "// Adjust property name based on your actual API response (e.g. jsonData._id, jsonData.course._id, etc)",
+                                    "var cId = jsonData._id || (jsonData.course && jsonData.course._id) || (jsonData.data && jsonData.data._id);",
+                                    "",
+                                    "if (cId) {",
+                                    "    pm.collectionVariables.set(\"courseId\", cId);",
+                                    "    console.log(\"Course ID captured: \" + cId);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -219,7 +259,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"title\": \"Advanced Service Training\",\n    \"description\": \"Learn how to handle premium clients.\",\n    \"detailedDescription\": \"## Full Course Breakdown\\n This course covers...\",\n    \"price\": 49.99,\n    \"category\": \"cat_id_here\",\n    \"level\": \"intermediate\",\n    \"requirements\": [\n        \"Basic knowledge of service industry\"\n    ],\n    \"tags\": [\n        \"service\",\n        \"premium\",\n        \"client-relations\"\n    ],\n    \"learningOutcomes\": [\n        \"Handle difficult clients\",\n        \"Upsell services\"\n    ],\n    \"syllabus\": [\n        {\n            \"title\": \"Module 1: Introduction\",\n            \"description\": \"Getting started\",\n            \"order\": 1\n        }\n    ],\n    \"thumbnail\": \"https://example.com/image.jpg\",\n    \"highlights\": [\n        \"Best Seller\",\n        \"5 Hours Video\"\n    ],\n    \"language\": \"English\"\n}"
+                            "raw": "{\n    \"title\": \"Advanced Service Training\",\n    \"description\": \"Learn how to handle premium clients.\",\n    \"detailedDescription\": \"## Full Course Breakdown\\n This course covers...\",\n    \"price\": 49.99,\n    \"category\": \"{{categoryId}}\",\n    \"level\": \"intermediate\",\n    \"requirements\": [\n        \"Basic knowledge of service industry\"\n    ],\n    \"tags\": [\n        \"service\",\n        \"premium\",\n        \"client-relations\"\n    ],\n    \"learningOutcomes\": [\n        \"Handle difficult clients\",\n        \"Upsell services\"\n    ],\n    \"syllabus\": [\n        {\n            \"title\": \"Module 1: Introduction\",\n            \"description\": \"Getting started\",\n            \"order\": 1\n        }\n    ],\n    \"thumbnail\": \"https://example.com/image.jpg\",\n    \"highlights\": [\n        \"Best Seller\",\n        \"5 Hours Video\"\n    ],\n    \"language\": \"English\"\n}"
                         },
                         "url": {
                             "raw": "{{baseUrl}}/api/admin/courses",
@@ -275,6 +315,23 @@
                 },
                 {
                     "name": "Add Lecture to Course",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "var lId = jsonData._id || (jsonData.lecture && jsonData.lecture._id) || (jsonData.data && jsonData.data._id);",
+                                    "",
+                                    "if (lId) {",
+                                    "    pm.collectionVariables.set(\"lectureId\", lId);",
+                                    "    console.log(\"Lecture ID captured: \" + lId);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -461,6 +518,186 @@
                     "response": []
                 }
             ]
+        },
+        {
+            "name": "Notifications",
+            "item": [
+                {
+                    "name": "Get Notifications",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{studentToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/notifications",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "notifications"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Mark Notification as Read",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{studentToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/notifications/{{notificationId}}/read",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "notifications",
+                                "{{notificationId}}",
+                                "read"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Mark All as Read",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{studentToken}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/notifications/read",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "notifications",
+                                "read"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Course File Uploads",
+            "item": [
+                {
+                    "name": "Upload Thumbnail",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "thumbnail",
+                                    "type": "file",
+                                    "src": []
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/courses/upload/thumbnail",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "courses",
+                                "upload",
+                                "thumbnail"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Upload Video",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "video",
+                                    "type": "file",
+                                    "src": []
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/courses/upload/video",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "courses",
+                                "upload",
+                                "video"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Upload Material",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "material",
+                                    "type": "file",
+                                    "src": []
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/courses/upload/material",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "courses",
+                                "upload",
+                                "material"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
         }
     ],
     "variable": [
@@ -486,6 +723,16 @@
         },
         {
             "key": "lectureId",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "categoryId",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "userId",
             "value": "",
             "type": "string"
         }

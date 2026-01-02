@@ -2,6 +2,7 @@ import Enrollment from "../models/Enrollment.js";
 import LectureProgress from "../models/LectureProgress.js";
 import Course from "../models/Course.js";
 import Lecture from "../models/Lecture.js";
+import { sendNotification } from "./notificationController.js";
 
 class EnrollmentController {
     // ===========================================================================
@@ -38,6 +39,15 @@ class EnrollmentController {
 
             // Update course enrollment count
             await Course.findByIdAndUpdate(courseId, { $inc: { enrollmentCount: 1 } });
+
+            // 🔔 Notify Instructor
+            await sendNotification(
+                course.instructor,
+                "system", // or 'course_enrollment' if defined in enum
+                `New student enrolled in your course: ${course.title}`,
+                course._id,
+                "Course"
+            );
 
             res.status(201).json({ message: "Enrolled successfully", enrollment });
         } catch (error) {
