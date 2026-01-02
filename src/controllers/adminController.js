@@ -56,6 +56,235 @@ class AdminController {
     }
   }
 
+  static async getActivityChartData(req, res) {
+    try {
+      // Get last 30 days of transaction data aggregated by date
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const activityData = await Transaction.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: thirtyDaysAgo }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+            },
+            value: { $sum: "$amount" },
+            count: { $sum: 1 }
+          }
+        },
+        {
+          $sort: { _id: 1 }
+        }
+      ]);
+
+      // Format data for the chart
+      const chartData = activityData.map(item => {
+        const date = new Date(item._id);
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        return {
+          name: `${monthNames[date.getMonth()]} ${date.getDate()}`,
+          value: Math.round(item.value),
+          timestamp: item._id
+        };
+      });
+
+      res.json({ chartData });
+    } catch (error) {
+      console.error("Activity Chart Error:", error);
+      res.status(500).json({ error: "Server error", details: error.message });
+    }
+  }
+
+  static async getRecentActions(req, res) {
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+
+      // Fetch more items from each source to ensure we have enough for pagination
+      const fetchLimit = Math.max(limit * 3, 30); // Fetch more to have a good pool
+
+      // Fetch recent activities from different sources
+      const [recentUsers, recentGigs, recentOrders] = await Promise.all([
+        User.find({ role: { $in: ["buyer", "seller"] } })
+          .sort({ createdAt: -1 })
+          .limit(fetchLimit)
+          .select("name createdAt verificationStatus"),
+        Gig.find()
+          .sort({ updatedAt: -1 })
+          .limit(fetchLimit)
+          .populate("sellerId", "name")
+          .select("title status updatedAt sellerId"),
+        Order.find({ status: "completed" })
+          .sort({ updatedAt: -1 })
+          .limit(fetchLimit)
+          .populate("buyerId", "name")
+          .select("status updatedAt buyerId")
+      ]);
+
+      // Build actions array
+      const actions = [];
+
+      // Add user registrations
+      recentUsers.forEach(user => {
+        actions.push({
+          id: `user_${user._id}`,
+          type: user.verificationStatus === "approved" ? "VERIFICATION_APPROVED" : "USER_REGISTERED",
+          entityType: "user",
+          entityId: user._id.toString(),
+          message: user.verificationStatus === "approved" 
+            ? `User ${user.name} verified profile`
+            : `New user registration: ${user.name}`,
+          timestamp: user.createdAt,
+          userId: user._id.toString(),
+          userName: user.name
+        });
+      });
+
+      // Add gig updates
+      recentGigs.forEach(gig => {
+        let actionType = "MODERATION_ACTION";
+        let message = `Gig "${gig.title}" updated`;
+        
+        if (gig.status === "active") {
+          actionType = "GIG_APPROVED";
+          message = `Gig "${gig.title}" approved`;
+        } else if (gig.status === "rejected") {
+          actionType = "GIG_REJECTED";
+          message = `Gig "${gig.title}" rejected`;
+        }
+
+        actions.push({
+          id: `gig_${gig._id}`,
+          type: actionType,
+          entityType: "gig",
+          entityId: gig._id.toString(),
+          message,
+          timestamp: gig.updatedAt,
+          userId: gig.sellerId?._id?.toString(),
+          userName: gig.sellerId?.name
+        });
+      });
+
+      // Add completed orders
+      recentOrders.forEach(order => {
+        actions.push({
+          id: `order_${order._id}`,
+          type: "ORDER_COMPLETED",
+          entityType: "order",
+          entityId: order._id.toString(),
+          message: `Order completed by ${order.buyerId?.name || "User"}`,
+          timestamp: order.updatedAt,
+          userId: order.buyerId?._id?.toString(),
+          userName: order.buyerId?.name
+        });
+      });
+
+      // Sort by timestamp
+      actions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      
+      // Get total count before pagination
+      const total = actions.length;
+      
+      // Apply pagination
+      const paginatedActions = actions.slice(skip, skip + limit);
+
+      res.json({ 
+        actions: paginatedActions,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit)
+        }
+      });
+    } catch (error) {
+      console.error("Recent Actions Error:", error);
+      res.status(500).json({ error: "Server error", details: error.message });
+    }
+  }
+
+  static async getQuickInsights(req, res) {
+    try {
+      // Calculate various insights
+      const [
+        roleStats,
+        ticketStats,
+        todayLogins
+      ] = await Promise.all([
+        // Most active role
+        User.aggregate([
+          { $match: { role: { $in: ["support", "supervisor", "super_admin"] } } },
+          { $group: { _id: "$role", count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+          { $limit: 1 }
+        ]),
+        // Support ticket resolution time (using SupportTicket model)
+        (async () => {
+          try {
+            const SupportTicket = (await import("../models/SupportTicket.js")).default;
+            const resolvedTickets = await SupportTicket.find({ 
+              status: { $in: ["resolved", "closed"] }
+            }).select("createdAt updatedAt");
+
+            if (resolvedTickets.length === 0) {
+              return { avgHours: 0, count: 0 };
+            }
+
+            const totalHours = resolvedTickets.reduce((sum, ticket) => {
+              const hours = (new Date(ticket.updatedAt) - new Date(ticket.createdAt)) / (1000 * 60 * 60);
+              return sum + hours;
+            }, 0);
+
+            return {
+              avgHours: totalHours / resolvedTickets.length,
+              count: resolvedTickets.length
+            };
+          } catch (err) {
+            console.log("SupportTicket model not available:", err.message);
+            return { avgHours: 0, count: 0 };
+          }
+        })(),
+        // Today's logins
+        User.countDocuments({
+          lastLogin: {
+            $gte: new Date(new Date().setHours(0, 0, 0, 0))
+          }
+        })
+      ]);
+
+      const mostActiveRole = roleStats[0] || { _id: "Support Staff", count: 0 };
+      const roleNameMap = {
+        "support": "Support Staff",
+        "supervisor": "Supervisor",
+        "super_admin": "Super Admin"
+      };
+
+      const insights = {
+        mostActiveRole: {
+          role: roleNameMap[mostActiveRole._id] || mostActiveRole._id,
+          count: mostActiveRole.count
+        },
+        avgResolutionTime: {
+          hours: parseFloat(ticketStats.avgHours.toFixed(1)),
+          formatted: `${ticketStats.avgHours.toFixed(1)} hrs`,
+          ticketCount: ticketStats.count
+        },
+        totalLoginsToday: todayLogins
+      };
+
+      res.json({ insights });
+    } catch (error) {
+      console.error("Quick Insights Error:", error);
+      res.status(500).json({ error: "Server error", details: error.message });
+    }
+  }
+
   // ===========================================================================
   // 2. USER MANAGEMENT
   // ===========================================================================
@@ -278,13 +507,39 @@ class AdminController {
     try {
       const { name, email, mobileNumber, password, role } = req.body;
 
-      const allowedRoles = ["support", "supervisor", "regional_manager"];
-      if (!allowedRoles.includes(role)) {
-        return res.status(400).json({ error: "Invalid admin role." });
+      // Validate required fields
+      if (!name || !email || !mobileNumber || !password || !role) {
+        return res.status(400).json({ 
+          error: "Missing required fields",
+          message: "Please fill in all required fields: name, email, mobile number, password, and role." 
+        });
       }
 
-      const existing = await User.findOne({ email });
-      if (existing) return res.status(400).json({ error: "Email already exists." });
+      const allowedRoles = ["support", "supervisor", "super_admin"];
+      if (!allowedRoles.includes(role)) {
+        return res.status(400).json({ 
+          error: "Invalid admin role",
+          message: `Please select a valid role: Support, Supervisor, or Super Admin.` 
+        });
+      }
+
+      // Check for existing email
+      const existingEmail = await User.findOne({ email });
+      if (existingEmail) {
+        return res.status(400).json({ 
+          error: "Email already exists",
+          message: `The email address "${email}" is already registered in the system. Please use a different email.` 
+        });
+      }
+
+      // Check for existing mobile number
+      const existingMobile = await User.findOne({ mobileNumber });
+      if (existingMobile) {
+        return res.status(400).json({ 
+          error: "Mobile number already exists",
+          message: `The mobile number "${mobileNumber}" is already registered. Please use a different number.` 
+        });
+      }
 
       const user = await User.create({
         name,
@@ -295,9 +550,46 @@ class AdminController {
         isVerified: true
       });
 
-      res.status(201).json({ message: "Admin created", user: { email: user.email, role: user.role } });
+      res.status(201).json({ 
+        message: "Admin created successfully", 
+        user: { 
+          id: user._id,
+          name: user.name,
+          email: user.email, 
+          role: user.role 
+        } 
+      });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      console.error('Create admin error:', error);
+
+      // Handle MongoDB duplicate key error
+      if (error.code === 11000) {
+        const field = Object.keys(error.keyPattern)[0];
+        const value = error.keyValue[field];
+        
+        let friendlyField = field;
+        if (field === 'mobileNumber') friendlyField = 'mobile number';
+        
+        return res.status(400).json({ 
+          error: "Duplicate entry",
+          message: `This ${friendlyField} (${value}) is already registered in the system. Please use a different ${friendlyField}.` 
+        });
+      }
+
+      // Handle validation errors
+      if (error.name === 'ValidationError') {
+        const messages = Object.values(error.errors).map(err => err.message);
+        return res.status(400).json({ 
+          error: "Validation failed",
+          message: messages.join('. ') 
+        });
+      }
+
+      // Generic error
+      res.status(500).json({ 
+        error: "Server error",
+        message: "An unexpected error occurred while creating the user. Please try again or contact support if the problem persists." 
+      });
     }
   }
 
@@ -325,10 +617,82 @@ class AdminController {
   // --- NEW: Get All Admins ---
   static async getAdmins(req, res) {
     try {
-      const admins = await User.find({
+      const {
+        role,
+        status,
+        search,
+        sort = 'newest',
+        page = 1,
+        limit = 100
+      } = req.query;
+
+      console.log('Get Admins Query Params:', { role, status, search, sort, page, limit });
+
+      // Build query
+      const query = {
         role: { $in: ["support", "supervisor", "super_admin"] },
-      }).select("-password");
-      res.json(admins);
+      };
+
+      // Role filter
+      if (role && role !== 'All Roles') {
+        query.role = role;
+      }
+
+      // Status filter
+      if (status && status !== 'All Status') {
+        if (status === 'Active') {
+          query.isSuspended = false;
+        } else if (status === 'Inactive' || status === 'Suspended') {
+          query.isSuspended = true;
+        }
+      }
+
+      // Search filter
+      if (search) {
+        query.$or = [
+          { name: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } }
+        ];
+      }
+
+      // Determine sort order
+      let sortOption = {};
+      switch (sort) {
+        case 'oldest':
+          sortOption = { createdAt: 1 };
+          break;
+        case 'name_asc':
+          sortOption = { name: 1 };
+          break;
+        case 'name_desc':
+          sortOption = { name: -1 };
+          break;
+        case 'newest':
+        default:
+          sortOption = { createdAt: -1 };
+          break;
+      }
+
+      // Execute query with pagination
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+      const admins = await User.find(query)
+        .select("-password")
+        .sort(sortOption)
+        .skip(skip)
+        .limit(parseInt(limit));
+
+      // Get total count for pagination
+      const total = await User.countDocuments(query);
+
+      res.json({
+        admins,
+        pagination: {
+          total,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          totalPages: Math.ceil(total / parseInt(limit))
+        }
+      });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
@@ -534,7 +898,9 @@ class AdminController {
       if (req.query.search) filter.title = { $regex: req.query.search, $options: "i" };
 
       const gigs = await Gig.find(filter)
-        .populate("sellerId", "name email")
+        .populate("sellerId", "name email rating mobileNumber address selectedAreas")
+        .populate("category", "name")
+        .populate("primarySubcategory", "name")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);

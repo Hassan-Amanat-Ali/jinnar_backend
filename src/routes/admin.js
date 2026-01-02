@@ -170,14 +170,14 @@ router.patch(
 // Get all admins
 router.get(
   "/admins",
-  authorize("super_admin"),
+  authorize(["support", "supervisor", "super_admin"]),
   AdminController.getAdmins
 );
 
 // Get a single admin by ID
 router.get(
   "/admins/:id",
-  authorize("super_admin"),
+  authorize(["support", "supervisor", "super_admin"]),
   AdminController.getAdminById
 );
 
@@ -204,6 +204,24 @@ router.get(
   "/stats",
   authorize(["support", "supervisor", "super_admin"]),
   AdminController.getDashboardStats
+);
+
+router.get(
+  "/activity-chart",
+  authorize(["support", "supervisor", "super_admin"]),
+  AdminController.getActivityChartData
+);
+
+router.get(
+  "/recent-actions",
+  authorize(["support", "supervisor", "super_admin"]),
+  AdminController.getRecentActions
+);
+
+router.get(
+  "/quick-insights",
+  authorize(["support", "supervisor", "super_admin"]),
+  AdminController.getQuickInsights
 );
 
 router.get(
