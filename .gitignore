@@ -18,3 +18,8 @@ model.nlp
 
 # logs
 *.log
+
+# Secrets
+serviceaccount.json
+old_serviceaccount.json
+
