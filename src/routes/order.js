@@ -27,6 +27,9 @@ import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
 
+// ─────────────────────────────────────────────────────────────────────────────
+// USER ROUTES
+// ─────────────────────────────────────────────────────────────────────────────
 //Get My Orders
 router.get("/my-orders", protect, getMyOrders);
 router.get("/seller-stats", protect, getSellerQuickStats); // New route for seller quick stats

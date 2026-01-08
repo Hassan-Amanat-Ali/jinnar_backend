@@ -8,6 +8,103 @@ import { sendNotification } from "./notificationController.js";
 import Message from "../models/Message.js";
 
 // ───────────────────────────────────────
+// ADMIN: GET ALL ORDERS WITH FILTERS
+// ───────────────────────────────────────
+export const getAllOrdersAdmin = async (req, res) => {
+  try {
+    const {
+      status,
+      search,
+      sort = "newest",
+      pricingMethod,
+      page = 1,
+      limit = 10,
+    } = req.query;
+
+    // Build filter object
+    let filter = {};
+
+    if (status) {
+      filter.status = status;
+    }
+
+    if (pricingMethod) {
+      filter.selectedPricingMethod = pricingMethod;
+    }
+
+    // Search functionality - search by buyer name, seller name, or gig title
+    if (search) {
+      const users = await User.find({
+        name: { $regex: search, $options: "i" },
+      }).select("_id");
+
+      const gigs = await Gig.find({
+        title: { $regex: search, $options: "i" },
+      }).select("_id");
+
+      const userIds = users.map((u) => u._id);
+      const gigIds = gigs.map((g) => g._id);
+
+      filter.$or = [
+        { buyerId: { $in: userIds } },
+        { sellerId: { $in: userIds } },
+        { gigId: { $in: gigIds } },
+      ];
+    }
+
+    // Sort options
+    let sortOption = {};
+    switch (sort) {
+      case "oldest":
+        sortOption = { createdAt: 1 };
+        break;
+      case "price_desc":
+        sortOption = { price: -1 };
+        break;
+      case "price_asc":
+        sortOption = { price: 1 };
+        break;
+      case "newest":
+      default:
+        sortOption = { createdAt: -1 };
+    }
+
+    // Pagination
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Get total count
+    const total = await Order.countDocuments(filter);
+
+    // Fetch orders with pagination
+    const orders = await Order.find(filter)
+      .populate("buyerId", "name email profilePicture")
+      .populate("sellerId", "name email profilePicture")
+      .populate("gigId", "title images")
+      .sort(sortOption)
+      .skip(skip)
+      .limit(limitNum);
+
+    res.json({
+      orders,
+      pagination: {
+        total,
+        page: pageNum,
+        totalPages: Math.ceil(total / limitNum),
+        limit: limitNum,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching admin orders:", error);
+    res.status(500).json({
+      error: "Failed to fetch orders",
+      details: error.message,
+    });
+  }
+};
+
+// ───────────────────────────────────────
 // 1. CREATE JOB REQUEST (Buyer)
 // ───────────────────────────────────────
 
@@ -28,9 +125,18 @@ export const createJobRequest = async (req, res) => {
     } = req.body;
 
     // ✅ Validation
-    if (!gigId || !date || !timeSlot || !jobDescription || !lat || !lng || !selectedPricingMethod) {
+    if (
+      !gigId ||
+      !date ||
+      !timeSlot ||
+      !jobDescription ||
+      !lat ||
+      !lng ||
+      !selectedPricingMethod
+    ) {
       return res.status(400).json({
-        error: "gigId, date, timeSlot, description, lat, lng, and selectedPricingMethod are required",
+        error:
+          "gigId, date, timeSlot, description, lat, lng, and selectedPricingMethod are required",
       });
     }
 
@@ -55,7 +161,7 @@ export const createJobRequest = async (req, res) => {
     if (selectedPricingMethod === "fixed") {
       if (!gig.pricing?.fixed?.enabled || !gig.pricing.fixed.price) {
         return res.status(400).json({
-          error: "Fixed pricing is not available for this gig"
+          error: "Fixed pricing is not available for this gig",
         });
       }
       basePrice = gig.pricing.fixed.price;
@@ -69,10 +175,11 @@ export const createJobRequest = async (req, res) => {
       // ✅ Wallet check for fixed pricing
       const buyerWallet = await Wallet.findOne({ userId: buyerId });
       if (!buyerWallet) {
- return res.status(402).json({
+        return res.status(402).json({
           error: "Insufficient funds in wallet",
           message: `Your balance is 0, but the job requires ${jobPrice}`,
-        });      }
+        });
+      }
 
       if (buyerWallet.balance < jobPrice) {
         return res.status(402).json({
@@ -83,7 +190,7 @@ export const createJobRequest = async (req, res) => {
     } else if (selectedPricingMethod === "hourly") {
       if (!gig.pricing?.hourly?.enabled || !gig.pricing.hourly.rate) {
         return res.status(400).json({
-          error: "Hourly pricing is not available for this gig"
+          error: "Hourly pricing is not available for this gig",
         });
       }
       // For hourly pricing, we don't charge upfront
@@ -93,7 +200,7 @@ export const createJobRequest = async (req, res) => {
     } else if (selectedPricingMethod === "inspection") {
       if (!gig.pricing?.inspection?.enabled) {
         return res.status(400).json({
-          error: "Inspection-based pricing is not available for this gig"
+          error: "Inspection-based pricing is not available for this gig",
         });
       }
       // For inspection-based, no upfront payment
@@ -101,7 +208,7 @@ export const createJobRequest = async (req, res) => {
       jobPrice = 0;
     } else {
       return res.status(400).json({
-        error: "Invalid pricing method selected"
+        error: "Invalid pricing method selected",
       });
     }
 
@@ -166,19 +273,16 @@ export const createCustomOffer = async (req, res) => {
   //     emergency,
   //     image,
   //   } = req.body;
-
   //   // 1. Validate required fields for creating a new job offer
   //   if (!gigId || !buyerId || !date || !jobDescription || !price) {
   //     return res.status(400).json({
   //       error: "gigId, buyerId, date, jobDescription, and price are required",
   //     });
   //   }
-
   //   // 2. Validate price
   //   if (isNaN(price) || price <= 0) {
   //     return res.status(400).json({ error: "Price must be a positive number" });
   //   }
-
   //   // 3. Verify the gig exists and belongs to the seller
   //   const gig = await Gig.findById(gigId);
   //   if (!gig) return res.status(404).json({ error: "Gig not found" });
@@ -187,7 +291,6 @@ export const createCustomOffer = async (req, res) => {
   //       .status(403)
   //       .json({ error: "You can only create offers for your own gigs" });
   //   }
-
   //   // 4. Create the new order with 'offer_pending' status
   //   const newOfferOrder = await Order.create({
   //     gigId,
@@ -203,7 +306,6 @@ export const createCustomOffer = async (req, res) => {
   //     status: "offer_pending", // This is a seller's offer waiting for buyer's action
   //     offerFrom: sellerId, // Mark that this order originated as a custom offer
   //   });
-
   //   // 5. Notify buyer about the new custom offer
   //   await sendNotification(
   //     buyerId,
@@ -212,7 +314,6 @@ export const createCustomOffer = async (req, res) => {
   //     newOfferOrder._id,
   //     "Order"
   //   );
-
   //   res.status(201).json({
   //     message: "Custom offer sent to the buyer successfully",
   //     order: newOfferOrder,
@@ -247,8 +348,6 @@ export const acceptCustomOffer = async (req, res) => {
 
     console.log("Is updating running");
 
-   
-
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
@@ -268,10 +367,11 @@ export const acceptCustomOffer = async (req, res) => {
     // Check buyer's wallet for sufficient funds before accepting
     const buyerWallet = await Wallet.findOne({ userId: buyerId });
     if (!buyerWallet) {
- return res.status(402).json({
-          error: "Insufficient funds in wallet",
-          message: `Your balance is 0, but the offer requires ${order.price}`,
-        });    }
+      return res.status(402).json({
+        error: "Insufficient funds in wallet",
+        message: `Your balance is 0, but the offer requires ${order.price}`,
+      });
+    }
     if (buyerWallet.balance < order.price) {
       return res.status(402).json({
         error: "Insufficient funds to accept the offer.",
@@ -296,7 +396,7 @@ export const acceptCustomOffer = async (req, res) => {
     order.acceptedAt = new Date();
     await order.save();
 
-     const data = await Message.updateOne(
+    const data = await Message.updateOne(
       { _id: messageId },
       { "customOffer.status": "accepted" }
     );
@@ -322,7 +422,7 @@ export const acceptCustomOffer = async (req, res) => {
           price: order.price,
           description: order.jobDescription,
         },
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       };
 
       // Emit to both parties (seller sees confirmation, buyer sees own action reflected)
@@ -335,7 +435,9 @@ export const acceptCustomOffer = async (req, res) => {
       global.io.to(sellerId).emit("updateChatList");
       global.io.to(buyerId).emit("updateChatList");
 
-      console.log(`✅ Emitted offerAccepted & offerStatusUpdated for order ${order._id}`);
+      console.log(
+        `✅ Emitted offerAccepted & offerStatusUpdated for order ${order._id}`
+      );
     }
 
     // Notify the seller that their offer was accepted.
@@ -414,7 +516,7 @@ export const rejectCustomOffer = async (req, res) => {
           status: "rejected",
           orderId: order._id,
         },
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       };
 
       global.io.to(sellerId).emit("offerRejected", payload);
@@ -425,7 +527,9 @@ export const rejectCustomOffer = async (req, res) => {
       global.io.to(sellerId).emit("updateChatList");
       global.io.to(buyerId).emit("updateChatList");
 
-      console.log(`✅ Emitted offerRejected & offerStatusUpdated for order ${order._id}`);
+      console.log(
+        `✅ Emitted offerRejected & offerStatusUpdated for order ${order._id}`
+      );
     }
 
     await sendNotification(
@@ -513,7 +617,7 @@ export const getAllJobRequests = async (req, res) => {
 
     const jobs = await Order.find({
       sellerId: sellerId,
-      status: { $ne: "offer_pending" }
+      status: { $ne: "offer_pending" },
     })
       .populate("buyerId", "name profilePicture")
       .sort({ createdAt: -1 });
@@ -1050,7 +1154,7 @@ export const getMyOrders = async (req, res) => {
     let filter = {};
     filter = {
       $or: [{ buyerId: id }, { sellerId: id }],
-      status: { $ne: "offer_pending" }
+      status: { $ne: "offer_pending" },
     };
 
     const jobs = await Order.find(filter)
@@ -1169,8 +1273,8 @@ export const getOrderById = async (req, res) => {
         select: "title pricing skills images category primarySubcategory",
         populate: [
           { path: "category", select: "name" },
-          { path: "primarySubcategory", select: "name" }
-        ]
+          { path: "primarySubcategory", select: "name" },
+        ],
       });
 
     if (!order) {
@@ -1201,7 +1305,14 @@ export const getSellerQuickStats = async (req, res) => {
     const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+    const lastMonthEnd = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      0,
+      23,
+      59,
+      59
+    );
 
     // 1. Completed Jobs - Current Total
     const completedJobsCount = await Order.countDocuments({
@@ -1209,15 +1320,17 @@ export const getSellerQuickStats = async (req, res) => {
       status: "completed",
     });
 
-
     // Completed jobs this month (use completedAt if available, otherwise createdAt)
     const completedThisMonth = await Order.countDocuments({
       sellerId: sellerId,
       status: "completed",
       $or: [
         { completedAt: { $gte: currentMonthStart } },
-        { completedAt: { $exists: false }, createdAt: { $gte: currentMonthStart } }
-      ]
+        {
+          completedAt: { $exists: false },
+          createdAt: { $gte: currentMonthStart },
+        },
+      ],
     });
 
     // Completed jobs last month
@@ -1226,23 +1339,27 @@ export const getSellerQuickStats = async (req, res) => {
       status: "completed",
       $or: [
         { completedAt: { $gte: lastMonthStart, $lte: lastMonthEnd } },
-        { completedAt: { $exists: false }, createdAt: { $gte: lastMonthStart, $lte: lastMonthEnd } }
-      ]
+        {
+          completedAt: { $exists: false },
+          createdAt: { $gte: lastMonthStart, $lte: lastMonthEnd },
+        },
+      ],
     });
 
-    console.log('Growth Calculation Debug:', {
+    console.log("Growth Calculation Debug:", {
       totalCompleted: completedJobsCount,
       completedThisMonth,
       completedLastMonth,
       currentMonthStart,
       lastMonthStart,
-      lastMonthEnd
+      lastMonthEnd,
     });
 
     // Calculate jobs completed growth percentage
     let jobsGrowthPercentage = null;
     if (completedLastMonth > 0) {
-      jobsGrowthPercentage = ((completedThisMonth - completedLastMonth) / completedLastMonth) * 100;
+      jobsGrowthPercentage =
+        ((completedThisMonth - completedLastMonth) / completedLastMonth) * 100;
       jobsGrowthPercentage = parseFloat(jobsGrowthPercentage.toFixed(1));
     } else if (completedThisMonth > 0) {
       // If there were no jobs last month but there are this month, show 100% growth
@@ -1271,32 +1388,37 @@ export const getSellerQuickStats = async (req, res) => {
     // 4. Rating Growth - Get seller's current rating and calculate growth
     const seller = await User.findById(sellerId);
     let ratingGrowthPercentage = null;
-    
+
     if (seller && seller.reviews && seller.reviews.length > 0) {
       // Get reviews from this month
-      const reviewsThisMonth = seller.reviews.filter(review => {
+      const reviewsThisMonth = seller.reviews.filter((review) => {
         const reviewDate = review.createdAt || new Date(0);
         return reviewDate >= currentMonthStart;
       });
 
       // Get reviews from last month
-      const reviewsLastMonth = seller.reviews.filter(review => {
+      const reviewsLastMonth = seller.reviews.filter((review) => {
         const reviewDate = review.createdAt || new Date(0);
         return reviewDate >= lastMonthStart && reviewDate <= lastMonthEnd;
       });
 
       // Calculate average ratings
-      const avgThisMonth = reviewsThisMonth.length > 0
-        ? reviewsThisMonth.reduce((sum, r) => sum + (r.rating || 0), 0) / reviewsThisMonth.length
-        : 0;
+      const avgThisMonth =
+        reviewsThisMonth.length > 0
+          ? reviewsThisMonth.reduce((sum, r) => sum + (r.rating || 0), 0) /
+            reviewsThisMonth.length
+          : 0;
 
-      const avgLastMonth = reviewsLastMonth.length > 0
-        ? reviewsLastMonth.reduce((sum, r) => sum + (r.rating || 0), 0) / reviewsLastMonth.length
-        : 0;
+      const avgLastMonth =
+        reviewsLastMonth.length > 0
+          ? reviewsLastMonth.reduce((sum, r) => sum + (r.rating || 0), 0) /
+            reviewsLastMonth.length
+          : 0;
 
       // Calculate growth percentage
       if (avgLastMonth > 0) {
-        ratingGrowthPercentage = ((avgThisMonth - avgLastMonth) / avgLastMonth) * 100;
+        ratingGrowthPercentage =
+          ((avgThisMonth - avgLastMonth) / avgLastMonth) * 100;
         ratingGrowthPercentage = parseFloat(ratingGrowthPercentage.toFixed(1));
       } else if (avgThisMonth > 0) {
         ratingGrowthPercentage = 100;

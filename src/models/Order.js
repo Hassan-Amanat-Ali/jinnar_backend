@@ -43,7 +43,15 @@ const orderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "offer_pending", "accepted", "rejected", "completed", "cancelled"],
+      enum: [
+        "pending",
+        "offer_pending",
+        "accepted",
+        "rejected",
+        "completed",
+        "cancelled",
+        "disputed",
+      ],
       default: "pending",
     },
     rating: {
@@ -67,7 +75,7 @@ const orderSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 export default mongoose.model("Order", orderSchema);

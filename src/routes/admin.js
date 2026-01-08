@@ -8,14 +8,15 @@ import {
   updateTicketStatus,
   assignTicket,
   addInternalNote,
-  getMyAssignedTickets
+  getMyAssignedTickets,
 } from "../controllers/SupportTicketController.js";
+import { getAllOrdersAdmin } from "../controllers/orderController.js";
 
 import { protect, authorize } from "../middleware/auth.js"; // Assuming this handles strings
 import {
   getAllReports,
   getReportDetails,
-  updateReportStatus
+  updateReportStatus,
 } from "../controllers/ReportController.js";
 import AdminCourseController from "../controllers/adminCourseController.js";
 
@@ -73,11 +74,9 @@ router.post(
   addInternalNote
 );
 
-
 // =============================================================================
 // 0. Report/Complaint System (Public/Self)
 // =============================================================================
-
 
 router.get(
   "/reports",
@@ -86,12 +85,7 @@ router.get(
   getAllReports
 );
 
-router.get(
-  "/reports/:id",
-  protect,
-  authorize("support"),
-  getReportDetails
-);
+router.get("/reports/:id", protect, authorize("support"), getReportDetails);
 
 router.patch(
   "/reports/:id",
@@ -195,8 +189,6 @@ router.delete(
   AdminController.deleteAdmin
 );
 
-
-
 // =============================================================================
 // 3. DASHBOARD & STATS
 // =============================================================================
@@ -245,13 +237,15 @@ router.get(
   AdminController.viewUserActivity
 );
 
-router.patch( // Changed from POST to PATCH for semantic correctness
+router.patch(
+  // Changed from POST to PATCH for semantic correctness
   "/verify-user",
   authorize("supervisor"), // Supervisor+ can verify
   AdminController.verifyUser
 );
 
-router.patch( // Changed from POST to PATCH
+router.patch(
+  // Changed from POST to PATCH
   "/suspend-user",
   authorize("supervisor"),
   AdminController.suspendUser
@@ -329,11 +323,7 @@ router.patch(
   AdminController.updateGigStatus
 );
 
-router.delete(
-  "/gigs/:id",
-  authorize("super_admin"),
-  AdminController.deleteGig
-);
+router.delete("/gigs/:id", authorize("super_admin"), AdminController.deleteGig);
 
 // =============================================================================
 // 7. ORDER MANAGEMENT
@@ -341,7 +331,7 @@ router.delete(
 router.get(
   "/orders",
   authorize(["support", "supervisor", "super_admin"]),
-  AdminController.getAllOrders
+  getAllOrdersAdmin
 );
 
 router.get(
@@ -359,13 +349,12 @@ router.patch(
 // =============================================================================
 // 8. PLATFORM SETTINGS
 // =============================================================================
-router.post( // Or PATCH
+router.post(
+  // Or PATCH
   "/settings",
   authorize("super_admin"),
   AdminController.updatePlatformSettings
 );
-
-
 
 // =============================================================================
 // 9. COURSE & LECTURE MANAGEMENT (LMS)
