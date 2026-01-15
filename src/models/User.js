@@ -26,11 +26,11 @@ const userSchema = new mongoose.Schema(
       match: [/\S+@\S+\.\S+/, "Invalid email address"],
       // Sparse allows multiple documents to have 'null' for this field, 
       // but if a value exists, it must be unique.
-      unique: true, 
-      sparse: true, 
+      unique: true,
+      sparse: true,
       default: undefined
     },
-        mobileNumber: {
+    mobileNumber: {
       type: String,
       trim: true,
       match: [
@@ -38,7 +38,7 @@ const userSchema = new mongoose.Schema(
         "Mobile number must be in E.164 format (e.g., +1234567890)",
       ],
       unique: true,
-      sparse: true, 
+      sparse: true,
       default: undefined
     },
     password: {
@@ -91,11 +91,11 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
     preferences: {
-  emailNotifications: { type: Boolean, default: true },
-  inAppNotifications: { type: Boolean, default: true },
-  twoFactorAuth: { type: Boolean, default: false },
-  language: { type: String, default: "en" } // ISO 639-1 codes
-},
+      emailNotifications: { type: Boolean, default: true },
+      inAppNotifications: { type: Boolean, default: true },
+      twoFactorAuth: { type: Boolean, default: false },
+      language: { type: String, default: "en" } // ISO 639-1 codes
+    },
     lastLogin: {
       type: Date,
       default: null,
@@ -106,11 +106,17 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    verificationStatus: {
-      type: String,
-      enum: ["unsubmitted", "pending", "approved", "rejected"],
-      default: "unsubmitted",
+    verification: {
+      sessionId: String,
+      url: String,
+      status: {
+        type: String,
+        enum: ["none", "pending", "verified", "rejected", "expired"],
+        default: "none",
+      },
+      lastError: String,
     },
+    // verificationStatus field removed in favor of verification.status
     verificationCode: {
       type: String,
       default: null,
@@ -180,11 +186,11 @@ const userSchema = new mongoose.Schema(
     yearsOfExperience: { type: Number, min: 0 },
     selectedAreas: [pointSchema],
     preferredAreas: [pointSchema],
-    
+
     // --- TRANSACTIONS & ACTIVITY ---
     wallet: {
-        balance: { type: Number, default: 0 },
-        transactions: [] // Define transaction schema if needed
+      balance: { type: Number, default: 0 },
+      transactions: [] // Define transaction schema if needed
     },
     notifications: [
       {
@@ -200,7 +206,7 @@ const userSchema = new mongoose.Schema(
       },
     ],
     orderHistory: [{ type: mongoose.Schema.Types.ObjectId, ref: "Order" }],
-    
+
     // --- RATINGS ---
     rating: {
       average: { type: Number, default: 0, min: 0, max: 5 },
@@ -222,7 +228,7 @@ const userSchema = new mongoose.Schema(
     portfolioImages: [{ url: String }],
     videos: [{ url: String }],
     certificates: [{ url: String }],
-    
+
     // --- AVAILABILITY ---
     availability: {
       type: [
@@ -277,7 +283,7 @@ userSchema.index({ location: "2dsphere" });
 userSchema.index({ "notifications.createdAt": -1 });
 
 // Ensure at least one auth method is present before saving
-userSchema.pre('save', function(next) {
+userSchema.pre('save', function (next) {
   if (!this.email && !this.mobileNumber) {
     return next(new Error('Either email or mobile number is required'));
   }
