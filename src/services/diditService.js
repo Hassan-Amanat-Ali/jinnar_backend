@@ -107,13 +107,18 @@ class DiditService {
      * @returns {string} - 'verified', 'rejected', 'pending', etc.
      */
     parseVerificationStatus(event) {
-        // This depends on the actual Didit event structure
-        // Example: event.type === 'verification.completed' && event.status === 'approved'
-        if (event.type === 'verification.completed' || event.status === 'approved') {
+        // Didit sends 'Approved', 'Declined', 'In Progress', 'Not Started'
+        // We normalize to lowercase for comparison
+        const status = (event.status || '').toLowerCase();
+
+        if (status === 'approved' || event.type === 'verification.completed') {
             return 'verified';
-        } else if (event.status === 'rejected' || event.status === 'failed') {
+        } else if (status === 'declined' || status === 'rejected' || status === 'failed') {
             return 'rejected';
+        } else if (status === 'expired' || status === 'abandoned') {
+            return 'expired';
         }
+
         return 'pending';
     }
 }
