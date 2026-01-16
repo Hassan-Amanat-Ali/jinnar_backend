@@ -90,11 +90,11 @@ app.post('/api/webhooks/didit', express.raw({ type: 'application/json' }), async
 
     // 2. Parse Body manually
     const event = JSON.parse(req.body.toString());
-    console.log('🔔 [Didit Webhook] Event Received:', event.type || 'Unknown Type');
+    console.log('🔔 [Didit Webhook] Full Event Body:', JSON.stringify(event, null, 2));
 
     // 3. Update User Logic
-    // Adjust based on actual Didit payload structure usually containing session_id or vendor_data
-    const sessionId = event.session_id || event.id; // Fallback
+    // Support various ID fields
+    const sessionId = event.session_id || event.id || event.data?.session?.id;
 
     if (sessionId) {
       const user = await User.findOne({ 'verification.sessionId': sessionId });
