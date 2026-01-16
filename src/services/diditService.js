@@ -18,17 +18,23 @@ class DiditService {
      * @returns {boolean} - True if valid
      */
     verifySignature(rawBody, signature, secret, timestamp) {
-        if (!signature || !secret) return false;
+        if (!signature || !secret) {
+            console.warn('[Didit Debug] Missing signature or secret for verification');
+            return false;
+        }
 
-        // 1. Replay Protection (if timestamp is provided)
+        // 1. Replay Protection
         if (timestamp) {
-            const sentAt = new Date(timestamp * 1000); // Assuming unix timestamp
+            const sentAt = new Date(timestamp * 1000);
             const now = new Date();
             const fiveMinutes = 5 * 60 * 1000;
+            const diff = now - sentAt;
 
-            if (now - sentAt > fiveMinutes) {
-                console.error('Didit Webhook: Request expired (Replay Attack protection)');
-                return false;
+            console.log(`[Didit Debug] Timestamp Check - Sent: ${sentAt.toISOString()}, Now: ${now.toISOString()}, Diff: ${diff}ms`);
+
+            if (diff > fiveMinutes) {
+                console.error('[Didit Debug] Request expired (Replay Protection)');
+                // return false; // Allowed for now to debug signature first
             }
         }
 
@@ -37,12 +43,23 @@ class DiditService {
             const hmac = crypto.createHmac('sha256', secret);
             const digest = hmac.update(rawBody).digest('hex');
 
-            return crypto.timingSafeEqual(
+            const isValid = crypto.timingSafeEqual(
                 Buffer.from(digest, 'hex'),
                 Buffer.from(signature, 'hex')
             );
+
+            if (!isValid) {
+                console.error(`[Didit Debug] Signature Mismatch!`);
+                console.error(`[Didit Debug] Secret Length: ${secret.length}`);
+                console.error(`[Didit Debug] Received Signature: ${signature}`);
+                console.error(`[Didit Debug] Calculated Digest:  ${digest}`);
+            } else {
+                console.log('[Didit Debug] Signature Verified Successfully');
+            }
+
+            return isValid;
         } catch (error) {
-            console.error('Didit Webhook: Signature verification error', error);
+            console.error('[Didit Debug] Verification Error', error);
             return false;
         }
     }

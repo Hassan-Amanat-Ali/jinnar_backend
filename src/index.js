@@ -22,6 +22,7 @@ import swaggerSpec from './config/swagger.js';
 
 
 const app = express();
+app.set('trust proxy', 1); // Required for rate limiting behind proxy
 const PORT = process.env.PORT || 3000;
 console.log('Environment PORT:', PORT)
 const limiter = rateLimit({
@@ -71,7 +72,9 @@ app.post('/api/webhooks/didit', express.raw({ type: 'application/json' }), async
   const { default: User } = await import('./models/User.js');
 
   const signature = req.headers['didit-signature'];
-  const timestamp = req.headers['didit-timestamp']; // If provided/configured
+  const timestamp = req.headers['didit-timestamp'];
+
+  console.log('[Didit Webhook] Headers:', { signature, timestamp });
   const secret = process.env.DIDIT_WEBHOOK_SECRET;
 
   try {
