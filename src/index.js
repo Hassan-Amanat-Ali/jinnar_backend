@@ -22,7 +22,7 @@ import swaggerSpec from './config/swagger.js';
 
 
 const app = express();
-app.set('trust proxy', 1); // Required for rate limiting behind proxy
+app.set('trust proxy', 2); // Required for rate limiting behind proxy
 const PORT = process.env.PORT || 3000;
 console.log('Environment PORT:', PORT)
 const limiter = rateLimit({
