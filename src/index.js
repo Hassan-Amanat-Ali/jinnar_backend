@@ -71,12 +71,11 @@ app.post('/api/webhooks/didit', express.raw({ type: 'application/json' }), async
   const { default: diditService } = await import('./services/diditService.js');
   const { default: User } = await import('./models/User.js');
 
-  const signature = req.headers['didit-signature'];
-  const timestamp = req.headers['didit-timestamp'];
+  // CHECK BOTH FORMATS (Didit docs vs Actual Headers)
+  const signature = req.headers['x-signature'] || req.headers['didit-signature'];
+  const timestamp = req.headers['x-timestamp'] || req.headers['didit-timestamp'];
 
-  // DEBUG LOGGING
-  console.log('[Didit Webhook] Received Headers:', JSON.stringify(req.headers, null, 2));
-
+  // Keep debug logging for verification
   console.log('[Didit Webhook] Headers Extract:', { signature, timestamp });
   const secret = process.env.DIDIT_WEBHOOK_SECRET;
 
