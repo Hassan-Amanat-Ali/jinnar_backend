@@ -11,7 +11,8 @@ export const startVerification = async (req, res) => {
         }
 
         // Check existing verification status
-        if (user.verification?.status === 'pending' && user.verification?.url) {
+        // Pass { force: true } in body to restart even if pending
+        if (!req.body.force && user.verification?.status === 'pending' && user.verification?.url) {
             // Return existing session if pending
             return res.status(200).json({
                 message: 'Verification already in progress',
