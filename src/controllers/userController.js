@@ -136,7 +136,7 @@ export const findWorkers = asyncHandler(async (req, res) => {
     preferredAreas
     categories
   `)
-  .populate("categories", "name");
+    .populate("categories", "name");
 
   // -------------------------
   // Distance filtering (optional)
@@ -646,7 +646,7 @@ export const updateUser = async (req, res) => {
               return res.status(400).json({ error: `Overlapping or invalid break ranges in availability index ${i}` });
             }
             if (slot.start && slot.end) {
-              const toMin = (t) => { const [h,m] = t.split(":"); return parseInt(h,10)*60+parseInt(m,10); };
+              const toMin = (t) => { const [h, m] = t.split(":"); return parseInt(h, 10) * 60 + parseInt(m, 10); };
               const s = toMin(slot.start);
               const e = toMin(slot.end);
               for (const br of slot.breaks) {
@@ -1007,14 +1007,14 @@ export const getPublicProfile = async (req, res) => {
       createdAt: r.createdAt,
       reviewer: r.reviewer
         ? {
-            id: r.reviewer,
-            name:
-              reviewerMap[r.reviewer]?._doc?.name ||
-              reviewerMap[r.reviewer]?.name,
-            profilePicture:
-              reviewerMap[r.reviewer]?._doc?.profilePicture ||
-              reviewerMap[r.reviewer]?.profilePicture,
-          }
+          id: r.reviewer,
+          name:
+            reviewerMap[r.reviewer]?._doc?.name ||
+            reviewerMap[r.reviewer]?.name,
+          profilePicture:
+            reviewerMap[r.reviewer]?._doc?.profilePicture ||
+            reviewerMap[r.reviewer]?.profilePicture,
+        }
         : null,
     }));
 
@@ -1190,14 +1190,14 @@ export const getSellerReviews = async (req, res) => {
       createdAt: r.createdAt,
       reviewer: r.reviewer
         ? {
-            id: r.reviewer,
-            name:
-              reviewerMap[r.reviewer]?._doc?.name ||
-              reviewerMap[r.reviewer]?.name,
-            profilePicture:
-              reviewerMap[r.reviewer]?._doc?.profilePicture ||
-              reviewerMap[r.reviewer]?.profilePicture,
-          }
+          id: r.reviewer,
+          name:
+            reviewerMap[r.reviewer]?._doc?.name ||
+            reviewerMap[r.reviewer]?.name,
+          profilePicture:
+            reviewerMap[r.reviewer]?._doc?.profilePicture ||
+            reviewerMap[r.reviewer]?.profilePicture,
+        }
         : null,
     }));
 

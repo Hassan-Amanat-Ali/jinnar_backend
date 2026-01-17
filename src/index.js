@@ -99,7 +99,11 @@ app.use('/api-docs/courses', swaggerUi.serve, swaggerUi.setup(swaggerCourseSpec)
 //Routes
 app.use('/api', apiRoutes)
 
-// Course Upload Routes
+// Public Course Routes (accessible to all authenticated users)
+import publicCourseRoutes from './routes/publicCourseRoutes.js';
+app.use('/api/courses', publicCourseRoutes);
+
+// Course Upload Routes (admin only)
 import courseUploadRoutes from './routes/courseUploadRoutes.js';
 app.use('/api/courses/upload', courseUploadRoutes);
 
