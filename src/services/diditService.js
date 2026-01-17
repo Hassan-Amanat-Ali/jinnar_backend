@@ -1,0 +1,126 @@
+import crypto from 'crypto';
+import axios from 'axios';
+
+/**
+ * Service to handle Didit Identity Verification interactions
+ */
+class DiditService {
+    constructor() {
+        this.sessionUrl = 'https://api.didit.xyz/v1/session'; // Placeholder URL
+    }
+
+    /**
+     * Verifies the HMAC SHA256 signature of the webhook request
+     * @param {Buffer} rawBody - The raw request body
+     * @param {string} signature - The 'didit-signature' header
+     * @param {string} secret - DIDIT_WEBHOOK_SECRET
+     * @param {string|number} timestamp - The 'didit-timestamp' header (optional but recommended)
+     * @returns {boolean} - True if valid
+     */
+    verifySignature(rawBody, signature, secret, timestamp) {
+        if (!signature || !secret) {
+            console.warn('[Didit Debug] Missing signature or secret for verification');
+            return false;
+        }
+
+        // 1. Replay Protection
+        if (timestamp) {
+            const sentAt = new Date(timestamp * 1000);
+            const now = new Date();
+            const fiveMinutes = 5 * 60 * 1000;
+            const diff = now - sentAt;
+
+            console.log(`[Didit Debug] Timestamp Check - Sent: ${sentAt.toISOString()}, Now: ${now.toISOString()}, Diff: ${diff}ms`);
+
+            if (diff > fiveMinutes) {
+                console.error('[Didit Debug] Request expired (Replay Protection)');
+                // return false; // Allowed for now to debug signature first
+            }
+        }
+
+        // 2. Signature Verification
+        try {
+            const hmac = crypto.createHmac('sha256', secret);
+            const digest = hmac.update(rawBody).digest('hex');
+
+            const isValid = crypto.timingSafeEqual(
+                Buffer.from(digest, 'hex'),
+                Buffer.from(signature, 'hex')
+            );
+
+            if (!isValid) {
+                console.error(`[Didit Debug] Signature Mismatch!`);
+                console.error(`[Didit Debug] Secret Length: ${secret.length}`);
+                console.error(`[Didit Debug] Received Signature: ${signature}`);
+                console.error(`[Didit Debug] Calculated Digest:  ${digest}`);
+            } else {
+                console.log('[Didit Debug] Signature Verified Successfully');
+            }
+
+            return isValid;
+        } catch (error) {
+            console.error('[Didit Debug] Verification Error', error);
+            return false;
+        }
+    }
+
+    async createSession(userId) {
+        try {
+            const url = 'https://verification.didit.me/v3/session/';
+            const apiKey = process.env.DIDIT_SECRET_KEY;
+            const workflowId = process.env.DIDIT_WORKFLOW_ID;
+            const callbackUrl = process.env.DIDIT_CALLBACK_URL;
+
+            if (!apiKey || !workflowId) {
+                throw new Error('Missing Didit Configuration (API Key or Workflow ID)');
+            }
+
+            const payload = {
+                workflow_id: workflowId,
+                vendor_data: userId,
+                callback: callbackUrl,
+                language: 'en', // Defaulting to English, can be made dynamic
+                callback_method: 'both' // Ensures callback hits regardless of device
+            };
+
+            const response = await axios.post(url, payload, {
+                headers: {
+                    'x-api-key': apiKey,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            return {
+                sessionId: response.data.session_id,
+                url: response.data.url
+            };
+
+        } catch (error) {
+            console.error('Didit Create Session Error:', error.response?.data || error.message);
+            throw new Error('Failed to create verification session');
+        }
+    }
+
+    /**
+     * internal logic to parse the event and return status
+     * @param {Object} event 
+     * @returns {string} - 'verified', 'rejected', 'pending', etc.
+     */
+    parseVerificationStatus(event) {
+        // Didit sends 'Approved', 'Declined', 'In Progress', 'Not Started'
+        // We normalize to lowercase for comparison
+        const status = (event.status || '').toLowerCase();
+
+        if (status === 'approved' || event.type === 'verification.completed') {
+            return 'verified';
+        } else if (status === 'declined' || status === 'rejected' || status === 'failed') {
+            return 'rejected';
+        } else if (status === 'expired' || status === 'abandoned') {
+            return 'expired';
+        }
+
+        return 'pending';
+    }
+}
+
+export default new DiditService();

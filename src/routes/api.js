@@ -60,6 +60,10 @@ router.use("/categories", categoryRoutes);
 router.use("/faq", faqRoutes);
 router.use("/enrollments", enrollmentRoutes);
 
+import verificationRoutes from "./verificationRoutes.js";
+router.use("/verification", verificationRoutes);
+
+
 // Legacy route for backward compatibility
 router.use("/images", imageRoutes);
 

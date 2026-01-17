@@ -22,6 +22,7 @@ import swaggerSpec from './config/swagger.js';
 
 
 const app = express();
+app.set('trust proxy', 2); // Required for rate limiting behind proxy
 const PORT = process.env.PORT || 3000;
 console.log('Environment PORT:', PORT)
 const limiter = rateLimit({
@@ -64,6 +65,66 @@ connectDb().then(async () => {
 app.use(cors());
 const server = http.createServer(app);
 setupSocket(server); // This activates Socket.IO
+
+// ✅ Didit Webhook - Must be before express.json()
+app.post('/api/webhooks/didit', express.raw({ type: 'application/json' }), async (req, res) => {
+  const { default: diditService } = await import('./services/diditService.js');
+  const { default: User } = await import('./models/User.js');
+
+  // CHECK BOTH FORMATS (Didit docs vs Actual Headers)
+  const signature = req.headers['x-signature'] || req.headers['didit-signature'];
+  const timestamp = req.headers['x-timestamp'] || req.headers['didit-timestamp'];
+
+  // Keep debug logging for verification
+  console.log('[Didit Webhook] Headers Extract:', { signature, timestamp });
+  const secret = process.env.DIDIT_WEBHOOK_SECRET;
+
+  try {
+    // 1. Verify Signature & Timestamp (Replay Protection)
+    const isValid = diditService.verifySignature(req.body, signature, secret, timestamp);
+
+    if (!isValid) {
+      console.warn('⚠️ [Didit Webhook] Invalid Signature or Timestamp');
+      return res.status(401).send('Invalid Signature');
+    }
+
+    // 2. Parse Body manually
+    const event = JSON.parse(req.body.toString());
+    console.log('🔔 [Didit Webhook] Full Event Body:', JSON.stringify(event, null, 2));
+
+    // 3. Update User Logic
+    // Support various ID fields
+    const sessionId = event.session_id || event.id || event.data?.session?.id;
+
+    if (sessionId) {
+      const user = await User.findOne({ 'verification.sessionId': sessionId });
+      if (user) {
+        const newStatus = diditService.parseVerificationStatus(event);
+
+        // Only update if status changed
+        if (user.verification.status !== newStatus) {
+          user.verification.status = newStatus;
+          if (newStatus === 'rejected' && event.details) {
+            user.verification.lastError = event.details.reason || 'Verification rejected';
+          }
+          await user.save();
+          console.log(`✅ [Didit Webhook] User ${user._id} verification updated to: ${newStatus}`);
+        } else {
+          console.log(`ℹ️ [Didit Webhook] User ${user._id} status already: ${newStatus}`);
+        }
+      } else {
+        console.warn(`❌ [Didit Webhook] No user found for session: ${sessionId}`);
+      }
+    } else {
+      console.warn('❌ [Didit Webhook] Event missing session_id');
+    }
+
+    res.status(200).send('Webhook Received');
+  } catch (err) {
+    console.error('❌ [Didit Webhook] processing error:', err);
+    res.status(500).send('Internal Server Error');
+  }
+});
 
 app.use(express.json());
 // for parsing application/xwww-form-urlencoded

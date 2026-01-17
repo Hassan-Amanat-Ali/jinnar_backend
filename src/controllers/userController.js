@@ -1126,7 +1126,9 @@ export const getMyProfile = async (req, res) => {
       location: user.location, // Add location
       role: user.role,
       isVerified: user.isVerified,
-      verificationStatus: user.verificationStatus, // <-- ADDED
+      isVerified: user.isVerified,
+      verificationStatus: user.verificationStatus,
+      verification: user.verification, // New structured verification data
       profilePicture: user.profilePicture,
       bio: user.bio || "",
       skills: user.skills || [],
