@@ -20,6 +20,11 @@ import PayoutMonitorService from './services/payoutMonitorService.js';
 import '../scripts/ticket-maintenance.js';
 import swaggerSpec from './config/swagger.js';
 
+// Initialize Passport
+import passport from 'passport';
+import './config/passport.js';
+import { Strategy as FacebookStrategy } from "passport-facebook";
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -61,6 +66,8 @@ connectDb().then(async () => {
 }).catch((err) => {
   console.error('Error connecting to MongoDB:', err);
 });
+
+app.use(passport.initialize());
 app.use(cors());
 const server = http.createServer(app);
 setupSocket(server); // This activates Socket.IO
@@ -73,10 +80,6 @@ app.use(
     extended: true,
   })
 );
-// Initialize Passport
-import passport from 'passport';
-import './config/passport.js';
-app.use(passport.initialize());
 
 app.use('/api/auth', limiter);
 //app.use("/uploads", express.static("uploads")); // 🔴 CRITICAL: Removed for security. Files should be served via a protected route.
@@ -101,12 +104,50 @@ app.use('/api', apiRoutes)
 
 // Course Upload Routes
 import courseUploadRoutes from './routes/courseUploadRoutes.js';
+import viralUploadRoutes from './routes/viralUploadRoutes.js';
 app.use('/api/courses/upload', courseUploadRoutes);
+app.use('/api/viral/upload', viralUploadRoutes);
 
 // Static file serving for course uploads
 // Serving uploads/courses directory at /uploads/courses
 // Note: In production, Nginx/Apache usually handles this, or use a secure middleware for restricted access
 app.use('/uploads/courses', express.static(path.join(process.cwd(), 'uploads/courses')));
+
+
+
+passport.use(new FacebookStrategy({
+    clientID: "948343518363185",
+    clientSecret: "3c3b0d72c08f9dd3e90ed5f86edc4210",
+    callbackURL: "https://pkfmp1s3-3000.euw.devtunnels.ms/auth/facebook/callback",
+    profileFields: ["id", "displayName", "photos", "email"], // fields to fetch
+    scope: ["email", "user_posts"]
+  },
+  function(accessToken, refreshToken, profile, done) {
+    // You now have the accessToken here
+    // Save user & accessToken in DB if you want
+    const user = { facebookId: profile.id, accessToken };
+    console.log("Facebook profile:", user);
+    return done(null, user);
+  }
+));
+
+passport.serializeUser((user, done) => done(null, user));
+passport.deserializeUser((obj, done) => done(null, obj));
+
+
+app.get("/auth/facebook",
+    passport.authenticate('facebook'));
+
+  app.get("/auth/facebook/callback",
+    (req, res, next) => {
+      console.log("Facebook callback hit");
+      next();
+    },
+    passport.authenticate("facebook", { failureRedirect: "/login" }),
+    (req, res) => {
+      // Logged in successfully, req.user contains accessToken
+      res.send("Login successful!");
+    });
 
 
 app.get('/', (req, res) => {

@@ -24,13 +24,13 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
       match: [/\S+@\S+\.\S+/, "Invalid email address"],
-      // Sparse allows multiple documents to have 'null' for this field, 
+      // Sparse allows multiple documents to have 'null' for this field,
       // but if a value exists, it must be unique.
-      unique: true, 
-      sparse: true, 
-      default: undefined
+      unique: true,
+      sparse: true,
+      default: undefined,
     },
-        mobileNumber: {
+    mobileNumber: {
       type: String,
       trim: true,
       match: [
@@ -38,8 +38,8 @@ const userSchema = new mongoose.Schema(
         "Mobile number must be in E.164 format (e.g., +1234567890)",
       ],
       unique: true,
-      sparse: true, 
-      default: undefined
+      sparse: true,
+      default: undefined,
     },
     password: {
       type: String,
@@ -50,10 +50,10 @@ const userSchema = new mongoose.Schema(
 
     // --- NEW: FOR SECURE CONTACT SWITCHING ---
     tempContact: {
-      type: { type: String, enum: ['email', 'mobileNumber'] },
+      type: { type: String, enum: ["email", "mobileNumber"] },
       value: String,
       code: String,
-      expires: Date
+      expires: Date,
     },
 
     // --- STANDARD PROFILE FIELDS ---
@@ -65,10 +65,53 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["buyer", "seller", "support", "supervisor", "regional_manager", "super_admin"],
+      enum: [
+        "buyer",
+        "seller",
+        "support",
+        "supervisor",
+        "regional_manager",
+        "super_admin",
+      ],
       required: true,
       default: "buyer",
     },
+    country: {
+  type: String,
+  trim: true,
+  default: null,
+},
+
+city: {
+  type: String,
+  trim: true,
+  default: null,
+},
+
+socialAccounts: {
+  tiktok: {
+    username: { type: String, default: null },
+    accessToken: { type: String, default: null, select: false }, // hide by default
+    connected: { type: Boolean, default: false },
+  },
+  facebook: {
+    username: { type: String, default: null },
+    accessToken: { type: String, default: null, select: false },
+    connected: { type: Boolean, default: false },
+  },
+  instagram: {
+    username: { type: String, default: null },
+    accessToken: { type: String, default: null, select: false },
+    connected: { type: Boolean, default: false },
+  },
+},
+
+totalPoints: {
+  type: Number,
+  default: 0,
+  min: 0,
+},
+
     profilePicture: {
       type: String,
       default: null,
@@ -91,11 +134,11 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
     preferences: {
-  emailNotifications: { type: Boolean, default: true },
-  inAppNotifications: { type: Boolean, default: true },
-  twoFactorAuth: { type: Boolean, default: false },
-  language: { type: String, default: "en" } // ISO 639-1 codes
-},
+      emailNotifications: { type: Boolean, default: true },
+      inAppNotifications: { type: Boolean, default: true },
+      twoFactorAuth: { type: Boolean, default: false },
+      language: { type: String, default: "en" }, // ISO 639-1 codes
+    },
     lastLogin: {
       type: Date,
       default: null,
@@ -175,16 +218,18 @@ const userSchema = new mongoose.Schema(
     },
     skills: [{ type: String, trim: true }],
     categories: [{ type: mongoose.Schema.Types.ObjectId, ref: "Category" }],
-    subcategories: [{ type: mongoose.Schema.Types.ObjectId, ref: "SubCategory" }],
+    subcategories: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "SubCategory" },
+    ],
     languages: [{ type: String, trim: true }],
     yearsOfExperience: { type: Number, min: 0 },
     selectedAreas: [pointSchema],
     preferredAreas: [pointSchema],
-    
+
     // --- TRANSACTIONS & ACTIVITY ---
     wallet: {
-        balance: { type: Number, default: 0 },
-        transactions: [] // Define transaction schema if needed
+      balance: { type: Number, default: 0 },
+      transactions: [], // Define transaction schema if needed
     },
     notifications: [
       {
@@ -200,7 +245,7 @@ const userSchema = new mongoose.Schema(
       },
     ],
     orderHistory: [{ type: mongoose.Schema.Types.ObjectId, ref: "Order" }],
-    
+
     // --- RATINGS ---
     rating: {
       average: { type: Number, default: 0, min: 0, max: 5 },
@@ -222,7 +267,7 @@ const userSchema = new mongoose.Schema(
     portfolioImages: [{ url: String }],
     videos: [{ url: String }],
     certificates: [{ url: String }],
-    
+
     // --- AVAILABILITY ---
     availability: {
       type: [
@@ -230,7 +275,15 @@ const userSchema = new mongoose.Schema(
           {
             day: {
               type: String,
-              enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+              enum: [
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+                "Sunday",
+              ],
               required: true,
             },
             timeSlots: [
@@ -251,7 +304,7 @@ const userSchema = new mongoose.Schema(
               },
             ],
           },
-          { _id: false }
+          { _id: false },
         ),
       ],
       default: [],
@@ -275,11 +328,16 @@ userSchema.index({ "availability.day": 1 });
 userSchema.index({ selectedAreas: "2dsphere" });
 userSchema.index({ location: "2dsphere" });
 userSchema.index({ "notifications.createdAt": -1 });
+userSchema.index({ "socialAccounts.tiktok.connected": 1 });
+userSchema.index({ "socialAccounts.facebook.connected": 1 });
+userSchema.index({ "socialAccounts.instagram.connected": 1 });
+userSchema.index({ totalPoints: -1 }); 
+
 
 // Ensure at least one auth method is present before saving
-userSchema.pre('save', function(next) {
+userSchema.pre("save", function (next) {
   if (!this.email && !this.mobileNumber) {
-    return next(new Error('Either email or mobile number is required'));
+    return next(new Error("Either email or mobile number is required"));
   }
   next();
 });
