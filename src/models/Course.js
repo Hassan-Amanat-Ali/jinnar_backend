@@ -28,14 +28,32 @@ const courseSchema = new mongoose.Schema(
       ref: "CourseCategory",
       required: true,
     },
+    courseType: {
+      type: String,
+      enum: ["video", "pdf"],
+      default: "video",
+    },
+    pdfUrl: {
+      type: String, // Path to the uploaded PDF file
+    },
+    outlines: [
+      {
+        title: String,
+        pageNumber: Number,
+      },
+    ],
+    totalOutlines: {
+      type: Number,
+      default: 0,
+    },
     level: {
       type: String,
-      enum: ["beginner", "intermediate", "advanced", "all_levels"],
-      default: "beginner",
+      enum: ["Beginner", "Intermediate", "Advanced", "all_levels"],
+      default: "Beginner",
     },
     duration: {
-      type: Number, // In minutes
-      default: 0,
+      type: String, // String to support "12 hours" or "12:30"
+      default: "0",
     },
     language: {
       type: String,
@@ -45,9 +63,17 @@ const courseSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    discountPrice: {
+      type: Number,
+      default: 0,
+    },
+    enrollmentLimit: {
+      type: Number,
+      default: 0,
+    },
     thumbnail: {
       type: String,
-      default: "default-course.jpg", // TODO: Replace with generic image
+      default: "default-course.jpg",
     },
     tags: [{ type: String, trim: true }],
     syllabus: [
@@ -60,6 +86,10 @@ const courseSchema = new mongoose.Schema(
     requirements: [{ type: String }],
     learningOutcomes: [{ type: String }],
     isPublished: {
+      type: Boolean,
+      default: false,
+    },
+    published: {
       type: Boolean,
       default: false,
     },
@@ -77,8 +107,12 @@ const courseSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    totalEnrollments: {
+      type: Number,
+      default: 0,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Indexes for common queries

@@ -18,7 +18,7 @@ model.nlp
 
 # logs
 *.log
-
+COURSE_API_README.md
 # Secrets
 serviceaccount.json
 old_serviceaccount.json
