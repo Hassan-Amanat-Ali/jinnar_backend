@@ -25,6 +25,13 @@ router.get("/", async (req, res) => {
       $or: [{ isPublished: true }, { published: true }],
     };
 
+    // Role-based filtering
+    const userRole = req.user.role;
+    if (userRole === "buyer" || userRole === "seller") {
+      filter.targetAudience = "General";
+    }
+    // Other roles (support, admin, etc.) see all audiences by default
+
     if (req.query.search) {
       filter.title = { $regex: req.query.search, $options: "i" };
     }

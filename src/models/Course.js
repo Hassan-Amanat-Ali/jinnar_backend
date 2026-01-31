@@ -59,6 +59,11 @@ const courseSchema = new mongoose.Schema(
       type: String,
       default: "English",
     },
+    targetAudience: {
+      type: String,
+      enum: ["General", "Employee", "Partner"],
+      default: "General",
+    },
     price: {
       type: Number,
       default: 0,
