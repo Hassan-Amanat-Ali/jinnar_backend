@@ -194,11 +194,9 @@ export const registerUser = async (req, res) => {
 
     const existingUser = await User.findOne(query);
     if (existingUser) {
-      return res
-        .status(409)
-        .json({
-          error: `${type === "email" ? "Email" : "Phone number"} already registered`,
-        });
+      return res.status(409).json({
+        error: `${type === "email" ? "Email" : "Phone number"} already registered`,
+      });
     }
 
     // 4. Build User Object
@@ -351,6 +349,14 @@ export const login = async (req, res, next) => {
       return res
         .status(403)
         .json({ error: "Password not set. Please reset password." });
+    }
+
+    if (user.isSuspended) {
+      return res.status(403).json({
+        error: "Account Suspended",
+        reason:
+          user.suspensionDetails?.reason || "Contact support for details.",
+      });
     }
 
     const isMatch = await user.comparePassword(password);
@@ -516,12 +522,10 @@ export const resetPassword = async (req, res, next) => {
       { expiresIn: "7d" },
     );
 
-    res
-      .status(200)
-      .json({
-        message: "Password reset successfully. You are now logged in.",
-        token,
-      });
+    res.status(200).json({
+      message: "Password reset successfully. You are now logged in.",
+      token,
+    });
   } catch (error) {
     console.error("Reset Password Error:", error.message);
     return next(error);
@@ -545,11 +549,9 @@ export const initiateContactChange = async (req, res, next) => {
 
     // 1. Basic Validation
     if (!newIdentifier || !["email", "mobileNumber"].includes(type)) {
-      return res
-        .status(400)
-        .json({
-          error: "Valid newIdentifier and type (email/mobileNumber) required",
-        });
+      return res.status(400).json({
+        error: "Valid newIdentifier and type (email/mobileNumber) required",
+      });
     }
 
     // 2. Format the Input (E.164 for phones, lowercase for emails)
@@ -565,11 +567,9 @@ export const initiateContactChange = async (req, res, next) => {
     if (conflictUser) {
       // Check if the number belongs to the CURRENT user
       if (conflictUser._id.toString() === userId) {
-        return res
-          .status(400)
-          .json({
-            error: `You are already using this ${type === "email" ? "email" : "phone number"}.`,
-          });
+        return res.status(400).json({
+          error: `You are already using this ${type === "email" ? "email" : "phone number"}.`,
+        });
       }
       // Check if it belongs to SOMEONE ELSE
       return res
@@ -617,11 +617,9 @@ export const initiateContactChange = async (req, res, next) => {
       await sendTwilioOtp(cleanIdentifier);
     }
 
-    res
-      .status(200)
-      .json({
-        message: `Verification code sent to new ${type === "mobileNumber" ? "phone number" : "email"}`,
-      });
+    res.status(200).json({
+      message: `Verification code sent to new ${type === "mobileNumber" ? "phone number" : "email"}`,
+    });
   } catch (error) {
     console.error("Initiate Change Error:", error.message);
     return next(error);
@@ -704,14 +702,12 @@ export const switchRole = async (req, res, next) => {
       { expiresIn: "7d" },
     );
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: `Switched to ${newRole}.`,
-        role: newRole,
-        token,
-      });
+    res.status(200).json({
+      success: true,
+      message: `Switched to ${newRole}.`,
+      role: newRole,
+      token,
+    });
   } catch (error) {
     console.error("Switch Role Error:", error.message);
     return next(error);

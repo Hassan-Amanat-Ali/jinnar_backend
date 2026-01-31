@@ -121,7 +121,9 @@ export const findWorkers = asyncHandler(async (req, res) => {
   // -------------------------
   // Fetch sellers
   // -------------------------
-  let sellers = await User.find(query).select(`
+  let sellers = await User.find(query)
+    .select(
+      `
     name
     profilePicture
     bio
@@ -135,7 +137,8 @@ export const findWorkers = asyncHandler(async (req, res) => {
     averageResponseTime
     preferredAreas
     categories
-  `)
+  `,
+    )
     .populate("categories", "name");
 
   // -------------------------
@@ -158,7 +161,7 @@ export const findWorkers = asyncHandler(async (req, res) => {
             parsedLat,
             parsedLng,
             lat2,
-            lng2
+            lng2,
           );
 
           if (minDistance === null || distanceKm < minDistance) {
@@ -172,8 +175,7 @@ export const findWorkers = asyncHandler(async (req, res) => {
         };
       })
       .filter(
-        (seller) =>
-          seller.distance !== null && seller.distance <= parsedRadius
+        (seller) => seller.distance !== null && seller.distance <= parsedRadius,
       );
   }
 
@@ -223,7 +225,7 @@ export const findWorkers = asyncHandler(async (req, res) => {
 
   const paginatedSellers = mappedSellers.slice(
     (parsedPage - 1) * parsedLimit,
-    parsedPage * parsedLimit
+    parsedPage * parsedLimit,
   );
 
   // -------------------------
@@ -240,7 +242,6 @@ export const findWorkers = asyncHandler(async (req, res) => {
     },
   });
 });
-
 
 export const updateUser = async (req, res) => {
   try {
@@ -264,8 +265,9 @@ export const updateUser = async (req, res) => {
       videos,
       certificates,
       address,
+      country,
+      postalCode,
     } = req.body;
-
 
     // Parse arrays/objects if sent as JSON strings
     let parsedSkills = skills;
@@ -336,7 +338,7 @@ export const updateUser = async (req, res) => {
       ) {
         console.log(
           "Buyer attempted to update seller-specific fields:",
-          req.body
+          req.body,
         );
         return res.status(403).json({
           error:
@@ -403,6 +405,15 @@ export const updateUser = async (req, res) => {
       user.profilePicture = profilePicture;
       console.log("profilePicture updated:", user.profilePicture);
     }
+
+    if (country !== undefined) {
+      user.country = country;
+    }
+
+    if (postalCode !== undefined) {
+      user.postalCode = postalCode;
+    }
+
     // Handle address and geocoding
     if (address !== undefined) {
       if (typeof address !== "string" || address.trim().length === 0) {
@@ -451,9 +462,7 @@ export const updateUser = async (req, res) => {
       if (parsedCategories !== undefined) {
         if (!Array.isArray(parsedCategories)) {
           console.log("Invalid categories:", parsedCategories);
-          return res
-            .status(400)
-            .json({ error: "Categories must be an array" });
+          return res.status(400).json({ error: "Categories must be an array" });
         }
         user.categories = parsedCategories;
         console.log("Categories updated:", user.categories);
@@ -504,12 +513,12 @@ export const updateUser = async (req, res) => {
               await geocodeAddressArrayToGeoJsonPoints(selectedAreas);
             console.log(
               "selectedAreas updated from addresses:",
-              user.selectedAreas
+              user.selectedAreas,
             );
           } catch (geocodeErr) {
             console.error(
               "Geocoding failed for selectedAreas:",
-              geocodeErr.message
+              geocodeErr.message,
             );
             return res.status(400).json({
               error: `Failed to geocode one or more selectedAreas: ${geocodeErr.message}`,
@@ -526,7 +535,7 @@ export const updateUser = async (req, res) => {
               Array.isArray(area.coordinates) &&
               area.coordinates.length === 2 &&
               typeof area.coordinates[0] === "number" &&
-              typeof area.coordinates[1] === "number"
+              typeof area.coordinates[1] === "number",
           );
 
           if (!isValidGeoJson) {
@@ -538,7 +547,7 @@ export const updateUser = async (req, res) => {
           user.selectedAreas = selectedAreas;
           console.log(
             "selectedAreas updated from GeoJSON:",
-            user.selectedAreas
+            user.selectedAreas,
           );
         } else {
           // It's an empty array, which is valid
@@ -601,10 +610,12 @@ export const updateUser = async (req, res) => {
           }
 
           for (let j = 0; j < slot.timeSlots.length; j++) {
-            if (!["morning", "afternoon", "evening"].includes(slot.timeSlots[j])) {
+            if (
+              !["morning", "afternoon", "evening"].includes(slot.timeSlots[j])
+            ) {
               console.log(
                 `Invalid time slot at index ${i}, position ${j}:`,
-                slot.timeSlots[j]
+                slot.timeSlots[j],
               );
               return res.status(400).json({
                 error: `Availability at index ${i} has invalid time slot at position ${j}; must be morning, afternoon, or evening`,
@@ -613,8 +624,13 @@ export const updateUser = async (req, res) => {
           }
 
           // Optional detailed times
-          if ((slot.start && !timeRe.test(slot.start)) || (slot.end && !timeRe.test(slot.end))) {
-            return res.status(400).json({ error: `Invalid time format for start/end at availability index ${i}. Expected HH:mm` });
+          if (
+            (slot.start && !timeRe.test(slot.start)) ||
+            (slot.end && !timeRe.test(slot.end))
+          ) {
+            return res.status(400).json({
+              error: `Invalid time format for start/end at availability index ${i}. Expected HH:mm`,
+            });
           }
 
           if (slot.start && slot.end) {
@@ -623,37 +639,52 @@ export const updateUser = async (req, res) => {
             const sMinutes = parseInt(sh, 10) * 60 + parseInt(sm, 10);
             const eMinutes = parseInt(eh, 10) * 60 + parseInt(em, 10);
             if (sMinutes >= eMinutes) {
-              return res.status(400).json({ error: `Start must be before end for availability at index ${i}` });
+              return res.status(400).json({
+                error: `Start must be before end for availability at index ${i}`,
+              });
             }
           }
 
           // Validate breaks if provided
           if (slot.breaks !== undefined) {
             if (!Array.isArray(slot.breaks)) {
-              return res.status(400).json({ error: `breaks for availability index ${i} must be an array` });
+              return res.status(400).json({
+                error: `breaks for availability index ${i} must be an array`,
+              });
             }
             for (let b = 0; b < slot.breaks.length; b++) {
               const br = slot.breaks[b];
               if (!br.start || !br.end) {
-                return res.status(400).json({ error: `break at index ${b} for availability ${i} must have start and end` });
+                return res.status(400).json({
+                  error: `break at index ${b} for availability ${i} must have start and end`,
+                });
               }
               if (!timeRe.test(br.start) || !timeRe.test(br.end)) {
-                return res.status(400).json({ error: `Invalid time format in breaks at availability ${i}, break ${b}. Expected HH:mm` });
+                return res.status(400).json({
+                  error: `Invalid time format in breaks at availability ${i}, break ${b}. Expected HH:mm`,
+                });
               }
             }
             // check overlaps and containment if main start/end provided
             if (overlaps(slot.breaks)) {
-              return res.status(400).json({ error: `Overlapping or invalid break ranges in availability index ${i}` });
+              return res.status(400).json({
+                error: `Overlapping or invalid break ranges in availability index ${i}`,
+              });
             }
             if (slot.start && slot.end) {
-              const toMin = (t) => { const [h, m] = t.split(":"); return parseInt(h, 10) * 60 + parseInt(m, 10); };
+              const toMin = (t) => {
+                const [h, m] = t.split(":");
+                return parseInt(h, 10) * 60 + parseInt(m, 10);
+              };
               const s = toMin(slot.start);
               const e = toMin(slot.end);
               for (const br of slot.breaks) {
                 const bs = toMin(br.start);
                 const be = toMin(br.end);
                 if (bs < s || be > e) {
-                  return res.status(400).json({ error: `Breaks must be within the main availability range for availability index ${i}` });
+                  return res.status(400).json({
+                    error: `Breaks must be within the main availability range for availability index ${i}`,
+                  });
                 }
               }
             }
@@ -749,7 +780,7 @@ export const updateUser = async (req, res) => {
           ) {
             console.log(
               `Invalid pricingMethod at index ${i}:`,
-              gigData.pricingMethod
+              gigData.pricingMethod,
             );
             return res.status(400).json({
               error: `Gig at index ${i} has invalid pricing method. Must be fixed, hourly, or negotiable`,
@@ -782,7 +813,7 @@ export const updateUser = async (req, res) => {
             if (!images[j].url || typeof images[j].url !== "string") {
               console.log(
                 `Invalid image data at index ${i}, image ${j}:`,
-                images[j]
+                images[j],
               );
               return res.status(400).json({
                 error: `Gig at index ${i} has invalid image data at position ${j}; a URL string is required`,
@@ -802,7 +833,7 @@ export const updateUser = async (req, res) => {
               if (existingGig.sellerId.toString() !== id) {
                 console.log(
                   `Unauthorized update attempt for gig at index ${i}:`,
-                  gigData.gigId
+                  gigData.gigId,
                 );
                 return res
                   .status(403)
@@ -841,7 +872,7 @@ export const updateUser = async (req, res) => {
           } catch (gigErr) {
             console.error(
               `Gig Processing Error at index ${i}:`,
-              gigErr.message
+              gigErr.message,
             );
             return res.status(400).json({
               error: `Failed to process gig at index ${i}`,
@@ -870,12 +901,12 @@ export const updateUser = async (req, res) => {
               await geocodeAddressArrayToGeoJsonPoints(preferredAreas);
             console.log(
               "preferredAreas updated from addresses:",
-              user.preferredAreas
+              user.preferredAreas,
             );
           } catch (geocodeErr) {
             console.error(
               "Geocoding failed for preferredAreas:",
-              geocodeErr.message
+              geocodeErr.message,
             );
             return res.status(400).json({
               error: `Failed to geocode one or more preferredAreas: ${geocodeErr.message}`,
@@ -892,7 +923,7 @@ export const updateUser = async (req, res) => {
               Array.isArray(area.coordinates) &&
               area.coordinates.length === 2 &&
               typeof area.coordinates[0] === "number" &&
-              typeof area.coordinates[1] === "number"
+              typeof area.coordinates[1] === "number",
           );
 
           if (!isValidGeoJson) {
@@ -904,7 +935,7 @@ export const updateUser = async (req, res) => {
           user.preferredAreas = preferredAreas;
           console.log(
             "preferredAreas updated from GeoJSON:",
-            user.preferredAreas
+            user.preferredAreas,
           );
         } else {
           // It's an empty array, which is valid
@@ -940,7 +971,7 @@ export const updateUser = async (req, res) => {
 
     // Re-fetch user to confirm updates
     const updatedUser = await User.findById(id).select(
-      "-verificationCode -verificationCodeExpires"
+      "-verificationCode -verificationCodeExpires",
     );
     return res.status(200).json({
       message: "User updated successfully",
@@ -948,9 +979,11 @@ export const updateUser = async (req, res) => {
     });
   } catch (error) {
     console.log("Update User Error:", error.message, error.stack);
-    return res
-      .status(500)
-      .json({ error: "Internal Server Error", details: error.message, stack: error.stack });
+    return res.status(500).json({
+      error: "Internal Server Error",
+      details: error.message,
+      stack: error.stack,
+    });
   }
 };
 
@@ -960,13 +993,15 @@ export const getPublicProfile = async (req, res) => {
 
     // Fetch user
     const user = await User.findById(id)
-      .select(`
+      .select(
+        `
         name role bio profilePicture address location
         skills languages yearsOfExperience 
         selectedAreas portfolioImages videos certificates
         rating wallet.balance availability createdAt
         categories subcategories
-      `)
+      `,
+      )
       .populate("categories", "name")
       .populate("subcategories", "name");
 
@@ -979,7 +1014,9 @@ export const getPublicProfile = async (req, res) => {
       sellerId: id,
       status: "active",
     })
-      .select("title description images pricing status createdAt category primarySubcategory")
+      .select(
+        "title description images pricing status createdAt category primarySubcategory",
+      )
       .populate("category", "name")
       .populate("primarySubcategory", "name");
 
@@ -993,7 +1030,7 @@ export const getPublicProfile = async (req, res) => {
     const recentReviewsRaw = (user.reviews || []).slice(-5).reverse();
     const reviewerIds = recentReviewsRaw.map((r) => r.reviewer).filter(Boolean);
     const reviewers = await User.find({ _id: { $in: reviewerIds } }).select(
-      "name profilePicture"
+      "name profilePicture",
     );
     const reviewerMap = reviewers.reduce((acc, u) => {
       acc[u._id] = u;
@@ -1007,14 +1044,14 @@ export const getPublicProfile = async (req, res) => {
       createdAt: r.createdAt,
       reviewer: r.reviewer
         ? {
-          id: r.reviewer,
-          name:
-            reviewerMap[r.reviewer]?._doc?.name ||
-            reviewerMap[r.reviewer]?.name,
-          profilePicture:
-            reviewerMap[r.reviewer]?._doc?.profilePicture ||
-            reviewerMap[r.reviewer]?.profilePicture,
-        }
+            id: r.reviewer,
+            name:
+              reviewerMap[r.reviewer]?._doc?.name ||
+              reviewerMap[r.reviewer]?.name,
+            profilePicture:
+              reviewerMap[r.reviewer]?._doc?.profilePicture ||
+              reviewerMap[r.reviewer]?.profilePicture,
+          }
         : null,
     }));
 
@@ -1067,7 +1104,7 @@ export const updateFcmToken = async (req, res) => {
         // This prevents duplicates if the token already exists for a different device.
         $pull: { fcmTokens: { token: token } },
       },
-      { new: false } // We don't need the result of this query
+      { new: false }, // We don't need the result of this query
     );
 
     if (!updatedUser) {
@@ -1094,7 +1131,7 @@ export const getMyProfile = async (req, res) => {
     const { id } = req.user;
 
     const user = await User.findById(id).select(
-      "-password -verificationCode -verificationCodeExpires"
+      "-password -verificationCode -verificationCodeExpires",
     );
 
     if (!user) {
@@ -1123,6 +1160,8 @@ export const getMyProfile = async (req, res) => {
       email: user.email,
       mobileNumber: user.mobileNumber,
       address: user.address, // Add address
+      country: user.country,
+      postalCode: user.postalCode,
       location: user.location, // Add location
       role: user.role,
       isVerified: user.isVerified,
@@ -1178,7 +1217,7 @@ export const getSellerReviews = async (req, res) => {
     // Fetch reviewer details
     const reviewerIds = paged.map((r) => r.reviewer).filter(Boolean);
     const reviewers = await User.find({ _id: { $in: reviewerIds } }).select(
-      "name profilePicture"
+      "name profilePicture",
     );
     const reviewerMap = reviewers.reduce((acc, u) => {
       acc[u._id] = u;
@@ -1192,14 +1231,14 @@ export const getSellerReviews = async (req, res) => {
       createdAt: r.createdAt,
       reviewer: r.reviewer
         ? {
-          id: r.reviewer,
-          name:
-            reviewerMap[r.reviewer]?._doc?.name ||
-            reviewerMap[r.reviewer]?.name,
-          profilePicture:
-            reviewerMap[r.reviewer]?._doc?.profilePicture ||
-            reviewerMap[r.reviewer]?.profilePicture,
-        }
+            id: r.reviewer,
+            name:
+              reviewerMap[r.reviewer]?._doc?.name ||
+              reviewerMap[r.reviewer]?.name,
+            profilePicture:
+              reviewerMap[r.reviewer]?._doc?.profilePicture ||
+              reviewerMap[r.reviewer]?.profilePicture,
+          }
         : null,
     }));
 
@@ -1230,7 +1269,8 @@ export const _submitUserForVerificationLogic = async (userId) => {
   if (!user.identityDocuments || user.identityDocuments.length === 0) {
     return {
       success: false,
-      message: "Please upload at least one identity document before submitting.",
+      message:
+        "Please upload at least one identity document before submitting.",
     };
   }
 
@@ -1240,7 +1280,8 @@ export const _submitUserForVerificationLogic = async (userId) => {
 
   return {
     success: true,
-    message: "Your verification request has been submitted and is now pending review.",
+    message:
+      "Your verification request has been submitted and is now pending review.",
   };
 };
 
