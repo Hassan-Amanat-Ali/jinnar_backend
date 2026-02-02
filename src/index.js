@@ -164,10 +164,6 @@ app.use('/api', apiRoutes)
 import publicCourseRoutes from './routes/publicCourseRoutes.js';
 app.use('/api/courses', publicCourseRoutes);
 
-// Course Upload Routes (admin only)
-import courseUploadRoutes from './routes/courseUploadRoutes.js';
-app.use('/api/courses/upload', courseUploadRoutes);
-
 // Static file serving for course uploads
 // Serving uploads/courses directory at /uploads/courses
 // Note: In production, Nginx/Apache usually handles this, or use a secure middleware for restricted access

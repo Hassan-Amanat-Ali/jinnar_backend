@@ -24,6 +24,7 @@ import gigRoutes from "./gig.js";
 import imageRoutes from "./image.js"; // Import the refactored legacy image route
 import systemConfigRoutes from "./systemConfig.js";
 import enrollmentRoutes from "./enrollmentRoutes.js";
+import courseUploadRoutes from "./courseUploadRoutes.js";
 // import { checkMaintenanceMode } from "../middleware/maintenance.js";
 
 const router = express.Router();
@@ -43,6 +44,7 @@ router.use("/notifications", notificationRoutes);
 router.use("/orders", orderRoutes);
 router.use("/wallet", walletRoutes);
 router.use("/upload", uploadRoutes);
+router.use("/upload", courseUploadRoutes); // Course-specific uploads (thumbnails, videos, materials)
 // router.use('/payout' , payoutRoutes)
 router.use("/workers", workerRoutes);
 // router.use("/checkout", chatRoutes);

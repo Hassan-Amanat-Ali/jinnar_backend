@@ -4,7 +4,7 @@ info:
   description: The complete API documentation for the Jinnar Services mobile application, including user, admin, and payment functionalities.
   version: 1.0.0
 servers:
-  - url: http://localhost:3000/api
+  - url: https://api.jinnar.com/api
     description: Development server
 tags:
   - name: Authentication

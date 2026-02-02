@@ -24,8 +24,7 @@ const courseSchema = new mongoose.Schema(
       required: true,
     },
     category: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "CourseCategory",
+      type: String,
       required: true,
     },
     courseType: {
