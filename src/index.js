@@ -23,8 +23,6 @@ import swaggerSpec from './config/swagger.js';
 // Initialize Passport
 import passport from 'passport';
 import './config/passport.js';
-import { Strategy as FacebookStrategy } from "passport-facebook";
-
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -112,43 +110,7 @@ app.use('/api/viral/upload', viralUploadRoutes);
 // Serving uploads/courses directory at /uploads/courses
 // Note: In production, Nginx/Apache usually handles this, or use a secure middleware for restricted access
 app.use('/uploads/courses', express.static(path.join(process.cwd(), 'uploads/courses')));
-
-
-
-passport.use(new FacebookStrategy({
-    clientID: "948343518363185",
-    clientSecret: "3c3b0d72c08f9dd3e90ed5f86edc4210",
-    callbackURL: "https://pkfmp1s3-3000.euw.devtunnels.ms/auth/facebook/callback",
-    profileFields: ["id", "displayName", "photos", "email"], // fields to fetch
-    scope: ["email", "user_posts"]
-  },
-  function(accessToken, refreshToken, profile, done) {
-    // You now have the accessToken here
-    // Save user & accessToken in DB if you want
-    const user = { facebookId: profile.id, accessToken };
-    console.log("Facebook profile:", user);
-    return done(null, user);
-  }
-));
-
-passport.serializeUser((user, done) => done(null, user));
-passport.deserializeUser((obj, done) => done(null, obj));
-
-
-app.get("/auth/facebook",
-    passport.authenticate('facebook'));
-
-  app.get("/auth/facebook/callback",
-    (req, res, next) => {
-      console.log("Facebook callback hit");
-      next();
-    },
-    passport.authenticate("facebook", { failureRedirect: "/login" }),
-    (req, res) => {
-      // Logged in successfully, req.user contains accessToken
-      res.send("Login successful!");
-    });
-
+app.use('/uploads/viral', express.static(path.join(process.cwd(), 'uploads/viral')));
 
 app.get('/', (req, res) => {
   res.send('API Server is running...');

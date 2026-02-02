@@ -90,6 +90,12 @@ const postSchema = new Schema(
       type: Date,
       default: null,
     },
+
+    screenshotUrl: {
+      type: String,
+      trim: true,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -146,4 +152,4 @@ postSchema.methods.calculatePoints = function () {
   return this.points;
 };
 
-export default mongoose.model("Post", postSchema);
+export default mongoose.model("Posts", postSchema);

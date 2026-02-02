@@ -95,6 +95,7 @@ socialAccounts: {
     connected: { type: Boolean, default: false },
   },
   facebook: {
+    id: { type: String, default: null },
     username: { type: String, default: null },
     accessToken: { type: String, default: null, select: false },
     connected: { type: Boolean, default: false },
@@ -330,6 +331,7 @@ userSchema.index({ location: "2dsphere" });
 userSchema.index({ "notifications.createdAt": -1 });
 userSchema.index({ "socialAccounts.tiktok.connected": 1 });
 userSchema.index({ "socialAccounts.facebook.connected": 1 });
+userSchema.index({ "socialAccounts.facebook.id": 1 }, { sparse: true });
 userSchema.index({ "socialAccounts.instagram.connected": 1 });
 userSchema.index({ totalPoints: -1 }); 
 

@@ -54,4 +54,14 @@ router.get(
   }
 );
 
+// Facebook (JWT via redirect – token persisted on User for Viral post verification)
+router.get('/facebook', passport.authenticate('facebook', { scope: ['email', 'user_posts'] }));
+router.get(
+  '/facebook/callback',
+  passport.authenticate('facebook', { session: false, failureRedirect: '/login' }),
+  (req, res) => {
+    import("../controllers/authController.js").then(mod => mod.socialAuthCallback(req, res));
+  }
+);
+
 export default router;
