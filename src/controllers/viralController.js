@@ -9,7 +9,7 @@ import mongoose from "mongoose";
 
 export const listDraws = async (req, res, next) => {
   try {
-    const status = req.query.status; // active | upcoming | closed
+    const status = req.query.status; // active | upcoming | closed | archived
     const filter = {};
     if (status) {
       filter.status = status;
@@ -409,6 +409,77 @@ export const getMyRewards = async (req, res, next) => {
   }
 };
 
+// ==================== PUBLIC: Latest Draw + Participants ====================
+/**
+ * GET /api/viral/draws/latest/participants
+ * Returns the most relevant draw (active -> upcoming -> most recent closed) and the list of participants
+ * Query params: ?limit=50&offset=0
+ */
+export const getLatestDrawWithParticipants = async (req, res, next) => {
+  try {
+    // 1) Try to find an active draw (nearest endDate)
+    let draw = await Draw.findOne({ status: "active" }).sort({ endDate: 1 }).lean();
+
+    // 2) If none active, pick the next upcoming draw (nearest startDate)
+    if (!draw) {
+      draw = await Draw.findOne({ status: "upcoming" }).sort({ startDate: 1 }).lean();
+    }
+
+    // 3) If still none, pick the most recently closed draw
+    if (!draw) {
+      draw = await Draw.findOne({ status: "closed" }).sort({ endDate: -1 }).lean();
+    }
+
+    if (!draw) {
+      return res.status(404).json({ success: false, error: "No draws found" });
+    }
+
+    const limit = Math.min(parseInt(req.query.limit || "50", 10), 200);
+    const offset = parseInt(req.query.offset || "0", 10) || 0;
+
+    // Aggregate participants from Submissions
+    const pipeline = [
+      { $match: { drawId: new mongoose.Types.ObjectId(draw._id) } },
+      {
+        $group: {
+          _id: "$userId",
+          submissionsCount: { $sum: 1 },
+          lastSubmittedAt: { $max: "$createdAt" },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+      {
+        $project: {
+          userId: "$user._id",
+          name: "$user.name",
+          profilePicture: "$user.profilePicture",
+          country: "$user.country",
+          city: "$user.city",
+          submissionsCount: 1,
+          lastSubmittedAt: 1,
+        },
+      },
+      { $sort: { submissionsCount: -1, lastSubmittedAt: 1 } },
+      { $skip: offset },
+      { $limit: limit },
+    ];
+
+    const participants = await Submission.aggregate(pipeline);
+
+    return res.json({ success: true, data: { draw, participants, count: participants.length } });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // ==================== ADMIN: REWARDS & CLOSE DRAW ====================
 
 export const createRewards = async (req, res, next) => {
@@ -524,6 +595,36 @@ export const updatePost = async (req, res, next) => {
     await post.save();
 
     res.json({ success: true, data: post });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ==================== ADMIN: ARCHIVE / UNARCHIVE ====================
+export const archiveDraw = async (req, res, next) => {
+  try {
+    const { drawId } = req.params;
+    const draw = await Draw.findById(drawId);
+    if (!draw) return res.status(404).json({ success: false, error: 'Draw not found' });
+    if (draw.status === 'archived') return res.status(400).json({ success: false, error: 'Draw is already archived' });
+    draw.status = 'archived';
+    await draw.save();
+    res.json({ success: true, data: draw, message: 'Draw archived' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const unarchiveDraw = async (req, res, next) => {
+  try {
+    const { drawId } = req.params;
+    const draw = await Draw.findById(drawId);
+    if (!draw) return res.status(404).json({ success: false, error: 'Draw not found' });
+    if (draw.status !== 'archived') return res.status(400).json({ success: false, error: 'Draw is not archived' });
+    // Default unarchive target is 'closed' (past draw). If caller wants 'upcoming' they can update via PUT.
+    draw.status = 'closed';
+    await draw.save();
+    res.json({ success: true, data: draw, message: 'Draw unarchived and set to closed' });
   } catch (err) {
     next(err);
   }

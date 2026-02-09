@@ -5,6 +5,9 @@ import {
   listAdminDraws,
   createDraw,
   updateDraw,
+  archiveDraw,
+  unarchiveDraw,
+  getLatestDrawWithParticipants,
   createSubmission,
   listMySubmissions,
   getMySubmission,
@@ -29,7 +32,19 @@ const router = express.Router();
 router.get("/draws", listDraws);
 router.get("/draws/:drawId/winners", getWinners);
 router.get("/draws/:id", getDraw);
+router.get("/draws/latest/participants", getLatestDrawWithParticipants);
 router.get("/leaderboard", getLeaderboard);
+// : Archive / Unarchive draw
+router.post(
+  "/draws/:drawId/archive",
+  protect,
+  archiveDraw,
+);
+router.post(
+  "/draws/:drawId/unarchive",
+  protect,
+  unarchiveDraw,
+);
 router.get("/points/me", protect, getMyPoints);
 
 // ==================== PARTICIPANT (protect) ====================
@@ -48,6 +63,9 @@ router.post("/admin/draws", protect, authorize("super_admin"), createDraw);
 router.put("/admin/draws/:id", protect, authorize("super_admin"), updateDraw);
 router.post("/admin/draws/:drawId/rewards", protect, authorize("super_admin"), createRewards);
 router.post("/admin/draws/:drawId/close", protect, authorize("super_admin"), closeDraw);
+
+
+
 
 router.get("/admin/submissions", protect, authorize("super_admin"), listAdminSubmissions);
 router.put("/admin/submissions/:id", protect, authorize("super_admin"), updateSubmission);

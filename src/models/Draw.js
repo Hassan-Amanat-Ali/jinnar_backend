@@ -42,7 +42,7 @@ const drawSchema = new mongoose.Schema(
           const startDate = this.getUpdate()?.startDate;
           if (startDate) {
             return new Date(startDate) < value;
-          }
+          } 
 
           return true;
         },
@@ -58,7 +58,7 @@ const drawSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["upcoming", "active", "closed"],
+      enum: ["upcoming", "active", "closed", "archived"],
       default: "upcoming",
     },
   },
