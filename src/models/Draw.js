@@ -33,7 +33,18 @@ const drawSchema = new mongoose.Schema(
       required: true,
       validate: {
         validator: function (value) {
-          return this.startDate < value;
+          // when creating document
+          if (this.startDate) {
+            return this.startDate < value;
+          }
+
+          // when updating via findByIdAndUpdate
+          const startDate = this.getUpdate()?.startDate;
+          if (startDate) {
+            return new Date(startDate) < value;
+          }
+
+          return true;
         },
         message: "End date must be after start date",
       },
@@ -51,9 +62,8 @@ const drawSchema = new mongoose.Schema(
       default: "upcoming",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
-
 
 // Indexes
 drawSchema.index({ status: 1 });
