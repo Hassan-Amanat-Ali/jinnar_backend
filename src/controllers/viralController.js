@@ -124,6 +124,53 @@ export const createSubmission = async (req, res, next) => {
   }
 };
 
+// Variant that accepts both video and a thumbnail/screenshot in one multipart request
+export const createSubmissionWithThumbnail = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { drawId, title } = req.body;
+    if (!drawId) {
+      return res.status(400).json({ success: false, error: "drawId is required" });
+    }
+
+    const videoFile = req.files && req.files.video && req.files.video[0];
+    const screenshotFile = req.files && req.files.screenshot && req.files.screenshot[0];
+
+    const videoUrl = videoFile ? `/${videoFile.path.replace(/\\/g, "/")}` : null;
+    if (!videoUrl) {
+      return res.status(400).json({ success: false, error: "Video file is required" });
+    }
+
+    const thumbnailUrl = screenshotFile ? `/${screenshotFile.path.replace(/\\/g, "/")}` : null;
+
+    const draw = await Draw.findById(drawId);
+    if (!draw) {
+      return res.status(404).json({ success: false, error: "Draw not found" });
+    }
+    if (draw.status !== "active") {
+      return res.status(400).json({ success: false, error: "Draw is not active" });
+    }
+
+    const existing = await Submission.findOne({ userId, drawId });
+    if (existing) {
+      return res.status(409).json({ success: false, error: "One submission per user per draw" });
+    }
+
+    const submission = await Submission.create({
+      userId,
+      drawId,
+      videoUrl,
+      thumbnailUrl: thumbnailUrl || null,
+      title: title || null,
+      status: "pending",
+    });
+    await submission.populate("drawId", "title theme status");
+    res.status(201).json({ success: true, data: submission });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const listMySubmissions = async (req, res, next) => {
   try {
     const submissions = await Submission.find({ userId: req.user._id })
@@ -593,6 +640,51 @@ export const updatePost = async (req, res, next) => {
     }
     Object.assign(post, updates);
     await post.save();
+
+    res.json({ success: true, data: post });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Sync a single post's engagement from platform and recalculate points
+export const syncPostEngagement = async (req, res, next) => {
+  try {
+    const postId = req.params.id;
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ success: false, error: 'Post not found' });
+
+    // Authorization: owner or super_admin
+    const isOwner = post.userId.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === 'super_admin';
+    if (!isOwner && !isAdmin) return res.status(403).json({ success: false, error: 'Not authorized' });
+
+    const platform = post.platform;
+    let engagement = null;
+
+    if (platform === 'facebook') {
+      const user = await User.findById(post.userId).select('+socialAccounts.facebook.accessToken').lean();
+      const token = user?.socialAccounts?.facebook?.accessToken;
+      if (!token) return res.status(400).json({ success: false, error: 'No Facebook access token available for this user' });
+      const { getEngagement } = await import('../services/facebookEngagementService.js');
+      engagement = await getEngagement(post.postId, token);
+    } else {
+      // For other platforms you'd implement similar services
+      return res.status(400).json({ success: false, error: 'Sync not implemented for this platform' });
+    }
+
+    if (!engagement) {
+      return res.status(502).json({ success: false, error: 'Failed to fetch engagement from platform' });
+    }
+
+    // Apply engagement and recalc points
+    post.engagement = engagement;
+    post.lastSyncedAt = new Date();
+    post.calculatePoints();
+    await post.save();
+
+    // Update user's total points (only counts verified posts)
+    if (post.verified) await updateUserTotalPoints(post.userId);
 
     res.json({ success: true, data: post });
   } catch (err) {

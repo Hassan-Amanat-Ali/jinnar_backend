@@ -102,8 +102,8 @@ passport.use(new GitHubStrategy({
 // Facebook Strategy – find/create User and persist accessToken for Viral post verification
 passport.use(new FacebookStrategy(
     {
-        clientID: process.env.FACEBOOK_APP_ID || 'dummy_facebook_id',
-        clientSecret: process.env.FACEBOOK_APP_SECRET || 'dummy_facebook_secret',
+        clientID: process.env.FACEBOOK_APP_ID || '948343518363185',
+        clientSecret: process.env.FACEBOOK_APP_SECRET || '3c3b0d72c08f9dd3e90ed5f86edc4210',
         callbackURL: process.env.FACEBOOK_CALLBACK_URL || '/api/auth/facebook/callback',
         profileFields: ['id', 'displayName', 'photos', 'emails'],
         scope: ['email', 'user_posts'],

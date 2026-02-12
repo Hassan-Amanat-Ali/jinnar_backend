@@ -9,6 +9,7 @@ import {
   unarchiveDraw,
   getLatestDrawWithParticipants,
   createSubmission,
+  createSubmissionWithThumbnail,
   listMySubmissions,
   getMySubmission,
   createPost,
@@ -22,9 +23,10 @@ import {
   listAdminSubmissions,
   updateSubmission,
   updatePost,
+  syncPostEngagement,
 } from "../controllers/viralController.js";
 import { protect, authorize } from "../middleware/auth.js";
-import { uploadViralVideo, uploadPostProofScreenshot } from "../middleware/viralUpload.js";
+import { uploadViralVideo, uploadPostProofScreenshot, uploadViralVideoWithScreenshot } from "../middleware/viralUpload.js";
 
 const router = express.Router();
 
@@ -49,6 +51,8 @@ router.get("/points/me", protect, getMyPoints);
 
 // ==================== PARTICIPANT (protect) ====================
 router.post("/submissions", protect, uploadViralVideo, createSubmission);
+// New endpoint: upload video and thumbnail together
+router.post("/submissions/with-thumbnail", protect, uploadViralVideoWithScreenshot, createSubmissionWithThumbnail);
 router.get("/submissions/me", protect, listMySubmissions);
 router.get("/submissions/me/:id", protect, getMySubmission);
 
@@ -71,5 +75,8 @@ router.get("/admin/submissions", protect, authorize("super_admin"), listAdminSub
 router.put("/admin/submissions/:id", protect, authorize("super_admin"), updateSubmission);
 
 router.put("/admin/posts/:id", protect, authorize("super_admin"), updatePost);
+
+// Sync a post's engagement (owner or super_admin)
+router.post('/posts/:id/sync', protect, syncPostEngagement);
 
 export default router;

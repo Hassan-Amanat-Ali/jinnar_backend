@@ -48,3 +48,8 @@ const upload = multer({ storage, fileFilter, limits });
 
 export const uploadViralVideo = upload.single("video");
 export const uploadPostProofScreenshot = upload.single("screenshot");
+// Accept both video and screenshot (thumbnail) in a single request
+export const uploadViralVideoWithScreenshot = upload.fields([
+  { name: "video", maxCount: 1 },
+  { name: "screenshot", maxCount: 1 },
+]);

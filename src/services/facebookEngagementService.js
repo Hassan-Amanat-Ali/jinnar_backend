@@ -9,13 +9,31 @@ export function getPostIdFromUrl(platform, postUrl) {
     if (platform === "facebook") {
       const u = new URL(url);
       const pathParts = u.pathname.split("/").filter(Boolean);
+
+      // common: /{username}/posts/{postId}
       const postsIdx = pathParts.indexOf("posts");
       if (postsIdx >= 0 && pathParts[postsIdx + 1]) return pathParts[postsIdx + 1];
+
+      // common: permalink.php?story_fbid={fbid}&id={userId}
+      const storyFbid = u.searchParams.get("story_fbid") || u.searchParams.get("fbid") || u.searchParams.get("post_id");
+      const userId = u.searchParams.get("id") || u.searchParams.get("user_id");
+      if (storyFbid && userId) return `${userId}_${storyFbid}`;
+      if (storyFbid) return storyFbid;
+
+      // short urls with ?v={id}
       const v = u.searchParams.get("v");
       if (v) return v;
+
+      // groups or permalink style: /permalink/{id} or last path segment may be the id
       const last = pathParts[pathParts.length - 1];
-      if (last && /^\d+$/.test(last)) return last;
-      return last || null;
+      if (last) {
+        // If last looks like a numeric id or starts with pfbid (graph accepts pfbid*) return it
+        if (/^\d+$/.test(last) || /^pfbid/i.test(last)) return last;
+        // Some permalink formats include trailing text; try to extract id-like token
+        const maybeIdMatch = last.match(/(pfbid[0-9A-Za-z_-]+|\d+)/i);
+        if (maybeIdMatch) return maybeIdMatch[1];
+      }
+      return null;
     }
     if (platform === "instagram") {
       const match = url.match(/\/p\/([A-Za-z0-9_-]+)/);
