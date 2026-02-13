@@ -20,6 +20,9 @@ import PayoutMonitorService from './services/payoutMonitorService.js';
 import '../scripts/ticket-maintenance.js';
 import swaggerSpec from './config/swagger.js';
 
+// Initialize Passport
+import passport from 'passport';
+import './config/passport.js';
 
 const app = express();
 app.set('trust proxy', 2); // Required for rate limiting behind proxy
@@ -62,6 +65,8 @@ connectDb().then(async () => {
 }).catch((err) => {
   console.error('Error connecting to MongoDB:', err);
 });
+
+app.use(passport.initialize());
 app.use(cors());
 const server = http.createServer(app);
 setupSocket(server); // This activates Socket.IO
@@ -134,10 +139,6 @@ app.use(
     extended: true,
   })
 );
-// Initialize Passport
-import passport from 'passport';
-import './config/passport.js';
-app.use(passport.initialize());
 
 app.use('/api/auth', limiter);
 //app.use("/uploads", express.static("uploads")); // 🔴 CRITICAL: Removed for security. Files should be served via a protected route.
@@ -166,13 +167,15 @@ app.use('/api/courses', publicCourseRoutes);
 
 // Course Upload Routes (admin only)
 import courseUploadRoutes from './routes/courseUploadRoutes.js';
+import viralUploadRoutes from './routes/viralUploadRoutes.js';
 app.use('/api/courses/upload', courseUploadRoutes);
+app.use('/api/viral/upload', viralUploadRoutes);
 
 // Static file serving for course uploads
 // Serving uploads/courses directory at /uploads/courses
 // Note: In production, Nginx/Apache usually handles this, or use a secure middleware for restricted access
 app.use('/uploads/courses', express.static(path.join(process.cwd(), 'uploads/courses')));
-
+app.use('/uploads/viral', express.static(path.join(process.cwd(), 'uploads/viral')));
 
 app.get('/', (req, res) => {
   res.send('API Server is running...');

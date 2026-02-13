@@ -24,6 +24,7 @@ import gigRoutes from "./gig.js";
 import imageRoutes from "./image.js"; // Import the refactored legacy image route
 import systemConfigRoutes from "./systemConfig.js";
 import enrollmentRoutes from "./enrollmentRoutes.js";
+import viralRoutes from "./viral.js";
 // import { checkMaintenanceMode } from "../middleware/maintenance.js";
 
 const router = express.Router();
@@ -59,6 +60,7 @@ router.use("/gigs", gigRoutes);
 router.use("/categories", categoryRoutes);
 router.use("/faq", faqRoutes);
 router.use("/enrollments", enrollmentRoutes);
+router.use("/viral", viralRoutes);
 
 import verificationRoutes from "./verificationRoutes.js";
 router.use("/verification", verificationRoutes);
