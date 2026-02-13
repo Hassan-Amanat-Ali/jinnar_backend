@@ -215,6 +215,16 @@ export const createPost = async (req, res, next) => {
       });
     }
 
+    // Ensure the draw exists and is active
+    const draw = await Draw.findById(drawId).lean();
+    if (!draw) {
+      return res.status(404).json({ success: false, error: "Draw not found" });
+    }
+    if (draw.status !== "active") {
+      return res.status(400).json({ success: false, error: "Draw is not active" });
+    }
+
+    // Ensure the submission exists, belongs to user, is for this draw, and is approved
     const submission = await Submission.findOne({
       _id: submissionId,
       userId,

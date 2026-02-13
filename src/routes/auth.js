@@ -60,6 +60,7 @@ router.get(
   '/facebook/callback',
   passport.authenticate('facebook', { session: false, failureRedirect: '/login' }),
   (req, res) => {
+    console.log('Facebook callback hit, user:', req.user);
     import("../controllers/authController.js").then(mod => mod.socialAuthCallback(req, res));
   }
 );

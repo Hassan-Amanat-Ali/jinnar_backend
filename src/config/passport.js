@@ -119,6 +119,9 @@ passport.use(new FacebookStrategy(
 
             if (!user && email) {
                 user = await User.findOne({ email });
+                if (!user) {
+                    return done(new Error('No user found with this Facebook account or email'), null);
+                }
             }
 
             if (user) {
@@ -134,21 +137,21 @@ passport.use(new FacebookStrategy(
             }
 
             // Create new user (Facebook-only signup: email may be missing – use placeholder)
-            user = new User({
-                name: profile.displayName || 'User',
-                email: email || `${facebookId}@facebook.jinnar.local`,
-                role: 'buyer',
-                isVerified: true,
-                profilePicture: profile.photos && profile.photos[0] ? profile.photos[0].value : null,
-                socialAccounts: {
-                    facebook: {
-                        id: facebookId,
-                        username: profile.displayName || facebookId,
-                        accessToken,
-                        connected: true,
-                    },
-                },
-            });
+            // user = new User({
+            //     name: profile.displayName || 'User',
+            //     email: email || `${facebookId}@facebook.jinnar.local`,
+            //     role: 'buyer',
+            //     isVerified: true,
+            //     profilePicture: profile.photos && profile.photos[0] ? profile.photos[0].value : null,
+            //     socialAccounts: {
+            //         facebook: {
+            //             id: facebookId,
+            //             username: profile.displayName || facebookId,
+            //             accessToken,
+            //             connected: true,
+            //         },
+            //     },
+            // });
             await user.save();
             return done(null, user);
         } catch (err) {

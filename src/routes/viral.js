@@ -27,6 +27,8 @@ import {
 } from "../controllers/viralController.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { uploadViralVideo, uploadPostProofScreenshot, uploadViralVideoWithScreenshot } from "../middleware/viralUpload.js";
+import { uploadCourseThumbnail, uploadCourseVideo } from "../middleware/courseUpload.js";
+import { handleCourseUpload } from "../controllers/courseUploadController.js";
 
 const router = express.Router();
 
@@ -69,8 +71,6 @@ router.post("/admin/draws/:drawId/rewards", protect, authorize("super_admin"), c
 router.post("/admin/draws/:drawId/close", protect, authorize("super_admin"), closeDraw);
 
 
-
-
 router.get("/admin/submissions", protect, authorize("super_admin"), listAdminSubmissions);
 router.put("/admin/submissions/:id", protect, authorize("super_admin"), updateSubmission);
 
@@ -78,5 +78,10 @@ router.put("/admin/posts/:id", protect, authorize("super_admin"), updatePost);
 
 // Sync a post's engagement (owner or super_admin)
 router.post('/posts/:id/sync', protect, syncPostEngagement);
+
+
+//Upload file 
+router.post("/thumbnail", uploadCourseThumbnail, handleCourseUpload);
+router.post("/video", uploadCourseVideo, handleCourseUpload);
 
 export default router;
