@@ -37,7 +37,7 @@ const submissionSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "approved", "rejected"],
       default: "pending",
-    },
+    },  
 
     reviewerId: {
       type: mongoose.Schema.Types.ObjectId,

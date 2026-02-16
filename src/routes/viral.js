@@ -24,6 +24,8 @@ import {
   updateSubmission,
   updatePost,
   syncPostEngagement,
+  getFacebookPosts,
+  getFacebookPostEngagement,
 } from "../controllers/viralController.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { uploadViralVideo, uploadPostProofScreenshot, uploadViralVideoWithScreenshot } from "../middleware/viralUpload.js";
@@ -59,6 +61,10 @@ router.get("/submissions/me", protect, listMySubmissions);
 router.get("/submissions/me/:id", protect, getMySubmission);
 
 router.post("/posts", protect, uploadPostProofScreenshot, createPost);
+
+// Facebook: fetch user's posts and inspect engagement
+router.get('/facebook/posts', protect, getFacebookPosts);
+router.get('/facebook/posts/:postId/engagement', protect, getFacebookPostEngagement);
 
 router.get("/leaderboard/me", protect, getMyRank);
 router.get("/rewards/me", protect, getMyRewards);

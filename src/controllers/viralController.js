@@ -244,7 +244,28 @@ export const createPost = async (req, res, next) => {
     }
 
     const { getPostIdFromUrl, getEngagement } = await import("../services/facebookEngagementService.js");
-    const postId = getPostIdFromUrl(platformLower, postUrl);
+    let postId = getPostIdFromUrl(platformLower, postUrl);
+
+    // If parsing failed for Facebook permalinks/share links, try the Graph lookup fallback using the user's token
+    let fbToken = null;
+    if (!postId && platformLower === 'facebook') {
+      const userWithToken = await User.findById(userId).select("+socialAccounts.facebook.accessToken").lean();
+      fbToken = userWithToken?.socialAccounts?.facebook?.accessToken;
+      if (fbToken) {
+        try {
+          const lookupUrl = `https://graph.facebook.com/v24.0/?id=${encodeURIComponent(postUrl)}&access_token=${encodeURIComponent(fbToken)}`;
+          const lookupRes = await fetch(lookupUrl);
+          const lookupData = await lookupRes.json();
+          // Graph may return an 'id' or an 'og_object.id'
+          if (lookupData && (lookupData.id || (lookupData.og_object && lookupData.og_object.id))) {
+            postId = lookupData.id || lookupData.og_object.id;
+          }
+        } catch (e) {
+          console.warn('Facebook Graph lookup failed for permalink:', e?.message || e);
+        }
+      }
+    }
+
     if (!postId) {
       return res.status(400).json({ success: false, error: "Could not parse post ID from URL" });
     }
@@ -258,11 +279,33 @@ export const createPost = async (req, res, next) => {
     let verified = false;
 
     if (platformLower === "facebook") {
-      const userWithToken = await User.findById(userId).select("+socialAccounts.facebook.accessToken").lean();
-      const token = userWithToken?.socialAccounts?.facebook?.accessToken;
+      // Use token we may have already fetched during lookup fallback, otherwise fetch now
+      const userWithToken = fbToken ? null : await User.findById(userId).select("+socialAccounts.facebook.accessToken").lean();
+      const token = fbToken || userWithToken?.socialAccounts?.facebook?.accessToken;
       if (token) {
         try {
-          const apiEngagement = await getEngagement(postId, token);
+          let apiEngagement = await getEngagement(postId, token);
+          // If engagement fetch failed with the numeric-only postId, try resolving canonical id via Graph lookup
+          if (!apiEngagement) {
+            try {
+              const lookupUrl = `https://graph.facebook.com/v24.0/?id=${encodeURIComponent(postUrl)}&access_token=${encodeURIComponent(token)}`;
+              const lookupRes = await fetch(lookupUrl);
+              const lookupData = await lookupRes.json();
+              const resolvedId = lookupData?.id || lookupData?.og_object?.id || null;
+              if (resolvedId && resolvedId !== postId) {
+                // retry engagement with resolved id
+                const retryEngagement = await getEngagement(resolvedId, token);
+                if (retryEngagement) {
+                  apiEngagement = retryEngagement;
+                  // update postId to canonical
+                  postId = resolvedId;
+                }
+              }
+            } catch (lookupErr) {
+              console.warn('Facebook Graph lookup retry failed:', lookupErr?.message || lookupErr);
+            }
+          }
+
           if (apiEngagement) {
             engagement = apiEngagement;
             verified = true;
@@ -697,6 +740,62 @@ export const syncPostEngagement = async (req, res, next) => {
     if (post.verified) await updateUserTotalPoints(post.userId);
 
     res.json({ success: true, data: post });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Fetch Facebook posts for the authenticated user using their stored access token
+export const getFacebookPosts = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId).select('+socialAccounts.facebook.accessToken').lean();
+    const token = user?.socialAccounts?.facebook?.accessToken;
+    if (!token) return res.status(400).json({ success: false, error: 'No Facebook access token available for this user' });
+
+    // Build Graph API URL
+    const fields = encodeURIComponent('id,permalink_url,created_time,message');
+    const url = `https://graph.facebook.com/v24.0/me/posts?fields=${fields}&access_token=${encodeURIComponent(token)}`;
+
+    const resp = await fetch(url);
+    const data = await resp.json();
+    if (data.error) {
+      console.warn('Facebook API error fetching posts:', data.error);
+      return res.status(502).json({ success: false, error: 'Facebook API error', details: data.error });
+    }
+
+    return res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Get engagement for a specific Facebook post id and compute points using Post formula
+export const getFacebookPostEngagement = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { postId } = req.params; // expects Graph post id like '121281..._911761...'
+    if (!postId) return res.status(400).json({ success: false, error: 'postId is required' });
+
+    const user = await User.findById(userId).select('+socialAccounts.facebook.accessToken').lean();
+    const token = user?.socialAccounts?.facebook?.accessToken;
+    if (!token) return res.status(400).json({ success: false, error: 'No Facebook access token available for this user' });
+
+    const { getEngagement } = await import('../services/facebookEngagementService.js');
+    const engagement = await getEngagement(postId, token);
+    if (!engagement) return res.status(502).json({ success: false, error: 'Failed to fetch engagement from Facebook' });
+
+    // Compute points using same formula as Post.calculatePoints
+    const likes = engagement.likes || 0;
+    const comments = engagement.comments || 0;
+    const shares = engagement.shares || 0;
+    const saves = engagement.saves || 0;
+    const views = engagement.views || 0;
+
+    const calculated = likes * 1 + comments * 2 + shares * 3 + saves * 2 + views * 0.1;
+    const points = Math.floor(calculated);
+
+    return res.json({ success: true, data: { engagement, points } });
   } catch (err) {
     next(err);
   }
