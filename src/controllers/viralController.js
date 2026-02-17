@@ -205,13 +205,13 @@ export const getMySubmission = async (req, res, next) => {
 export const createPost = async (req, res, next) => {
   try {
     const userId = req.user._id;
-    const { submissionId, drawId, platform, postUrl } = req.body;
+    const { submissionId, drawId, platform, postId } = req.body;
     const screenshotUrl = req.file ? `/${req.file.path.replace(/\\/g, "/")}` : null;
 
-    if (!submissionId || !drawId || !platform || !postUrl) {
+    if (!submissionId || !drawId || !platform || !postId) {
       return res.status(400).json({
         success: false,
-        error: "submissionId, drawId, platform, and postUrl are required",
+        error: "submissionId, drawId, platform, and postId are required",
       });
     }
 
@@ -243,8 +243,7 @@ export const createPost = async (req, res, next) => {
       return res.status(400).json({ success: false, error: "Invalid platform" });
     }
 
-    const { getPostIdFromUrl, getEngagement } = await import("../services/facebookEngagementService.js");
-    let postId = getPostIdFromUrl(platformLower, postUrl);
+    const { getEngagement } = await import("../services/facebookEngagementService.js");
 
     // If parsing failed for Facebook permalinks/share links, try the Graph lookup fallback using the user's token
     let fbToken = null;
@@ -253,8 +252,9 @@ export const createPost = async (req, res, next) => {
       fbToken = userWithToken?.socialAccounts?.facebook?.accessToken;
       if (fbToken) {
         try {
-          const lookupUrl = `https://graph.facebook.com/v24.0/?id=${encodeURIComponent(postUrl)}&access_token=${encodeURIComponent(fbToken)}`;
+          const lookupUrl = `https://graph.facebook.com/v24.0/?id=${encodeURIComponent(postId)}&access_token=${encodeURIComponent(fbToken)}`;
           const lookupRes = await fetch(lookupUrl);
+          console.log('Facebook Graph lookup for permalink:', lookupUrl, 'Response status:', lookupRes);
           const lookupData = await lookupRes.json();
           // Graph may return an 'id' or an 'og_object.id'
           if (lookupData && (lookupData.id || (lookupData.og_object && lookupData.og_object.id))) {
@@ -288,7 +288,7 @@ export const createPost = async (req, res, next) => {
           // If engagement fetch failed with the numeric-only postId, try resolving canonical id via Graph lookup
           if (!apiEngagement) {
             try {
-              const lookupUrl = `https://graph.facebook.com/v24.0/?id=${encodeURIComponent(postUrl)}&access_token=${encodeURIComponent(token)}`;
+              const lookupUrl = `https://graph.facebook.com/v24.0/?id=${encodeURIComponent(postId)}&access_token=${encodeURIComponent(token)}`;
               const lookupRes = await fetch(lookupUrl);
               const lookupData = await lookupRes.json();
               const resolvedId = lookupData?.id || lookupData?.og_object?.id || null;
@@ -321,7 +321,7 @@ export const createPost = async (req, res, next) => {
       drawId,
       submissionId,
       platform: platformLower,
-      postUrl,
+      postId,
       postId,
       engagement,
       screenshotUrl: screenshotUrl || undefined,
@@ -720,6 +720,7 @@ export const syncPostEngagement = async (req, res, next) => {
       const token = user?.socialAccounts?.facebook?.accessToken;
       if (!token) return res.status(400).json({ success: false, error: 'No Facebook access token available for this user' });
       const { getEngagement } = await import('../services/facebookEngagementService.js');
+      console.log("lkjsdkhks >>>",post,token);
       engagement = await getEngagement(post.postId, token);
     } else {
       // For other platforms you'd implement similar services
@@ -782,6 +783,7 @@ export const getFacebookPostEngagement = async (req, res, next) => {
     if (!token) return res.status(400).json({ success: false, error: 'No Facebook access token available for this user' });
 
     const { getEngagement } = await import('../services/facebookEngagementService.js');
+    console.log('Fetching engagement for postId:', postId);
     const engagement = await getEngagement(postId, token);
     if (!engagement) return res.status(502).json({ success: false, error: 'Failed to fetch engagement from Facebook' });
 

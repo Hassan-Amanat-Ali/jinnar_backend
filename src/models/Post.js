@@ -50,7 +50,7 @@ const postSchema = new Schema(
       index: true,
     },
 
-    postUrl: {
+    postId: {
       type: String,
       required: true,
       trim: true,

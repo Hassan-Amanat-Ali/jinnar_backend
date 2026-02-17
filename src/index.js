@@ -58,6 +58,19 @@ connectDb().then(async () => {
   await agenda.every('30 minutes', 'monitor-sla-breaches');
   await agenda.every('1 day', 'auto-close-resolved-tickets');
 
+  // Define and schedule post engagement sync job (runs every 24 hours)
+  agenda.define('sync-viral-post-engagement', async () => {
+    try {
+      const { syncDuePosts } = await import('./services/postSyncService.js');
+      const result = await syncDuePosts();
+      console.log('🔁 [POST SYNC] Result:', result);
+    } catch (err) {
+      console.error('❌ [POST SYNC] Job failed:', err);
+    }
+  });
+  await agenda.every('24 hours', 'sync-viral-post-engagement');
+  console.log('📅 [POST SYNC] Scheduled to run every 24 hours');
+
   console.log('✅ All scheduled jobs configured');
 
   await botService.load(); // Use load() for faster startup

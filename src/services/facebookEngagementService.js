@@ -60,8 +60,10 @@ export function getPostIdFromUrl(platform, postUrl) {
 export async function getEngagement(postId, accessToken) {
   if (!postId || !accessToken) return null;
   const fields = "reactions.summary(total_count).limit(0),comments.summary(total_count).limit(0),shares";
-  const url = `https://graph.facebook.com/v21.0/${postId}?fields=${fields}&access_token=${encodeURIComponent(accessToken)}`;
+  console.log(`Fetching Facebook engagement for postId=${postId} with accessToken=${accessToken ? "****" : "null"}`,fields);
+  const url = `https://graph.facebook.com/v24.0/${postId}?fields=${fields}&access_token=${encodeURIComponent(accessToken)}`;
   try {
+    console.log('url',url);
     const res = await fetch(url);
     const data = await res.json();
     if (data.error) {
