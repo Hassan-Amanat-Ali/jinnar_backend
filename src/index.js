@@ -67,7 +67,41 @@ connectDb().then(async () => {
 });
 
 app.use(passport.initialize());
-app.use(cors());
+
+
+// 1. Define origins
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001', 
+  'http://localhost:5173',
+  'https://jinnar.com',
+  'https://training.jinnar.com',
+  'https://viral.jinnar.com'
+];
+
+// 2. Configure Options
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, or Postman)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.error(`🛑 CORS Blocked: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true, // Required if you use cookies or sessions
+  optionsSuccessStatus: 200 
+};
+
+// 3. Apply it BEFORE any routes
+app.use(cors(corsOptions));       // <-- handle normal requests
+
+
 const server = http.createServer(app);
 setupSocket(server); // This activates Socket.IO
 
