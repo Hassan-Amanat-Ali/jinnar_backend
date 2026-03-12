@@ -76,6 +76,43 @@ const userSchema = new mongoose.Schema(
       required: true,
       default: "buyer",
     },
+    country: {
+  type: String,
+  trim: true,
+  default: null,
+},
+
+city: {
+  type: String,
+  trim: true,
+  default: null,
+},
+
+socialAccounts: {
+  tiktok: {
+    username: { type: String, default: null },
+    accessToken: { type: String, default: null, select: false }, // hide by default
+    connected: { type: Boolean, default: false },
+  },
+  facebook: {
+    id: { type: String, default: null },
+    username: { type: String, default: null },
+    accessToken: { type: String, default: null, select: false },
+    connected: { type: Boolean, default: false },
+  },
+  instagram: {
+    username: { type: String, default: null },
+    accessToken: { type: String, default: null, select: false },
+    connected: { type: Boolean, default: false },
+  },
+},
+
+totalPoints: {
+  type: Number,
+  default: 0,
+  min: 0,
+},
+
     profilePicture: {
       type: String,
       default: null,
@@ -308,6 +345,12 @@ userSchema.index({ "availability.day": 1 });
 userSchema.index({ selectedAreas: "2dsphere" });
 userSchema.index({ location: "2dsphere" });
 userSchema.index({ "notifications.createdAt": -1 });
+userSchema.index({ "socialAccounts.tiktok.connected": 1 });
+userSchema.index({ "socialAccounts.facebook.connected": 1 });
+userSchema.index({ "socialAccounts.facebook.id": 1 }, { sparse: true });
+userSchema.index({ "socialAccounts.instagram.connected": 1 });
+userSchema.index({ totalPoints: -1 }); 
+
 
 // Ensure at least one auth method is present before saving
 userSchema.pre("save", function (next) {
