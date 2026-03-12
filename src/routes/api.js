@@ -3,10 +3,9 @@ import pawapayCallbackRoutes from "./pawapayCallback.js";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "../config/swagger.js";
 import { serveFile } from "../controllers/fileController.js"; // ✅ Import the new file server
-
+import courseRoutes  from "./publicCourseRoutes.js"
 import authRoutes from "./auth.js";
 import userRoutes from "./user.js";
-import payoutRoutes from "./payout.js";
 import notificationRoutes from "./notification.js";
 import orderRoutes from "./order.js";
 import walletRoutes from "./wallet.js";
@@ -46,7 +45,6 @@ router.use("/orders", orderRoutes);
 router.use("/wallet", walletRoutes);
 router.use("/upload", uploadRoutes);
 router.use("/upload", courseUploadRoutes); // Course-specific uploads (thumbnails, videos, materials)
-// router.use('/payout' , payoutRoutes)
 router.use("/workers", workerRoutes);
 // router.use("/checkout", chatRoutes);
 router.use("/pawapay", pawapayCallbackRoutes);
@@ -62,7 +60,13 @@ router.use("/gigs", gigRoutes);
 router.use("/categories", categoryRoutes);
 router.use("/faq", faqRoutes);
 router.use("/enrollments", enrollmentRoutes);
+
+//Viral.Jinnar
 router.use("/viral", viralRoutes);
+
+
+//Training Jinnar
+router.use("/courses", courseRoutes);
 
 import verificationRoutes from "./verificationRoutes.js";
 router.use("/verification", verificationRoutes);
