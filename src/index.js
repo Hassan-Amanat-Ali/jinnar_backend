@@ -77,7 +77,9 @@ const allowedOrigins = [
   'https://www.jinnar.com',
   'https://jinnar.com',
   'https://training.jinnar.com',
-  'https://viral.jinnar.com'
+  'https://viral.jinnar.com',
+  'https://hq.jinnar.com',
+  'https://www.hq.jinnar.com'
 ];
 
 // 2. Configure Options
