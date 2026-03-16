@@ -5,6 +5,10 @@ import Order from "../models/Order.js";
 import SupportTicket from "../models/SupportTicket.js";
 import Wallet from "../models/Wallet.js";
 import Report from "../models/Report.js";
+import Transaction from "../models/Transaction.js";
+import Review from "../models/Review.js"; // Added for comprehensive user deletion
+import Enrollment from "../models/Enrollment.js"; // Added for comprehensive user deletion
+import LectureProgress from "../models/LectureProgress.js"; // Added for comprehensive user deletion
 import { getCoordinatesFromAddress } from "../utils/geocoding.js";
 
 // Helper function to geocode an array of addresses to GeoJSON Points
@@ -1165,7 +1169,6 @@ export const getMyProfile = async (req, res) => {
       location: user.location, // Add location
       role: user.role,
       isVerified: user.isVerified,
-      isVerified: user.isVerified,
       verificationStatus: user.verificationStatus,
       verification: user.verification, // New structured verification data
       profilePicture: user.profilePicture,
@@ -1249,6 +1252,61 @@ export const getSellerReviews = async (req, res) => {
   }
 };
 
+// --- FOR  ---
+/**
+ * @description Deletes a user and all associated data for testing purposes.
+ * This endpoint should ONLY be available in a test/development environment.
+ * @route DELETE /api/users/test-delete/:userId
+ * @access Super Admin (or specific test API key)
+ */
+export const deleteUserForTesting = async (req, res) => {
+  // IMPORTANT: This endpoint should ONLY be available in a test/development environment
+  // and ideally protected by an admin role or a specific test API key.
+  if (process.env.NODE_ENV !== 'test' && process.env.NODE_ENV !== 'development') {
+    return res.status(403).json({ error: "This endpoint is for testing purposes only and is not available in production." });
+  }
+
+  const { id: userId } = req.params; 
+
+  if (!userId) {
+    return res.status(400).json({ error: "User ID is required for deletion." });
+  }
+
+  try {
+    const userToDelete = await User.findById(userId);
+    if (!userToDelete) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    // Store user's email and mobile number before deleting the user document
+    // This is needed to delete guest-linked SupportTickets
+    const userEmail = userToDelete.email;
+    const userMobileNumber = userToDelete.mobileNumber;
+
+    // 1. Delete the User
+    await User.findByIdAndDelete(userId);
+
+    // 2. Delete all associated data
+    await Gig.deleteMany({ sellerId: userId });
+    await Order.deleteMany({ $or: [{ buyerId: userId }, { sellerId: userId }] });
+    await Transaction.deleteMany({ userId: userId });
+    await Wallet.deleteMany({ userId: userId });
+    await Report.deleteMany({ $or: [{ reporterId: userId }, { reportedUserId: userId }] });
+    await Review.deleteMany({ $or: [{ buyerId: userId }, { sellerId: userId }] });
+    await Enrollment.deleteMany({ userId: userId });
+    await LectureProgress.deleteMany({ userId: userId });
+    await SupportTicket.deleteMany({
+      $or: [{ user: userId }, { 'guestInfo.email': userEmail }, { 'guestInfo.phone': userMobileNumber }]
+    });
+
+    console.log(`User ${userId} and all associated data deleted for testing.`);
+    res.status(200).json({ message: `User ${userId} and all associated data deleted successfully.` });
+  } catch (error) {
+    console.error(`Error deleting user ${userId} for testing:`, error);
+    res.status(500).json({ error: "Failed to delete user and associated data.", details: error.message });
+  }
+};
+
 // --- NEW: Internal helper for submitting verification ---
 export const _submitUserForVerificationLogic = async (userId) => {
   const user = await User.findById(userId);
@@ -1315,8 +1373,16 @@ export const getUserDetailsForAdmin = asyncHandler(async (req, res) => {
   const user = await User.findById(id)
     .select("-password")
     .populate("suspensionDetails.suspendedBy", "name role")
+    .populate({
+      path: "suspensionDetails.relatedReport",
+      populate: { path: "reporterId", select: "name email" },
+    })
     .populate("suspensionHistory.suspendedBy", "name role")
-    .populate("suspensionHistory.reinstatedBy", "name role");
+    .populate("suspensionHistory.reinstatedBy", "name role")
+    .populate({
+      path: "suspensionHistory.relatedReport",
+      populate: { path: "reporterId", select: "name email" },
+    });
 
   if (!user) {
     return res.status(404).json({ error: "User not found" });
@@ -1354,6 +1420,11 @@ export const getUserDetailsForAdmin = asyncHandler(async (req, res) => {
   // 6. Assemble the response
   const userDetails = {
     user: user.toObject(),
+    suspension: {
+      isSuspended: user.isSuspended,
+      details: user.suspensionDetails,
+      history: user.suspensionHistory,
+    },
     orders: {
       asBuyer: ordersAsBuyer,
       asSeller: ordersAsSeller,

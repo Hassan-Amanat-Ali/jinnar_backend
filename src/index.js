@@ -74,6 +74,7 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001', 
   'http://localhost:5173',
+  'http://localhost:5174',
   'https://www.jinnar.com',
   'https://jinnar.com',
   'https://training.jinnar.com',
@@ -190,8 +191,8 @@ if (process.env.NODE_ENV === 'production') {
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Serve Course Swagger UI
-import swaggerCourseSpec from './config/swagger-courses.js';
-app.use('/api-docs/courses', swaggerUi.serve, swaggerUi.setup(swaggerCourseSpec));
+// import swaggerCourseSpec from './config/swagger-courses.js';
+// app.use('/api-docs/courses', swaggerUi.serve, swaggerUi.setup(swaggerCourseSpec));
 
 
 

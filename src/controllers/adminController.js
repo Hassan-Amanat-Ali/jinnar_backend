@@ -34,7 +34,21 @@ class AdminController {
           { $group: { _id: null, total: { $sum: "$amount" } } },
         ]),
       ]);
-
+      console.log(JSON.stringify({
+        users: {
+          total: totalUsers,
+          pendingVerification: pendingVerifications,
+        },
+        gigs: {
+          total: totalGigs,
+          pendingApproval: pendingGigs,
+          active: activeGigs,
+        },
+        financials: {
+          totalOrders: totalOrders,
+          totalRevenue: revenueData[0]?.total || 0,
+        },
+      }, null, 2));
       res.json({
         users: {
           total: totalUsers,
@@ -321,7 +335,7 @@ class AdminController {
 
 
   static async suspendUser(req, res) {
-    const { userId, suspend, reason } = req.body;
+    const { userId, suspend, reason, internalNote } = req.body;
 
     if (!userId || typeof suspend !== "boolean") {
       return res.status(400).json({ error: "userId and suspend boolean required." });
@@ -352,7 +366,7 @@ class AdminController {
           reason: reason || "No reason provided",
           suspendedAt: new Date(),
           suspendedBy: req.user.id, // Current admin
-          internalNote: reason || "",
+          internalNote: internalNote,
         });
 
         // Update current suspension details
@@ -360,7 +374,7 @@ class AdminController {
           reason: reason || "No reason provided",
           suspendedAt: new Date(),
           suspendedBy: req.user.id,
-          internalNote: reason || "",
+          internalNote: internalNote,
         };
 
         // Clear tokens to effectively "log out" devices from push
@@ -368,9 +382,19 @@ class AdminController {
       } else {
         // Reinstatement - update last suspension history entry
         if (user.suspensionHistory && user.suspensionHistory.length > 0) {
-          const lastSuspension = user.suspensionHistory[user.suspensionHistory.length - 1];
+          const lastSuspension =
+            user.suspensionHistory[user.suspensionHistory.length - 1];
           lastSuspension.reinstatedAt = new Date();
           lastSuspension.reinstatedBy = req.user.id;
+          lastSuspension.reinstatementReason = reason;
+
+          // If a new internal note is provided for reinstatement, we can record it.
+          // We could either overwrite or append, but let's store it if provided.
+          if (internalNote) {
+            lastSuspension.internalNote = lastSuspension.internalNote
+              ? `${lastSuspension.internalNote} | Reinstatement Note: ${internalNote}`
+              : `Reinstatement Note: ${internalNote}`;
+          }
         }
         user.suspensionDetails = undefined;
       }

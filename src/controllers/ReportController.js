@@ -243,7 +243,7 @@ export const updateReportStatus = async (req, res) => {
           suspendedAt: new Date(),
           suspendedBy: adminId,
           relatedReport: report._id,
-          internalNote: adminNote || "",
+          internalNote: adminNote,
         });
 
         // Update current suspension details
@@ -253,7 +253,7 @@ export const updateReportStatus = async (req, res) => {
           suspendedAt: new Date(),
           suspendedBy: adminId,
           relatedReport: report._id,
-          internalNote: adminNote || "",
+          internalNote: adminNote,
         };
 
         // Clear FCM tokens to log out user
