@@ -33,8 +33,9 @@ let twilioClient = null;
 
 if (accountSid && authToken && verifySid) {
   try {
-    twilioClient = twilio(accountSid, authToken);
-    console.log("Twilio client initialized for Verify Service");
+    // twilioClient = twilio(accountSid, authToken);
+    // console.log("Twilio client initialized for Verify Service");
+    console.log("Twilio is disabled");
   } catch (err) {
     console.error("Twilio initialization failed:", err.message);
   }
