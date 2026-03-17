@@ -194,6 +194,27 @@ export const registerUser = async (req, res) => {
 
     const existingUser = await User.findOne(query);
     if (existingUser) {
+      if (!existingUser.isVerified) {
+        // Resend code if not verified
+        if (type === "email") {
+          const verificationCode = generateVerificationCode();
+          existingUser.verificationCode = verificationCode;
+          existingUser.verificationCodeExpires = Date.now() + 10 * 60 * 1000;
+          await existingUser.save({ validateBeforeSave: false });
+          await sendVerificationEmail(
+            existingUser,
+            verificationCode,
+            "verification",
+          );
+        } else {
+          await sendTwilioOtp(cleanIdentifier);
+        }
+        return res.status(200).json({
+          message: `Account already exists but is not verified. A new verification code has been sent to your ${type}.`,
+          unverified: true,
+          identifier: cleanIdentifier,
+        });
+      }
       return res.status(409).json({
         error: `${type === "email" ? "Email" : "Phone number"} already registered`,
       });
