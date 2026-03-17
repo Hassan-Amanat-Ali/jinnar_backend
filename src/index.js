@@ -147,8 +147,39 @@ app.post('/api/webhooks/didit', express.raw({ type: 'application/json' }), async
         // Only update if status changed
         if (user.verification.status !== newStatus) {
           user.verification.status = newStatus;
+          user.verificationStatus = (newStatus === 'verified' ? 'approved' : newStatus);
+          
+          if (newStatus !== 'none') {
+            try {
+              console.log(`🔍 [Didit Webhook] Fetching decision for session: ${sessionId} (Status: ${newStatus})`);
+              const decision = await diditService.getSessionDecision(sessionId);
+              
+              if (decision && decision.id_verifications) {
+                // Map Didit documents to our schema
+                const docs = decision.id_verifications.map(dv => ({
+                  documentType: (dv.document_type || 'other').toLowerCase().trim().replace(/\s+/g, '_'),
+                  url: dv.front_image || dv.portrait_image || dv.full_front_image, // Store the primary image URL
+                  uploadedAt: new Date()
+                })).filter(d => d.url); // Only store if there's a URL
+
+                if (docs.length > 0) {
+                  user.identityDocuments = docs;
+                  // If we have documents and were pending, we stay pending but have the docs.
+                  // If it's approved, we mark as verified.
+                  if (newStatus === 'verified') {
+                    user.isVerified = true;
+                  }
+                  console.log(`📄 [Didit Webhook] Stored ${docs.length} documents for user ${user._id}`);
+                }
+              }
+            } catch (decErr) {
+              console.error(`⚠️ [Didit Webhook] Failed to fetch decision data:`, decErr.message);
+            }
+          }
+
           if (newStatus === 'rejected' && event.details) {
             user.verification.lastError = event.details.reason || 'Verification rejected';
+            user.isVerified = false;
           }
           await user.save();
           console.log(`✅ [Didit Webhook] User ${user._id} verification updated to: ${newStatus}`);

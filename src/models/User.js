@@ -170,7 +170,11 @@ const userSchema = new mongoose.Schema(
       },
       lastError: String,
     },
-    // verificationStatus field removed in favor of verification.status
+    verificationStatus: {
+      type: String,
+      enum: ["none", "pending", "approved", "rejected"],
+      default: "none",
+    },
     verificationCode: {
       type: String,
       default: null,
@@ -184,7 +188,15 @@ const userSchema = new mongoose.Schema(
         documentType: {
           type: String,
           required: true,
-          enum: ["passport", "national_id", "drivers_license", "other"],
+          enum: [
+            "passport",
+            "national_id",
+            "drivers_license",
+            "driving_license",
+            "identity_card",
+            "residence_permit",
+            "other",
+          ],
         },
         url: String,
         uploadedAt: { type: Date, default: Date.now },
