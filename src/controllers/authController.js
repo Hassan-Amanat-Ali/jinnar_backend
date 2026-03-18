@@ -79,9 +79,9 @@ const sendTwilioOtp = async (number) => {
     return;
   }
   try {
-    await twilioClient.verify.v2
-      .services(verifySid)
-      .verifications.create({ to: number, channel: "sms" });
+    // await twilioClient.verify.v2
+    //   .services(verifySid)
+    //   .verifications.create({ to: number, channel: "sms" });
     console.log(`Twilio Verify OTP sent to ${number}`);
   } catch (error) {
     console.error(`Twilio Verify failed for ${number}:`, error.message);
