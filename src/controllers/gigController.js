@@ -281,9 +281,11 @@ export const createGig = async (req, res, next) => {
       hourlyEnabled,
       hourlyRate,
       minHours,
+      //Inspection is an offer for negotiated rates feature. 
       inspectionEnabled,
       categoryId,
       primarySubcategory,
+      //Secondary attributes
       extraSubcategories = [], // Default to empty array
       address, // Add address here
     } = req.body;

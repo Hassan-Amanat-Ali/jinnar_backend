@@ -90,7 +90,10 @@ class AdminCourseController {
         updates.published = updates.isPublished;
       }
 
-      const course = await Course.findByIdAndUpdate(id, updates, { new: true });
+      const course = await Course.findByIdAndUpdate(id, updates, {
+        new: true,
+        runValidators: true,
+      });
 
       if (!course) {
         return res.status(404).json({ error: "Course not found" });
@@ -98,6 +101,7 @@ class AdminCourseController {
 
       res.json({ message: "Course updated successfully", course });
     } catch (error) {
+      console.error("Error updating course:", error);
       res.status(500).json({ error: error.message });
     }
   }

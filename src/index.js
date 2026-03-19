@@ -57,7 +57,7 @@ connectDb().then(async () => {
   await agenda.every('30 minutes', 'monitor-sla-breaches');
   await agenda.every('1 day', 'auto-close-resolved-tickets');
 
-console.log('✅ All scheduled jobs configured');
+  console.log('✅ All scheduled jobs configured');
 
   await botService.load(); // Use load() for faster startup
   await initializeRecommendationEngine();
@@ -66,9 +66,138 @@ console.log('✅ All scheduled jobs configured');
 });
 
 app.use(passport.initialize());
-app.use(cors());
+
+
+// 1. Define origins
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'https://www.jinnar.com',
+  'https://jinnar.com',
+  'https://training.jinnar.com',
+  'https://viral.jinnar.com',
+  'https://hq.jinnar.com',
+  'https://www.hq.jinnar.com'
+];
+
+// 2. Configure Options
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, or Postman)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.error(`🛑 CORS Blocked: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true, // Required if you use cookies or sessions
+  optionsSuccessStatus: 200
+};
+
+// 3. Apply it BEFORE any routes
+app.use(cors(corsOptions));       // <-- handle normal requests
+
+
 const server = http.createServer(app);
 setupSocket(server); // This activates Socket.IO
+
+// ✅ Didit Webhook - Must be before express.json()
+app.post('/api/webhooks/didit', express.raw({ type: 'application/json' }), async (req, res) => {
+  const { default: diditService } = await import('./services/diditService.js');
+  const { default: User } = await import('./models/User.js');
+
+  // CHECK BOTH FORMATS (Didit docs vs Actual Headers)
+  const signature = req.headers['x-signature'] || req.headers['didit-signature'];
+  const timestamp = req.headers['x-timestamp'] || req.headers['didit-timestamp'];
+
+  // Keep debug logging for verification
+  console.log('[Didit Webhook] Headers Extract:', { signature, timestamp });
+  const secret = process.env.DIDIT_WEBHOOK_SECRET;
+
+  try {
+    // 1. Verify Signature & Timestamp (Replay Protection)
+    const isValid = diditService.verifySignature(req.body, signature, secret, timestamp);
+
+    if (!isValid) {
+      console.warn('⚠️ [Didit Webhook] Invalid Signature or Timestamp');
+      return res.status(401).send('Invalid Signature');
+    }
+
+    // 2. Parse Body manually
+    const event = JSON.parse(req.body.toString());
+    console.log('🔔 [Didit Webhook] Full Event Body:', JSON.stringify(event, null, 2));
+
+    // 3. Update User Logic
+    // Support various ID fields
+    const sessionId = event.session_id || event.id || event.data?.session?.id;
+
+    if (sessionId) {
+      const user = await User.findOne({ 'verification.sessionId': sessionId });
+      if (user) {
+        const newStatus = diditService.parseVerificationStatus(event);
+
+        // Only update if status changed
+        if (user.verification.status !== newStatus) {
+          user.verification.status = newStatus;
+          user.verificationStatus = (newStatus === 'verified' ? 'approved' : newStatus);
+
+          if (newStatus !== 'none') {
+            try {
+              console.log(`🔍 [Didit Webhook] Fetching decision for session: ${sessionId} (Status: ${newStatus})`);
+              const decision = await diditService.getSessionDecision(sessionId);
+
+              if (decision && decision.id_verifications) {
+                // Map Didit documents to our schema
+                const docs = decision.id_verifications.map(dv => ({
+                  documentType: (dv.document_type || 'other').toLowerCase().trim().replace(/\s+/g, '_'),
+                  url: dv.front_image || dv.portrait_image || dv.full_front_image, // Store the primary image URL
+                  uploadedAt: new Date()
+                })).filter(d => d.url); // Only store if there's a URL
+
+                if (docs.length > 0) {
+                  user.identityDocuments = docs;
+                  // If we have documents and were pending, we stay pending but have the docs.
+                  // If it's approved, we mark as verified.
+                  if (newStatus === 'verified') {
+                    user.isVerified = true;
+                  }
+                  console.log(`📄 [Didit Webhook] Stored ${docs.length} documents for user ${user._id}`);
+                }
+              }
+            } catch (decErr) {
+              console.error(`⚠️ [Didit Webhook] Failed to fetch decision data:`, decErr.message);
+            }
+          }
+
+          if (newStatus === 'rejected' && event.details) {
+            user.verification.lastError = event.details.reason || 'Verification rejected';
+            user.isVerified = false;
+          }
+          await user.save();
+          console.log(`✅ [Didit Webhook] User ${user._id} verification updated to: ${newStatus}`);
+        } else {
+          console.log(`ℹ️ [Didit Webhook] User ${user._id} status already: ${newStatus}`);
+        }
+      } else {
+        console.warn(`❌ [Didit Webhook] No user found for session: ${sessionId}`);
+      }
+    } else {
+      console.warn('❌ [Didit Webhook] Event missing session_id');
+    }
+
+    res.status(200).send('Webhook Received');
+  } catch (err) {
+    console.error('❌ [Didit Webhook] processing error:', err);
+    res.status(500).send('Internal Server Error');
+  }
+});
 
 app.use(express.json());
 // for parsing application/xwww-form-urlencoded
@@ -92,20 +221,17 @@ if (process.env.NODE_ENV === 'production') {
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Serve Course Swagger UI
-import swaggerCourseSpec from './config/swagger-courses.js';
-app.use('/api-docs/courses', swaggerUi.serve, swaggerUi.setup(swaggerCourseSpec));
+// import swaggerCourseSpec from './config/swagger-courses.js';
+// app.use('/api-docs/courses', swaggerUi.serve, swaggerUi.setup(swaggerCourseSpec));
 
 
 
 //Routes
 app.use('/api', apiRoutes)
 
-// Course Upload Routes
-import courseUploadRoutes from './routes/courseUploadRoutes.js';
-import viralUploadRoutes from './routes/viralUploadRoutes.js';
-app.use('/api/courses/upload', courseUploadRoutes);
-app.use('/api/viral/upload', viralUploadRoutes);
-
+// Public Course Routes (accessible to all authenticated users)
+import publicCourseRoutes from './routes/publicCourseRoutes.js';
+app.use('/api/courses', publicCourseRoutes);
 // Static file serving for course uploads
 // Serving uploads/courses directory at /uploads/courses
 // Note: In production, Nginx/Apache usually handles this, or use a secure middleware for restricted access

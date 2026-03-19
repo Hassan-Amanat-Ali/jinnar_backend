@@ -77,41 +77,41 @@ const userSchema = new mongoose.Schema(
       default: "buyer",
     },
     country: {
-  type: String,
-  trim: true,
-  default: null,
-},
+      type: String,
+      trim: true,
+      default: null,
+    },
 
-city: {
-  type: String,
-  trim: true,
-  default: null,
-},
+    city: {
+      type: String,
+      trim: true,
+      default: null,
+    },
 
-socialAccounts: {
-  tiktok: {
-    username: { type: String, default: null },
-    accessToken: { type: String, default: null, select: false }, // hide by default
-    connected: { type: Boolean, default: false },
-  },
-  facebook: {
-    id: { type: String, default: null },
-    username: { type: String, default: null },
-    accessToken: { type: String, default: null, select: false },
-    connected: { type: Boolean, default: false },
-  },
-  instagram: {
-    username: { type: String, default: null },
-    accessToken: { type: String, default: null, select: false },
-    connected: { type: Boolean, default: false },
-  },
-},
+    socialAccounts: {
+      tiktok: {
+        username: { type: String, default: null },
+        accessToken: { type: String, default: null, select: false }, // hide by default
+        connected: { type: Boolean, default: false },
+      },
+      facebook: {
+        id: { type: String, default: null },
+        username: { type: String, default: null },
+        accessToken: { type: String, default: null, select: false },
+        connected: { type: Boolean, default: false },
+      },
+      instagram: {
+        username: { type: String, default: null },
+        accessToken: { type: String, default: null, select: false },
+        connected: { type: Boolean, default: false },
+      },
+    },
 
-totalPoints: {
-  type: Number,
-  default: 0,
-  min: 0,
-},
+    totalPoints: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
 
     profilePicture: {
       type: String,
@@ -170,7 +170,11 @@ totalPoints: {
       },
       lastError: String,
     },
-    // verificationStatus field removed in favor of verification.status
+    verificationStatus: {
+      type: String,
+      enum: ["none", "pending", "approved", "rejected"],
+      default: "none",
+    },
     verificationCode: {
       type: String,
       default: null,
@@ -184,7 +188,15 @@ totalPoints: {
         documentType: {
           type: String,
           required: true,
-          enum: ["passport", "national_id", "drivers_license", "other"],
+          enum: [
+            "passport",
+            "national_id",
+            "drivers_license",
+            "driving_license",
+            "identity_card",
+            "residence_permit",
+            "other",
+          ],
         },
         url: String,
         uploadedAt: { type: Date, default: Date.now },
@@ -220,6 +232,7 @@ totalPoints: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "User",
         },
+        reinstatementReason: String,
         relatedReport: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "Report",
@@ -349,7 +362,7 @@ userSchema.index({ "socialAccounts.tiktok.connected": 1 });
 userSchema.index({ "socialAccounts.facebook.connected": 1 });
 userSchema.index({ "socialAccounts.facebook.id": 1 }, { sparse: true });
 userSchema.index({ "socialAccounts.instagram.connected": 1 });
-userSchema.index({ totalPoints: -1 }); 
+userSchema.index({ totalPoints: -1 });
 
 
 // Ensure at least one auth method is present before saving

@@ -5,11 +5,11 @@
 const http = require('http');
 const https = require('https');
 const urls = [
-  'http://localhost:3000/',
-  'http://localhost:3000/api-docs',
-  'http://localhost:3000/api/gigs',
-  'http://localhost:3000/api',
-  'http://localhost:3000/uploads'
+  'https://api.jinnar.com/',
+  'https://api.jinnar.com/api-docs',
+  'https://api.jinnar.com/api/gigs',
+  'https://api.jinnar.com/api',
+  'https://api.jinnar.com/uploads'
 ];
 
 function fetchUrl(url) {

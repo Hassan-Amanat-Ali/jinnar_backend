@@ -7,7 +7,7 @@ import CourseCategory from "../models/CourseCategory.js";
 const router = express.Router();
 
 // All routes require authentication
-router.use(protect);
+// router.use(protect);
 
 /**
  * @route   GET /api/courses
@@ -23,13 +23,15 @@ router.get("/", async (req, res) => {
     // Build filter - only published courses
     const filter = {
       $or: [{ isPublished: true }, { published: true }],
+        _id: { $ne: "6980a6e3d17588ce8155cdc0" } // exclude this specific course
+
     };
 
     // Role-based filtering
-    const userRole = req.user.role;
-    if (userRole === "buyer" || userRole === "seller") {
-      filter.targetAudience = "General";
-    }
+    // const userRole = req.user.role;
+    // if (userRole === "buyer" || userRole === "seller") {
+    //   filter.targetAudience = "General";
+    // }
     // Other roles (support, admin, etc.) see all audiences by default
 
     if (req.query.search) {
@@ -49,6 +51,8 @@ router.get("/", async (req, res) => {
       .skip(skip)
       .limit(limit);
 
+
+      
     const total = await Course.countDocuments(filter);
 
     res.json({

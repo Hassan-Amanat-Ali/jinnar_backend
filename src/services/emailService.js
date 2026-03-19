@@ -14,15 +14,19 @@ const transporter = nodemailer.createTransport({
     pass: process.env.SMTP_PASS,
   },
   tls: {
-    rejectUnauthorized: false
-  }
+    rejectUnauthorized: false,
+  },
 });
 
 /**
  * Sends an OTP to an email address using Nodemailer.
  * context can be: 'verification' or 'reset'
  */
-export const sendVerificationEmail = async (userOrEmailObj, code, context = "verification") => {
+export const sendVerificationEmail = async (
+  userOrEmailObj,
+  code,
+  context = "verification",
+) => {
   const email = userOrEmailObj.email || userOrEmailObj; // Handle user object or direct email string/object
 
   if (!email) {
@@ -30,7 +34,10 @@ export const sendVerificationEmail = async (userOrEmailObj, code, context = "ver
     return;
   }
 
-  const subject = context === "reset" ? "Reset Your Jinnar Password" : "Verify Your Jinnar Account";
+  const subject =
+    context === "reset"
+      ? "Reset Your Jinnar Password"
+      : "Verify Your Jinnar Account";
   const body = `<p>Your Jinnar ${context === "reset" ? "password reset" : "verification"} code is: <b>${code}</b></p><p>This code will expire in 10 minutes.</p>`;
 
   if (transporter) {

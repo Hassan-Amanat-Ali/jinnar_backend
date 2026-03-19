@@ -1,6 +1,8 @@
 import express from "express";
 import AdminController from "../controllers/adminController.js";
-import * as AdminAuthController from "../controllers/AdminAuthController.js";
+import {
+  deleteUserForTesting
+} from "../controllers/userController.js";import * as AdminAuthController from "../controllers/AdminAuthController.js";
 import {
   getAllTickets,
   getTicketById,
@@ -256,6 +258,12 @@ router.delete(
   authorize("super_admin"),
   AdminController.deleteUser
 );
+
+router.delete(
+  "/users/test-delete/:id",
+  authorize("super_admin"),
+  deleteUserForTesting
+)
 
 // =============================================================================
 // 5. CONTENT MANAGEMENT (Skills/Categories)
