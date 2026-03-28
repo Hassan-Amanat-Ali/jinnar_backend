@@ -2,7 +2,7 @@ import SupportTicket from "../models/SupportTicket.js";
 import User from "../models/User.js";
 // WARNING: Ensure your aiService.js now contains the template matching logic
 import { analyzeTicket, autoAssignTicket } from "../services/aiService.js"; 
-import { sendPushNotification } from "../services/pushNotificationService.js";
+import { sendNotification } from "./notificationController.js";
 import mongoose from "mongoose";
 import nodemailer from "nodemailer"; 
 import { configDotenv } from "dotenv"; 
@@ -52,15 +52,14 @@ const sendEmail = async (to, subject, htmlBody) => {
 const notifyAdminsOfNewTicket = async (ticket, userName) => {
   try {
     const admins = await User.find({ role: { $in: ["support", "supervisor", "super_admin"] } });
-    const notificationPromises = admins.flatMap((admin) => {
-      if (!admin.fcmTokens || admin.fcmTokens.length === 0) return [];
-      return admin.fcmTokens.map(tokenInfo => {
-        return sendPushNotification(tokenInfo.token, {
-          title: "New Support Ticket",
-          body: `New ticket from ${userName}.`,
-          data: { ticketId: ticket._id.toString() },
-        });
-      });
+    const notificationPromises = admins.map((admin) => {
+      return sendNotification(
+        admin._id,
+        "system",
+        `New support ticket from ${userName}.`,
+        ticket._id,
+        "SupportTicket"
+      );
     });
     await Promise.all(notificationPromises);
   } catch (e) {
@@ -306,37 +305,39 @@ export const replyToTicket = async (req, res) => {
         sendEmail(ticket.guestInfo.email, `Reply on Ticket: #${ticket.ticketId}`, emailHtml);
 
       } else if (ticket.user) {
-        // ADMIN REPLIED TO LOGGED-IN USER: Send Push Notification
-        const user = await User.findById(ticket.user);
-        if (user?.fcmTokens?.length > 0) {
-          const notification = {
-            title: `New Reply on Ticket #${ticket.ticketId}`,
-            body: `An admin has replied to your support ticket.`,
-            data: { ticketId: ticket._id.toString() },
-          };
-          user.fcmTokens.forEach(tokenInfo => sendPushNotification(tokenInfo.token, notification));
-        }
+        // ADMIN REPLIED TO LOGGED-IN USER: Send Push + Email Notification via sendNotification
+        await sendNotification(
+          ticket.user,
+          "system",
+          `An admin has replied to your support ticket #${ticket.ticketId}.`,
+          ticket._id,
+          "SupportTicket"
+        );
       }
     } else {
       // USER REPLIED: Notify Admin(s)
       const senderUser = await User.findById(req.user.id);
-      const notification = {
-        title: `New Reply on Ticket #${ticket.ticketId}`,
-        body: `${senderUser.name} has replied to a support ticket.`,
-        data: { ticketId: ticket._id.toString() },
-      };
-
+      
       if (ticket.assignedTo) {
-        const assignedAdmin = await User.findById(ticket.assignedTo);
-        if (assignedAdmin?.fcmTokens?.length > 0) {
-          assignedAdmin.fcmTokens.forEach(tokenInfo => 
-            sendPushNotification(tokenInfo.token, notification)
-          );
-        }
+        await sendNotification(
+          ticket.assignedTo,
+          "system",
+          `${senderUser.name} has replied to support ticket #${ticket.ticketId}.`,
+          ticket._id,
+          "SupportTicket"
+        );
       } else {
         const admins = await User.find({ role: { $in: ["support", "supervisor", "super_admin"] } });
-        admins.flatMap(admin => 
-          admin.fcmTokens.map(tokenInfo => sendPushNotification(tokenInfo.token, notification)));
+        const notificationPromises = admins.map(admin => 
+          sendNotification(
+            admin._id,
+            "system",
+            `${senderUser.name} has replied to support ticket #${ticket.ticketId}.`,
+            ticket._id,
+            "SupportTicket"
+          )
+        );
+        await Promise.all(notificationPromises);
       }
     }
     // --- END NOTIFICATION LOGIC ---
@@ -411,21 +412,14 @@ export const updateTicketStatus = async (req, res) => {
 
     const updatedTicket = await ticket.save();
 
-    // Notify user of status change
-    const user = await User.findById(ticket.user);
-    if (user && user.fcmTokens?.length > 0) {
-      const notification = {
-        title: `Ticket #${ticket.ticketId} Status Updated`,
-        body: `The status of your support ticket has been updated to "${status.replace("_", " ")}".`,
-        data: {
-          ticketId: ticket._id.toString(),
-        },
-      };
-      const notificationPromises = user.fcmTokens.map(tokenInfo => 
-        sendPushNotification(tokenInfo.token, notification)
-      );
-      await Promise.all(notificationPromises);
-    }
+    // Notify user of status change via sendNotification (Push + Email)
+    await sendNotification(
+      ticket.user,
+      "system",
+      `The status of your support ticket #${ticket.ticketId} has been updated to "${status.replace("_", " ")}".`,
+      ticket._id,
+      "SupportTicket"
+    );
 
     const populatedTicket = await SupportTicket.findById(updatedTicket._id)
         .populate("user", "name email")
@@ -481,29 +475,22 @@ export const assignTicket = async (req, res) => {
 
     const updatedTicket = await ticket.save();
 
-    if (assignee.fcmTokens?.length > 0) {
-      const notificationPromises = assignee.fcmTokens.map(tokenInfo => {
-        const notification = {
-          title: "You've Been Assigned a Ticket",
-          body: `You have been assigned support ticket #${ticket.ticketId}.`,
-          data: { ticketId: ticket._id.toString() },
-        };
-        return sendPushNotification(tokenInfo.token, notification);
-      });
-      await Promise.all(notificationPromises);
-    }
+    await sendNotification(
+      assigneeId,
+      "system",
+      `You have been assigned support ticket #${ticket.ticketId}.`,
+      ticket._id,
+      "SupportTicket"
+    );
 
-    const user = await User.findById(ticket.user);
-    if (user?.fcmTokens?.length > 0) {
-      const notificationPromises = user.fcmTokens.map(tokenInfo => {
-        const userNotification = {
-          title: `Ticket #${ticket.ticketId} Assigned`,
-          body: `Your support ticket has been assigned to an agent.`,
-          data: { ticketId: ticket._id.toString() },
-        };
-        return sendPushNotification(tokenInfo.token, userNotification);
-      });
-      await Promise.all(notificationPromises);
+    if (ticket.user) {
+      await sendNotification(
+        ticket.user,
+        "system",
+        `Your support ticket #${ticket.ticketId} has been assigned to an agent.`,
+        ticket._id,
+        "SupportTicket"
+      );
     }
 
     const populatedTicket = await SupportTicket.findById(updatedTicket._id)

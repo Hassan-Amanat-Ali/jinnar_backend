@@ -56,3 +56,31 @@ export const sendVerificationEmail = async (
     }
   }
 };
+
+/**
+ * Sends a generic notification email
+ */
+export const sendNotificationEmail = async (email, subject, body) => {
+  console.log(`📧 sendNotificationEmail triggered for: ${email}`);
+  if (!email) {
+    console.error("sendNotificationEmail called without a user email.");
+    return;
+  }
+
+  if (transporter) {
+    try {
+      const mailOptions = {
+        from: `"Jinnar Services" <${process.env.SMTP_USER}>`,
+        to: email,
+        subject: subject,
+        html: body,
+      };
+      const response = await transporter.sendMail(mailOptions);
+      console.log(`✅ Notification email sent to ${email} response ${response.messageId}`);
+    } catch (emailError) {
+      console.error("❌ Error sending notification email:", emailError);
+    }
+  } else {
+    console.warn("⚠️ No transporter configured for email service.");
+  }
+};

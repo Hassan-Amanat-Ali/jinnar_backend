@@ -1,6 +1,7 @@
 import Notification from "../models/Notification.js";
 import { sendPushNotification } from "../services/pushNotificationService.js";
 import User from "../models/User.js"; // assuming you store fcmToken in user model
+import { sendNotificationEmail } from "../services/emailService.js";
 
 export const sendNotification = async (
   recipientId,
@@ -30,8 +31,18 @@ export const sendNotification = async (
         relatedId: relatedId ? relatedId.toString() : null, // Convert ObjectId to string
         relatedModel: relatedModel ? relatedModel.toString() : null,
       });
+    }
+
+    // 5️⃣ Send email notification if exists and enabled
+    console.log(`✉️ Attempting to send email to user: ${recipientId}. Email exist: ${!!user?.email}, pref: ${user?.preferences?.emailNotifications}`);
+    if (user?.email && user.preferences?.emailNotifications !== false) {
+      await sendNotificationEmail(
+        user.email,
+        "New Notification from Jinnar",
+        `<p>${content}</p><p>Check your Jinnar app for more details.</p>`
+      );
     } else {
-      // console.log(`No FCM token found for user: ${recipientId}`);
+      console.log(`✉️ Email notification skipped for user: ${recipientId}`);
     }
   } catch (error) {
     console.error("Error sending notification:", error);

@@ -33,7 +33,7 @@ const notificationSchema = new mongoose.Schema(
     },
     relatedModel: {
       type: String,
-      enum: ["Gig", "Conversation", "Wallet", "Order", "Message", null],
+      enum: ["Gig", "Conversation", "Wallet", "Order", "Message", "SupportTicket", null],
       default: null,
     },
     isRead: {
