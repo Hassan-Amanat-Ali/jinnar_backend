@@ -268,6 +268,61 @@ const options = {
                         version: { type: "number" },
                         lastUpdatedBy: { type: "string" }
                     }
+                },
+                // --- BLOGS ---
+                Blog: {
+                    type: "object",
+                    properties: {
+                        _id: { type: "string", description: "Unique identifier for the blog post." },
+                        title: { type: "string", description: "Title of the blog post." },
+                        content: { type: "string", description: "Full content of the blog post (HTML/Markdown)." },
+                        excerpt: { type: "string", description: "Short summary of the blog post." },
+                        featuredImage: { type: "string", format: "uri", description: "URL of the featured image." },
+                        tags: { type: "array", items: { type: "string" }, description: "List of tags associated with the blog post." },
+                        author: {
+                            type: "object",
+                            properties: {
+                                _id: { type: "string" },
+                                name: { type: "string" },
+                                email: { type: "string", format: "email" }
+                            },
+                            description: "Author details, populated from User model."
+                        },
+                        metaTitle: { type: "string", description: "SEO meta title." },
+                        metaDescription: { type: "string", description: "SEO meta description." },
+                        status: { type: "string", enum: ["draft", "published"], description: "Publication status of the blog post." },
+                        slug: { type: "string", description: "URL-friendly slug for the blog post." },
+                        createdAt: { type: "string", format: "date-time", description: "Date and time the blog post was created." },
+                        updatedAt: { type: "string", format: "date-time", description: "Date and time the blog post was last updated." }
+                    }
+                },
+                BlogListResponse: {
+                    type: "object",
+                    properties: {
+                        blogs: {
+                            type: "array",
+                            items: { $ref: "#/components/schemas/Blog" },
+                            description: "Array of blog posts."
+                        },
+                        page: { type: "integer", description: "Current page number." },
+                        pages: { type: "integer", description: "Total number of pages." },
+                        total: { type: "integer", description: "Total number of blog posts." }
+                    }
+                },
+                CreateBlogRequest: {
+                    type: "object",
+                    required: ["title", "content", "status"],
+                    properties: {
+                        title: { type: "string", description: "Title of the blog post." },
+                        content: { type: "string", description: "Full content of the blog post (HTML/Markdown)." },
+                        excerpt: { type: "string", description: "Short summary of the blog post (optional)." },
+                        featuredImage: { type: "string", format: "uri", description: "URL of the featured image (optional)." },
+                        tags: { type: "array", items: { type: "string" }, description: "List of tags (optional)." },
+                        metaTitle: { type: "string", description: "SEO meta title (optional)." },
+                        metaDescription: { type: "string", description: "SEO meta description (optional)." },
+                        status: { type: "string", enum: ["draft", "published"], description: "Publication status ('draft' or 'published')." },
+                        slug: { type: "string", description: "URL-friendly slug (optional, auto-generated if not provided)." }
+                    }
                 }
             }
         },
@@ -874,6 +929,119 @@ const options = {
                     },
                     responses: {
                         "200": { description: "Status updated" }
+                    }
+                }
+            },
+            // --- BLOGS PATHS (Public) ---
+            "/blogs": {
+                get: {
+                    tags: ["Blogs (Public)"],
+                    summary: "Get all published blog posts",
+                    parameters: [
+                        { in: "query", name: "limit", schema: { type: "integer", default: 10 }, description: "Number of blogs per page." },
+                        { in: "query", name: "page", schema: { type: "integer", default: 1 }, description: "Page number for pagination." },
+                        { in: "query", name: "search", schema: { type: "string" }, description: "Search term for blog titles or tags." },
+                        { in: "query", name: "tag", schema: { type: "string" }, description: "Filter blogs by a specific tag." }
+                    ],
+                    responses: {
+                        "200": {
+                            description: "A paginated list of published blog posts.",
+                            content: { "application/json": { schema: { $ref: "#/components/schemas/BlogListResponse" } } }
+                        },
+                        "500": { description: "Internal Server Error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }
+                    }
+                }
+            },
+            "/blogs/{slug}": {
+                get: {
+                    tags: ["Blogs (Public)"],
+                    summary: "Get a single published blog post by slug",
+                    parameters: [
+                        { in: "path", name: "slug", required: true, schema: { type: "string" }, description: "Unique URL-friendly slug of the blog post." }
+                    ],
+                    responses: {
+                        "200": {
+                            description: "Details of the requested blog post.",
+                            content: { "application/json": { schema: { $ref: "#/components/schemas/Blog" } } }
+                        },
+                        "404": { description: "Blog not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                        "500": { description: "Internal Server Error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }
+                    }
+                }
+            },
+            // --- BLOGS PATHS (Admin) ---
+            "/admin/blogs": {
+                get: {
+                    tags: ["Admin - Blog Management"],
+                    summary: "Get all blog posts (including drafts) for admin",
+                    security: [{ bearerAuth: [] }],
+                    parameters: [
+                        { in: "query", name: "limit", schema: { type: "integer", default: 10 }, description: "Number of blogs per page." },
+                        { in: "query", name: "page", schema: { type: "integer", default: 1 }, description: "Page number for pagination." },
+                        { in: "query", name: "search", schema: { type: "string" }, description: "Search term for blog titles or tags." },
+                        { in: "query", name: "status", schema: { type: "string", enum: ["draft", "published"] }, description: "Filter by publication status." }
+                    ],
+                    responses: {
+                        "200": {
+                            description: "A paginated list of all blog posts (including drafts).",
+                            content: { "application/json": { schema: { $ref: "#/components/schemas/BlogListResponse" } } }
+                        },
+                        "401": { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                        "403": { description: "Forbidden - Insufficient privileges", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                        "500": { description: "Internal Server Error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }
+                    }
+                },
+                post: {
+                    tags: ["Admin - Blog Management"],
+                    summary: "Create a new blog post",
+                    security: [{ bearerAuth: [] }],
+                    requestBody: {
+                        required: true,
+                        content: { "application/json": { schema: { $ref: "#/components/schemas/CreateBlogRequest" } } }
+                    },
+                    responses: {
+                        "201": { description: "Blog post created successfully.", content: { "application/json": { schema: { $ref: "#/components/schemas/Blog" } } } },
+                        "400": { description: "Bad Request - Validation errors (e.g., missing fields, slug already exists)", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                        "401": { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                        "403": { description: "Forbidden - Insufficient privileges", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                        "500": { description: "Internal Server Error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }
+                    }
+                }
+            },
+            "/admin/blogs/{id}": {
+                put: {
+                    tags: ["Admin - Blog Management"],
+                    summary: "Update an existing blog post",
+                    security: [{ bearerAuth: [] }],
+                    parameters: [
+                        { in: "path", name: "id", required: true, schema: { type: "string" }, description: "ID of the blog post to update." }
+                    ],
+                    requestBody: {
+                        required: true,
+                        content: { "application/json": { schema: { $ref: "#/components/schemas/CreateBlogRequest" } } }
+                    },
+                    responses: {
+                        "200": { description: "Blog post updated successfully.", content: { "application/json": { schema: { $ref: "#/components/schemas/Blog" } } } },
+                        "400": { description: "Bad Request - Validation errors (e.g., slug already exists)", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                        "401": { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                        "403": { description: "Forbidden - Insufficient privileges", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                        "404": { description: "Blog not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                        "500": { description: "Internal Server Error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }
+                    }
+                },
+                delete: {
+                    tags: ["Admin - Blog Management"],
+                    summary: "Delete a blog post",
+                    security: [{ bearerAuth: [] }],
+                    parameters: [
+                        { in: "path", name: "id", required: true, schema: { type: "string" }, description: "ID of the blog post to delete." }
+                    ],
+                    responses: {
+                        "200": { description: "Blog post deleted successfully.", content: { "application/json": { schema: { $ref: "#/components/schemas/SuccessMessage" } } } },
+                        "401": { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                        "403": { description: "Forbidden - Insufficient privileges", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                        "404": { description: "Blog not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                        "500": { description: "Internal Server Error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }
                     }
                 }
             }

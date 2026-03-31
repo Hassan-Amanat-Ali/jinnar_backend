@@ -21,8 +21,20 @@ import {
   updateReportStatus,
 } from "../controllers/ReportController.js";
 import AdminCourseController from "../controllers/adminCourseController.js";
+import BlogController from "../controllers/blogController.js";
+import { check } from "express-validator";
 
 const router = express.Router();
+
+// Validation middleware
+const blogValidation = [
+  check("title", "Title is required").not().isEmpty(),
+  check("content", "Content is required").not().isEmpty(),
+  check("status", "Status must be 'draft' or 'published'").isIn([
+    "draft",
+    "published",
+  ]),
+];
 
 // =============================================================================
 // Support Ticket System
@@ -441,6 +453,36 @@ router.delete(
   "/course-categories/:id",
   authorize(["super_admin"]),
   AdminCourseController.deleteCourseCategory
+);
+
+// =============================================================================
+// 10. BLOG MANAGEMENT
+// =============================================================================
+
+router.get(
+  "/blogs",
+  authorize(["support", "supervisor", "super_admin"]),
+  BlogController.getAdminBlogs
+);
+
+router.post(
+  "/blogs",
+  authorize(["supervisor", "super_admin"]),
+  blogValidation,
+  BlogController.createBlog
+);
+
+router.put(
+  "/blogs/:id",
+  authorize(["supervisor", "super_admin"]),
+  blogValidation,
+  BlogController.updateBlog
+);
+
+router.delete(
+  "/blogs/:id",
+  authorize(["super_admin"]),
+  BlogController.deleteBlog
 );
 
 export default router;

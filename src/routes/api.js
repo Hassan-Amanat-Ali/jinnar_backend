@@ -25,6 +25,8 @@ import systemConfigRoutes from "./systemConfig.js";
 import enrollmentRoutes from "./enrollmentRoutes.js";
 import courseUploadRoutes from "./courseUploadRoutes.js";
 import viralRoutes from "./viral.js";
+import adminBlogRoutes from "./adminBlogRoutes.js"; // Import the new admin blog routes
+import blogRoutes from "./blogRoutes.js";
 // import { checkMaintenanceMode } from "../middleware/maintenance.js";
 
 const router = express.Router();
@@ -60,9 +62,11 @@ router.use("/gigs", gigRoutes);
 router.use("/categories", categoryRoutes);
 router.use("/faq", faqRoutes);
 router.use("/enrollments", enrollmentRoutes);
+router.use("/admin/blogs", adminBlogRoutes); // Mount the new admin blog routes
 
 //Viral.Jinnar
 router.use("/viral", viralRoutes);
+router.use("/blogs", blogRoutes);
 
 
 //Training Jinnar
