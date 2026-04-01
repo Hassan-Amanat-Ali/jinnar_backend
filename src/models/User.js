@@ -120,7 +120,7 @@ const userSchema = new mongoose.Schema(
     fcmTokens: [
       {
         token: { type: String, required: true },
-        deviceInfo: { type: String, default: null },
+        deviceInfo: { type: mongoose.Schema.Types.Mixed, default: {} },
         createdAt: { type: Date, default: Date.now },
       },
     ],

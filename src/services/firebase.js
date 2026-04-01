@@ -1,5 +1,6 @@
 import admin from "firebase-admin";
 import fs from "fs";
+import path from "path";
 
 // If you have a service account JSON, download from Firebase Console
 // https://console.firebase.google.com/project/YOUR_PROJECT_ID/settings/serviceaccounts
@@ -7,24 +8,27 @@ import fs from "fs";
 
 const loadServiceAccount = () => {
   // 1. Try environment variable (JSON string)
-  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT && process.env.FIREBASE_SERVICE_ACCOUNT.trim() !== "{}") {
     try {
+      console.log("✅ Reading Firebase Credentials from ENV");
       return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
     } catch (e) {
       console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT environment variable:", e.message);
     }
   }
 
-  // 2. Try specific file path
-  if (fs.existsSync("./serviceaccount.json")) {
+  // 2. Try specific file path using absolute root resolution
+  const configPath = path.resolve(process.cwd(), "serviceaccount.json");
+  if (fs.existsSync(configPath)) {
     try {
-      return JSON.parse(fs.readFileSync("./serviceaccount.json", "utf8"));
+      console.log(`✅ Loaded Firebase credentials from file: ${configPath}`);
+      return JSON.parse(fs.readFileSync(configPath, "utf8"));
     } catch (e) {
-      console.error("Failed to read serviceaccount.json:", e.message);
+      console.error(`Failed to read ${configPath}:`, e.message);
     }
   }
 
-  console.warn("No Firebase service account credentials found (Env: FIREBASE_SERVICE_ACCOUNT or file: serviceaccount.json). Firebase Admin may not initialize correctly.");
+  console.warn(`❌ No Firebase service account credentials found (Checked Env and ${configPath}). Firebase Admin may not initialize correctly.`);
   return null;
 };
 
