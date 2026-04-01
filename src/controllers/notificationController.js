@@ -20,13 +20,14 @@ export const sendNotification = async (
       relatedModel,
     });
 
-    // 2️⃣ Get recipient’s FCM token
+    // 2️⃣ Get recipient’s FCM tokens
     const user = await User.findById(recipientId);
     if (user?.fcmTokens && user.fcmTokens.length > 0) {
-      const fcmToken = user.fcmTokens[0].token; // Assuming we use the first token for now
+      // 3️⃣ Extract all FCM tokens (for multiple devices like web and app)
+      const allTokens = user.fcmTokens.map(t => t.token);
 
-      // 4️⃣ Send push notification
-      await sendPushNotification(fcmToken, "New Notification", content, {
+      // 4️⃣ Send multicast push notification
+      await sendPushNotification(allTokens, "New Notification", content, {
         type: type.toString(),
         relatedId: relatedId ? relatedId.toString() : null, // Convert ObjectId to string
         relatedModel: relatedModel ? relatedModel.toString() : null,
