@@ -8,7 +8,10 @@ import SubCategory from "../models/SubCategory.js";
 import { sendNotification } from "./notificationController.js";
 
 class AdminController {
-  
+  static escapeRegex(value = "") {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
   // ===========================================================================
   // 1. DASHBOARD & STATS
   // ===========================================================================
@@ -477,19 +480,144 @@ class AdminController {
 
   static async getAllUsers(req, res) {
     try {
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 20;
+      const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+      const limit = Math.max(parseInt(req.query.limit, 10) || 20, 1);
       const skip = (page - 1) * limit;
-      const search = req.query.search || "";
+      const search = (req.query.search || "").trim();
+      const role = req.query.role;
+      const status = req.query.status;
+      const hasDocuments = req.query.hasDocuments === "true";
+      const verificationStatus = req.query.verificationStatus;
+      const verificationType = req.query.verificationType;
 
-      const query = search
-        ? {
+      const query = {
+        role: { $in: ["buyer", "seller"] },
+      };
+
+      const roleMap = {
+        Worker: "seller",
+        Client: "buyer",
+        worker: "seller",
+        client: "buyer",
+        seller: "seller",
+        buyer: "buyer",
+      };
+
+      if (role && role !== "All") {
+        const normalizedRole = roleMap[role] || role;
+        if (["buyer", "seller"].includes(normalizedRole)) {
+          query.role = normalizedRole;
+        }
+      }
+
+      if (status && status !== "All Status") {
+        if (status === "Suspended") {
+          query.isSuspended = true;
+        } else if (status === "Pending") {
+          query.$or = [
+            { verificationStatus: "pending" },
+            { "verification.status": "pending" },
+          ];
+        } else if (status === "Active") {
+          query.isSuspended = false;
+          query.$nor = [
+            { verificationStatus: "pending" },
+            { "verification.status": "pending" },
+          ];
+        }
+      }
+
+      if (hasDocuments) {
+        query.$and = [
+          ...(query.$and || []),
+          {
             $or: [
-              { name: { $regex: search, $options: "i" } },
-              { email: { $regex: search, $options: "i" } },
+              { "identityDocuments.0": { $exists: true } },
+              { "certificates.0": { $exists: true } },
+              { "portfolioImages.0": { $exists: true } },
             ],
-          }
-        : {};
+          },
+        ];
+      }
+
+      if (verificationStatus && verificationStatus !== "all") {
+        const normalizedVerificationStatus = verificationStatus.toLowerCase();
+
+        if (normalizedVerificationStatus === "pending") {
+          query.$and = [
+            ...(query.$and || []),
+            {
+              $or: [
+                { verificationStatus: "pending" },
+                { "verification.status": "pending" },
+              ],
+            },
+          ];
+        } else if (["approved", "rejected", "none"].includes(normalizedVerificationStatus)) {
+          query.$and = [
+            ...(query.$and || []),
+            { verificationStatus: normalizedVerificationStatus },
+          ];
+        }
+      }
+
+      if (verificationType && verificationType !== "all") {
+        const normalizedType = verificationType.toLowerCase();
+        const typeFilters = {
+          identity_document: { "identityDocuments.0": { $exists: true } },
+          professional_certificate: { "certificates.0": { $exists: true } },
+          portfolio_images: { "portfolioImages.0": { $exists: true } },
+          national_id: { identityDocuments: { $elemMatch: { documentType: "national_id" } } },
+          passport: { identityDocuments: { $elemMatch: { documentType: "passport" } } },
+          driving_license: {
+            identityDocuments: {
+              $elemMatch: { documentType: { $in: ["driving_license", "drivers_license"] } },
+            },
+          },
+          identity_card: { identityDocuments: { $elemMatch: { documentType: "identity_card" } } },
+          residence_permit: { identityDocuments: { $elemMatch: { documentType: "residence_permit" } } },
+        };
+
+        if (typeFilters[normalizedType]) {
+          query.$and = [...(query.$and || []), typeFilters[normalizedType]];
+        }
+      }
+
+      if (search) {
+        const searchRegex = new RegExp(AdminController.escapeRegex(search), "i");
+        const gigSearchPipeline = [
+          {
+            $addFields: {
+              idAsString: { $toString: "$_id" },
+            },
+          },
+          {
+            $match: {
+              $or: [{ title: { $regex: searchRegex } }, { idAsString: { $regex: searchRegex } }],
+            },
+          },
+          {
+            $project: { sellerId: 1 },
+          },
+          { $limit: 500 },
+        ];
+
+        const matchedGigs = await Gig.aggregate(gigSearchPipeline);
+        const matchedSellerIds = matchedGigs.map((gig) => gig.sellerId).filter(Boolean);
+
+        query.$and = [
+          ...(query.$and || []),
+          {
+            $or: [
+              { name: { $regex: searchRegex } },
+              { email: { $regex: searchRegex } },
+              { mobileNumber: { $regex: searchRegex } },
+              { skills: { $regex: searchRegex } },
+              ...(matchedSellerIds.length ? [{ _id: { $in: matchedSellerIds } }] : []),
+            ],
+          },
+        ];
+      }
 
       const users = await User.find(query)
         .select("-password -verificationCode")
@@ -499,7 +627,99 @@ class AdminController {
 
       const total = await User.countDocuments(query);
 
-      res.json({ users, pagination: { total, page, limit, totalPages: Math.ceil(total/limit) } });
+      const summaryBaseQuery = { ...query };
+      delete summaryBaseQuery.role;
+
+      const verifiedFilter = {
+        $or: [
+          { isVerified: true },
+          { verificationStatus: "approved" },
+          { "verification.status": "verified" },
+        ],
+      };
+
+      const [totalWorkers, totalClients, verifiedUsers] = await Promise.all([
+        User.countDocuments({ ...summaryBaseQuery, role: "seller" }),
+        User.countDocuments({ ...summaryBaseQuery, role: "buyer" }),
+        User.countDocuments({
+          ...summaryBaseQuery,
+          $and: [...(summaryBaseQuery.$and || []), verifiedFilter],
+        }),
+      ]);
+
+      const verificationSummaryBaseQuery = { ...summaryBaseQuery };
+      delete verificationSummaryBaseQuery.$or;
+
+      if (Array.isArray(verificationSummaryBaseQuery.$and)) {
+        verificationSummaryBaseQuery.$and = verificationSummaryBaseQuery.$and.filter((condition) => {
+          if (condition.verificationStatus) {
+            return false;
+          }
+
+          if (Array.isArray(condition.$or)) {
+            const isVerificationPendingCondition = condition.$or.some(
+              (entry) =>
+                entry.verificationStatus === "pending" ||
+                Object.prototype.hasOwnProperty.call(entry, "verification.status"),
+            );
+
+            if (isVerificationPendingCondition) {
+              return false;
+            }
+          }
+
+          return true;
+        });
+
+        if (!verificationSummaryBaseQuery.$and.length) {
+          delete verificationSummaryBaseQuery.$and;
+        }
+      }
+
+      const [pendingVerification, approvedVerification, rejectedVerification, totalVerification] = await Promise.all([
+        User.countDocuments({
+          ...verificationSummaryBaseQuery,
+          $and: [
+            ...(verificationSummaryBaseQuery.$and || []),
+            {
+              $or: [
+                { verificationStatus: "pending" },
+                { "verification.status": "pending" },
+              ],
+            },
+          ],
+        }),
+        User.countDocuments({
+          ...verificationSummaryBaseQuery,
+          $and: [...(verificationSummaryBaseQuery.$and || []), { verificationStatus: "approved" }],
+        }),
+        User.countDocuments({
+          ...verificationSummaryBaseQuery,
+          $and: [...(verificationSummaryBaseQuery.$and || []), { verificationStatus: "rejected" }],
+        }),
+        User.countDocuments(verificationSummaryBaseQuery),
+      ]);
+
+      res.json({
+        users,
+        summary: {
+          workers: totalWorkers,
+          clients: totalClients,
+          verified: verifiedUsers,
+        },
+        verificationSummary: {
+          pending: pendingVerification,
+          approved: approvedVerification,
+          rejected: rejectedVerification,
+          total: totalVerification,
+        },
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
@@ -649,8 +869,6 @@ class AdminController {
         page = 1,
         limit = 100
       } = req.query;
-
-      console.log('Get Admins Query Params:', { role, status, search, sort, page, limit });
 
       // Build query
       const query = {
@@ -913,13 +1131,41 @@ class AdminController {
 
   static async getAllGigs(req, res) {
     try {
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 10;
+      const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+      const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
       const skip = (page - 1) * limit;
-      const filter = {};
+      const search = (req.query.search || "").trim();
+      const status = req.query.status;
 
-      if (req.query.status) filter.status = req.query.status;
-      if (req.query.search) filter.title = { $regex: req.query.search, $options: "i" };
+      const baseFilter = {};
+
+      if (search) {
+        const searchRegex = new RegExp(AdminController.escapeRegex(search), "i");
+
+        const [matchedSellers, matchedGigIdsById] = await Promise.all([
+          User.find({ name: { $regex: searchRegex } }).select("_id"),
+          Gig.aggregate([
+            { $addFields: { idAsString: { $toString: "$_id" } } },
+            { $match: { idAsString: { $regex: searchRegex } } },
+            { $project: { _id: 1 } },
+            { $limit: 500 },
+          ]),
+        ]);
+
+        const matchedSellerIds = matchedSellers.map((seller) => seller._id);
+        const matchedGigIds = matchedGigIdsById.map((gig) => gig._id);
+
+        baseFilter.$or = [
+          { title: { $regex: searchRegex } },
+          ...(matchedSellerIds.length ? [{ sellerId: { $in: matchedSellerIds } }] : []),
+          ...(matchedGigIds.length ? [{ _id: { $in: matchedGigIds } }] : []),
+        ];
+      }
+
+      const filter = { ...baseFilter };
+      if (status && status !== "All") {
+        filter.status = status;
+      }
 
       const gigs = await Gig.find(filter)
         .populate("sellerId", "name email rating mobileNumber address selectedAreas")
@@ -931,7 +1177,53 @@ class AdminController {
 
       const total = await Gig.countDocuments(filter);
 
-      res.json({ gigs, pagination: { total, page, limit, totalPages: Math.ceil(total/limit) } });
+      const summaryBuckets = await Gig.aggregate([
+        { $match: baseFilter },
+        { $group: { _id: "$status", count: { $sum: 1 } } },
+      ]);
+
+      const summary = summaryBuckets.reduce(
+        (acc, item) => {
+          if (item._id && Object.prototype.hasOwnProperty.call(acc, item._id)) {
+            acc[item._id] = item.count;
+          }
+          acc.total += item.count;
+          return acc;
+        },
+        {
+          pending: 0,
+          active: 0,
+          rejected: 0,
+          suspended: 0,
+          total: 0,
+        },
+      );
+
+      res.json({
+        gigs,
+        summary,
+        pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async getGigById(req, res) {
+    try {
+      const { id } = req.params;
+
+      const gig = await Gig.findById(id)
+        .populate("sellerId", "name email mobileNumber rating bio skills yearsOfExperience address selectedAreas profilePicture location isVerified verificationStatus isSuspended")
+        .populate("category", "name")
+        .populate("primarySubcategory", "name")
+        .populate("extraSubcategories", "name");
+
+      if (!gig) {
+        return res.status(404).json({ error: "Gig not found" });
+      }
+
+      res.json({ gig });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
@@ -1068,18 +1360,95 @@ class AdminController {
 
   static async viewFinancialLogs(req, res) {
     try {
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 20;
+      const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+      const limit = Math.max(parseInt(req.query.limit, 10) || 20, 1);
       const skip = (page - 1) * limit;
+      const search = (req.query.search || "").trim();
+      const type = req.query.type;
+      const status = req.query.status;
 
-      const transactions = await Transaction.find()
+      const query = {};
+
+      if (type && type !== "All Types") {
+        const normalizedType = type.toLowerCase();
+        if (["deposit", "withdrawal", "refund"].includes(normalizedType)) {
+          query.type = normalizedType;
+        }
+      }
+
+      if (status && status !== "All Status") {
+        const normalizedStatus = status.toLowerCase();
+        if (["completed", "pending", "failed"].includes(normalizedStatus)) {
+          query.status = normalizedStatus;
+        }
+      }
+
+      if (search) {
+        const searchRegex = new RegExp(search, "i");
+        const matchedUsers = await User.find({
+          $or: [
+            { name: { $regex: searchRegex } },
+            { email: { $regex: searchRegex } },
+            { mobileNumber: { $regex: searchRegex } },
+          ],
+        }).select("_id");
+
+        const matchedUserIds = matchedUsers.map((user) => user._id);
+
+        query.$or = [
+          { description: { $regex: searchRegex } },
+          { paymentMethod: { $regex: searchRegex } },
+          { currency: { $regex: searchRegex } },
+          ...(matchedUserIds.length ? [{ userId: { $in: matchedUserIds } }] : []),
+        ];
+      }
+
+      const transactions = await Transaction.find(query)
         .populate("userId", "name email mobileNumber")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);
 
-      const total = await Transaction.countDocuments();
-      res.json({ data: transactions, pagination: { total, page, limit, totalPages: Math.ceil(total/limit) } });
+      const total = await Transaction.countDocuments(query);
+
+      const summaryAggregate = await Transaction.aggregate([
+        { $match: query },
+        {
+          $group: {
+            _id: null,
+            completedTransactions: {
+              $sum: {
+                $cond: [{ $eq: ["$status", "completed"] }, 1, 0],
+              },
+            },
+            pendingEscrowBalance: {
+              $sum: {
+                $cond: [{ $eq: ["$status", "pending"] }, "$amount", 0],
+              },
+            },
+          },
+        },
+      ]);
+
+      const summary = summaryAggregate[0] || {
+        completedTransactions: 0,
+        pendingEscrowBalance: 0,
+      };
+
+      res.json({
+        data: transactions,
+        summary: {
+          platformRevenue: 0,
+          completedTransactions: summary.completedTransactions,
+          pendingEscrowBalance: summary.pendingEscrowBalance,
+        },
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
