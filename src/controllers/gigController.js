@@ -16,8 +16,8 @@ export const searchGigs = async (req, res) => {
       lat, lng, radius 
     } = req.query;
 
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit) || 10);
     const skip = (page - 1) * limit;
 
     const pipeline = [];
@@ -220,8 +220,8 @@ export const searchGigs = async (req, res) => {
     const result = await Gig.aggregate(pipeline);
 
     // Format output
-    const gigs = result[0].data;
-    const total = result[0].metadata[0] ? result[0].metadata[0].total : 0;
+    const gigs = result[0]?.data || [];
+    const total = result[0]?.metadata[0]?.total || 0;
 
     // --- STAGE 8: APPEND ORDERS COMPLETED ---
     // Extract unique seller IDs from the result
@@ -374,50 +374,123 @@ export const getAllGigs = async (req, res, next) => {
     }
 
     // -------------------------
-    // Fetch Gigs & Seller Info - ONLY from verified workers
+    // Set up Pipeline
     // -------------------------
-    const gigs = await Gig.find(query).populate({
-      path: "sellerId",
-      select: "name bio skills yearsOfExperience rating verificationStatus location selectedAreas",
-      match: { verificationStatus: "approved" }, // Only verified sellers
-    });
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit) || 10);
+    const skip = (page - 1) * limit;
 
-    // Filter out gigs where seller is null (didn't match verification criteria)
-    const validGigs = gigs.filter(g => g.sellerId !== null);
+    const pipeline = [];
 
-    // -------------------------
-    // Append Orders Completed per Seller
-    // -------------------------
-    const sellerIds = validGigs.map((g) => g.sellerId?._id).filter(Boolean);
+    // Filter for active status
+    pipeline.push({ $match: query });
 
-    // Count completed orders for all sellers at once
-    const completedOrders = await Order.aggregate([
-      { $match: { sellerId: { $in: sellerIds }, status: "completed" } },
-      { $group: { _id: "$sellerId", count: { $sum: 1 } } },
-    ]);
-
-    // Convert to lookup map
-    const orderCountMap = {};
-    completedOrders.forEach((entry) => {
-      orderCountMap[entry._id.toString()] = entry.count;
-    });
-
-    // Inject into gig objects
-    const enrichedGigs = validGigs.map((gig) => {
-      const seller = gig.sellerId;
-      const ordersCompleted = orderCountMap[seller._id.toString()] || 0;
-
-      return {
-        ...gig.toObject(),
-        sellerId: {
-          ...seller.toObject(),
-          ordersCompleted, // 👈 added
-          yearsOfExperience: seller.yearsOfExperience || 0, // already in schema
+    // Join with Sellers
+    pipeline.push(
+      {
+        $lookup: {
+          from: "users",
+          localField: "sellerId",
+          foreignField: "_id",
+          as: "sellerInfo",
         },
-      };
+      },
+      {
+        $unwind: {
+          path: "$sellerInfo",
+          preserveNullAndEmptyArrays: true
+        }
+      }
+    );
+
+    // Filter by seller verification status
+    pipeline.push({
+      $match: {
+        "sellerInfo.verificationStatus": "approved"
+      }
     });
 
-    res.json({ gigs: enrichedGigs });
+    // Lookup Category and primarySubcategory names (for consistent display)
+    pipeline.push(
+      { $lookup: { from: "categories", localField: "category", foreignField: "_id", as: "categoryData" } },
+      { $unwind: { path: "$categoryData", preserveNullAndEmptyArrays: true } },
+      { $lookup: { from: "subcategories", localField: "primarySubcategory", foreignField: "_id", as: "primarySubData" } },
+      { $unwind: { path: "$primarySubData", preserveNullAndEmptyArrays: true } }
+    );
+
+    // Sorting
+    pipeline.push({ $sort: { createdAt: -1 } });
+
+    // Pagination & Projection
+    pipeline.push({
+      $facet: {
+        metadata: [{ $count: "total" }],
+        data: [
+          { $skip: skip },
+          { $limit: limit },
+          {
+            $project: {
+              title: 1,
+              description: 1,
+              pricing: 1,
+              images: 1,
+              status: 1,
+              createdAt: 1,
+              "sellerId._id": "$sellerInfo._id",
+              "sellerId.name": "$sellerInfo.name",
+              "sellerId.rating": "$sellerInfo.rating",
+              "sellerId.yearsOfExperience": "$sellerInfo.yearsOfExperience",
+              "sellerId.bio": "$sellerInfo.bio",
+              "sellerId.location": "$sellerInfo.location",
+              "sellerId.skills": "$sellerInfo.skills",
+              "sellerId.selectedAreas": "$sellerInfo.selectedAreas",
+              "category": { _id: "$categoryData._id", name: "$categoryData.name" },
+              "primarySubcategory": { _id: "$primarySubData._id", name: "$primarySubData.name" }
+            }
+          }
+        ],
+      },
+    });
+
+    // -------------------------
+    // Execute Aggregation
+    // -------------------------
+    const result = await Gig.aggregate(pipeline);
+    
+    const gigs = result[0]?.data || [];
+    const totalCount = result[0]?.metadata[0]?.total || 0;
+
+    // -------------------------
+    // Append Orders Completed (same as searchGigs)
+    // -------------------------
+    const sellerIds = [...new Set(gigs.map(g => g.sellerId?._id).filter(id => id))];
+    if (sellerIds.length > 0) {
+      const completedOrders = await Order.aggregate([
+        { $match: { sellerId: { $in: sellerIds }, status: "completed" } },
+        { $group: { _id: "$sellerId", count: { $sum: 1 } } }
+      ]);
+
+      const orderCountMap = {};
+      completedOrders.forEach(c => {
+        orderCountMap[c._id.toString()] = c.count;
+      });
+
+      gigs.forEach(gig => {
+        if (gig.sellerId) {
+          gig.sellerId.ordersCompleted = orderCountMap[gig.sellerId._id.toString()] || 0;
+        }
+      });
+    }
+
+    res.json({
+      gigs,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        pages: Math.ceil(totalCount / limit)
+      }
+    });
   } catch (error) {
     console.error("Get Gigs Error:", error.message);
     next(error);
@@ -435,11 +508,26 @@ export const getMyGigs = async (req, res, next) => {
         .json({ error: "Only sellers can view their gigs" });
     }
 
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit) || 10);
+    const skip = (page - 1) * limit;
+
+    const total = await Gig.countDocuments({ sellerId: id });
     const gigs = await Gig.find({ sellerId: id })
       .populate("sellerId", "name bio skills")
+      .skip(skip)
+      .limit(limit)
       .sort({ createdAt: -1 });
 
-    res.json({ gigs });
+    res.json({
+      gigs,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     console.error("Get My Gigs Error:", error.message);
     next(error);
