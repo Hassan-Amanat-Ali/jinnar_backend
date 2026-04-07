@@ -2,6 +2,7 @@ import express from "express";
 import {
   searchGigs,
   getGigById,
+  getGigByPermalink,
   createGig,
   getAllGigs,
   getMyGigs,
@@ -14,6 +15,7 @@ import { uploadGigImageMW, uploadGigImagesMW } from "../middleware/upload.js";
 const router = express.Router();
 
 router.get("/search", searchGigs);
+router.get("/permalink/:countrySlug/:serviceSlug", getGigByPermalink);
 router.post("/create", protect, ...uploadGigImagesMW, createGig);
 router.get("/", getAllGigs);
 

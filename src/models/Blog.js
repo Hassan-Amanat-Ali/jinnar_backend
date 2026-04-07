@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { toSlug } from "../utils/permalink.js";
 
 const { Schema } = mongoose;
 
@@ -14,6 +15,11 @@ const blogSchema = new Schema(
       unique: true,
       index: true,
       lowercase: true,
+      trim: true,
+    },
+    slugAliases: {
+      type: [String],
+      default: [],
     },
     content: {
       type: String,
@@ -58,25 +64,39 @@ const blogSchema = new Schema(
 
 // Slug auto-generation logic from title if it doesn't exist
 blogSchema.pre("save", async function (next) {
-  if (this.isModified("title") && !this.slug) {
-    let generatedSlug = this.title
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, "-") // Replace spaces with -
-      .replace(/[^\w-]+/g, ""); // Remove all non-word chars
+  const Blog = this.constructor;
 
-    // Ensure uniqueness
-    const Blog = this.constructor;
-    let finalSlug = generatedSlug;
-    let counter = 1;
-
-    while (await Blog.findOne({ slug: finalSlug })) {
-      finalSlug = `${generatedSlug}-${counter}`;
-      counter++;
-    }
-    this.slug = finalSlug;
+  if (!this.slug) {
+    this.slug = toSlug(this.title, "post");
+  } else {
+    this.slug = toSlug(this.slug, "post");
   }
+
+  if (Array.isArray(this.slugAliases)) {
+    this.slugAliases = [
+      ...new Set(
+        this.slugAliases.filter(Boolean).map((alias) => toSlug(alias, "post"))
+      ),
+    ];
+  }
+
+  if (!this.isModified("slug") && !this.isModified("title")) {
+    return next();
+  }
+
+  const originalSlug = this.slug;
+  let finalSlug = originalSlug;
+  let counter = 1;
+
+  while (await Blog.findOne({ slug: finalSlug, _id: { $ne: this._id } })) {
+    counter += 1;
+    finalSlug = `${originalSlug}-${counter}`;
+  }
+
+  this.slug = finalSlug;
   next();
 });
+
+blogSchema.index({ slugAliases: 1 });
 
 export default mongoose.model("Blog", blogSchema);

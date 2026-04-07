@@ -7,13 +7,52 @@ import SubCategory from "../models/SubCategory.js";
 import Order from "../models/Order.js";
 import { sendNotification } from "./notificationController.js";
 import { getCoordinatesFromAddress } from "../utils/geocoding.js";
+import {
+  buildGigPermalink,
+  normalizeCountryFromAddress,
+  toSlug,
+} from "../utils/permalink.js";
+
+const resolveGigPermalinkParts = async ({ title, address, sellerId, excludeGigId }) => {
+  const seller = await User.findById(sellerId).select("country");
+  const countrySource = seller?.country || normalizeCountryFromAddress(address) || "global";
+  const countrySlug = toSlug(countrySource, "global");
+  const baseServiceSlug = toSlug(title, "service");
+
+  const existing = await Gig.find({
+    countrySlug,
+    serviceSlug: { $regex: `^${baseServiceSlug}(-\\d+)?$` },
+    ...(excludeGigId ? { _id: { $ne: excludeGigId } } : {}),
+  }).select("serviceSlug");
+
+  const used = new Set(existing.map((doc) => doc.serviceSlug).filter(Boolean));
+  let serviceSlug = baseServiceSlug;
+  let counter = 2;
+  while (used.has(serviceSlug)) {
+    serviceSlug = `${baseServiceSlug}-${counter}`;
+    counter += 1;
+  }
+
+  return {
+    countrySlug,
+    serviceSlug,
+  };
+};
+
+const attachGigPermalink = (gig) => ({
+  ...gig,
+  permalink: buildGigPermalink({
+    countrySlug: gig.countrySlug,
+    serviceSlug: gig.serviceSlug,
+  }),
+});
 
 export const searchGigs = async (req, res) => {
   try {
     const { 
       search, category, subcategory, minPrice, maxPrice, pricingMethod,
       minRating, minExperience, sortBy,
-      lat, lng, radius 
+      lat, lng, radius
     } = req.query;
 
     const page = parseInt(req.query.page) || 1;
@@ -136,7 +175,7 @@ export const searchGigs = async (req, res) => {
     if (minExperience) {
       sellerMatch["sellerInfo.yearsOfExperience"] = { $gte: Number(minExperience) };
     }
-    
+
     if (Object.keys(sellerMatch).length > 0) {
       pipeline.push({ $match: sellerMatch });
     }
@@ -195,6 +234,8 @@ export const searchGigs = async (req, res) => {
             $project: {
               title: 1,
               description: 1,
+              countrySlug: 1,
+              serviceSlug: 1,
               pricing: 1,
               images: 1,
               status: 1,
@@ -254,7 +295,7 @@ export const searchGigs = async (req, res) => {
     }
 
     res.json({
-      gigs,
+      gigs: gigs.map((gig) => attachGigPermalink(gig)),
       pagination: {
         page,
         limit,
@@ -290,6 +331,13 @@ export const createGig = async (req, res, next) => {
       address, // Add address here
     } = req.body;
 
+    const permalinkParts = await resolveGigPermalinkParts({
+      title,
+      address,
+      sellerId: id,
+      excludeGigId: null,
+    });
+
     // ... existing validation ...
 
     // Handle address and geocoding
@@ -313,6 +361,8 @@ export const createGig = async (req, res, next) => {
       sellerId: id,
       title,
       description,
+      countrySlug: permalinkParts.countrySlug,
+      serviceSlug: permalinkParts.serviceSlug,
       pricing: {
         fixed: {
           enabled: fixedEnabled || false,
@@ -341,7 +391,7 @@ export const createGig = async (req, res, next) => {
 
     res.status(201).json({
       message: "Gig created successfully",
-      gig,
+      gig: attachGigPermalink(gig.toObject()),
     });
   } catch (error) {
     console.error("Create Gig Error:", error.message);
@@ -407,14 +457,14 @@ export const getAllGigs = async (req, res, next) => {
       const seller = gig.sellerId;
       const ordersCompleted = orderCountMap[seller._id.toString()] || 0;
 
-      return {
+      return attachGigPermalink({
         ...gig.toObject(),
         sellerId: {
           ...seller.toObject(),
           ordersCompleted, // 👈 added
           yearsOfExperience: seller.yearsOfExperience || 0, // already in schema
         },
-      };
+      });
     });
 
     res.json({ gigs: enrichedGigs });
@@ -439,7 +489,7 @@ export const getMyGigs = async (req, res, next) => {
       .populate("sellerId", "name bio skills")
       .sort({ createdAt: -1 });
 
-    res.json({ gigs });
+    res.json({ gigs: gigs.map((gig) => attachGigPermalink(gig.toObject())) });
   } catch (error) {
     console.error("Get My Gigs Error:", error.message);
     next(error);
@@ -472,6 +522,14 @@ export const updateGig = async (req, res, next) => {
     if (!gig) {
       return res.status(404).json({ error: "Gig not found" });
     }
+
+    const previousPermalink =
+      gig.countrySlug && gig.serviceSlug
+        ? buildGigPermalink({
+            countrySlug: gig.countrySlug,
+            serviceSlug: gig.serviceSlug,
+          })
+        : null;
 
     // ✅ BASIC FIELDS
     if (title !== undefined) gig.title = title;
@@ -572,12 +630,29 @@ export const updateGig = async (req, res, next) => {
       gig.images = req.files.map(file => ({ url: file.url }));
     }
 
+    if (title !== undefined || address !== undefined) {
+      const permalinkParts = await resolveGigPermalinkParts({
+        title: gig.title,
+        address: gig.address,
+        sellerId: gig.sellerId,
+        excludeGigId: gig._id,
+      });
+
+      gig.countrySlug = permalinkParts.countrySlug;
+      gig.serviceSlug = permalinkParts.serviceSlug;
+
+      const updatedPermalink = buildGigPermalink(permalinkParts);
+      if (previousPermalink && previousPermalink !== updatedPermalink) {
+        gig.permalinkAliases = [...new Set([...(gig.permalinkAliases || []), previousPermalink])];
+      }
+    }
+
     await gig.save();
     await gig.populate("sellerId", "name bio skills");
 
     res.json({
       message: "Gig updated successfully",
-      gig,
+      gig: attachGigPermalink(gig.toObject()),
     });
   } catch (error) {
     console.error("Update Gig Error:", error.message);
@@ -612,7 +687,38 @@ export const getGigById = asyncHandler(async (req, res) => {
     });
   }
 
-  res.json({ success: true, gig });
+  res.json({ success: true, gig: attachGigPermalink(gig.toObject()) });
+});
+
+export const getGigByPermalink = asyncHandler(async (req, res) => {
+  const countrySlug = toSlug(req.params.countrySlug, "global");
+  const serviceSlug = toSlug(req.params.serviceSlug, "service");
+  const requestedPath = buildGigPermalink({ countrySlug, serviceSlug });
+
+  let gig = await Gig.findOne({
+    countrySlug,
+    serviceSlug,
+    status: "active",
+  }).populate("sellerId", "name profilePicture availability verificationStatus");
+
+  let redirected = false;
+  if (!gig) {
+    gig = await Gig.findOne({
+      permalinkAliases: requestedPath,
+      status: "active",
+    }).populate("sellerId", "name profilePicture availability verificationStatus");
+    redirected = Boolean(gig);
+  }
+
+  if (!gig || !gig.sellerId || gig.sellerId.verificationStatus !== "approved") {
+    return res.status(404).json({ success: false, message: "Gig not found" });
+  }
+
+  return res.json({
+    success: true,
+    redirected,
+    gig: attachGigPermalink(gig.toObject()),
+  });
 });
 
 // ✅ NEW: DELETE GIG (Add this)
