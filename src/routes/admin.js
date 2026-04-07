@@ -337,6 +337,12 @@ router.get(
   AdminController.getAllGigs
 );
 
+router.get(
+  "/gigs/:id",
+  authorize(["support", "supervisor", "super_admin"]),
+  AdminController.getGigById
+);
+
 router.patch(
   "/gigs/:id/status",
   authorize(["supervisor", "super_admin"]),

@@ -1,6 +1,14 @@
 import Blog from "../models/Blog.js";
 import asyncHandler from "express-async-handler";
 import { validationResult } from "express-validator";
+import { buildBlogPermalink, toSlug } from "../utils/permalink.js";
+
+const resolveBlogSlug = (blog) => toSlug(blog.slug || blog.title, "post");
+
+const withPermalink = (blog) => ({
+  ...blog,
+  permalink: buildBlogPermalink(resolveBlogSlug(blog)),
+});
 
 class BlogController {
   // @desc    Get all blogs (public)
@@ -32,7 +40,7 @@ class BlogController {
       .sort({ createdAt: -1 });
 
     res.json({
-      blogs,
+      blogs: blogs.map((blog) => withPermalink(blog.toObject())),
       page,
       pages: Math.ceil(count / pageSize),
       total: count,
@@ -43,13 +51,27 @@ class BlogController {
   // @route   GET /api/blogs/:slug
   // @access  Public
   static getBlogBySlug = asyncHandler(async (req, res) => {
-    const blog = await Blog.findOne({
-      slug: req.params.slug,
+    const requestedSlug = toSlug(req.params.slug, "post");
+    let blog = await Blog.findOne({
+      slug: requestedSlug,
       status: "published",
     }).populate("author", "name email");
 
+    let redirected = false;
+    if (!blog) {
+      blog = await Blog.findOne({
+        slugAliases: requestedSlug,
+        status: "published",
+      }).populate("author", "name email");
+      redirected = Boolean(blog);
+    }
+
     if (blog) {
-      res.json(blog);
+      const payload = withPermalink(blog.toObject());
+      res.json({
+        ...payload,
+        redirected,
+      });
     } else {
       res.status(404);
       throw new Error("Blog not found");
@@ -78,9 +100,11 @@ class BlogController {
       slug,
     } = req.body;
 
-    // Check if slug is unique if provided
-    if (slug) {
-      const slugExists = await Blog.findOne({ slug });
+    const normalizedSlug = slug ? toSlug(slug, "post") : toSlug(title, "post");
+
+    // Only enforce a hard conflict when an admin explicitly provides a slug.
+    if (slug && normalizedSlug) {
+      const slugExists = await Blog.findOne({ slug: normalizedSlug });
       if (slugExists) {
         res.status(400);
         throw new Error("Slug already exists");
@@ -96,12 +120,12 @@ class BlogController {
       metaTitle,
       metaDescription,
       status,
-      slug: slug || undefined, // undefined will trigger pre-save hook
+      slug: normalizedSlug,
       author: req.user._id, // Assume req.user is set by auth middleware
     });
 
     const createdBlog = await blog.save();
-    res.status(201).json(createdBlog);
+    res.status(201).json(withPermalink(createdBlog.toObject()));
   });
 
    // @desc    Get single blog by ID (admin - including drafts)
@@ -141,15 +165,32 @@ class BlogController {
       slug,
     } = req.body;
 
+    const normalizedSlug = slug ? toSlug(slug, "post") : undefined;
+
     const blog = await Blog.findById(req.params.id);
 
     if (blog) {
+      const shouldRegenerateSlug =
+        !normalizedSlug &&
+        typeof title === "string" &&
+        title.trim().length > 0 &&
+        title.trim() !== blog.title;
+
       // Check if new slug exists
-      if (slug && slug !== blog.slug) {
-        const slugExists = await Blog.findOne({ slug });
+      if (normalizedSlug && normalizedSlug !== blog.slug) {
+        const slugExists = await Blog.findOne({ slug: normalizedSlug });
         if (slugExists) {
           res.status(400);
           throw new Error("Slug already exists");
+        }
+        blog.slugAliases = [...new Set([...(blog.slugAliases || []), blog.slug])];
+      }
+
+      if (shouldRegenerateSlug) {
+        const regeneratedSlug = toSlug(title, "post");
+        if (regeneratedSlug !== blog.slug) {
+          blog.slugAliases = [...new Set([...(blog.slugAliases || []), blog.slug])];
+          blog.slug = regeneratedSlug;
         }
       }
 
@@ -161,10 +202,10 @@ class BlogController {
       blog.metaTitle = metaTitle || blog.metaTitle;
       blog.metaDescription = metaDescription || blog.metaDescription;
       blog.status = status || blog.status;
-      blog.slug = slug || blog.slug;
+      blog.slug = normalizedSlug || blog.slug;
 
       const updatedBlog = await blog.save();
-      res.json(updatedBlog);
+      res.json(withPermalink(updatedBlog.toObject()));
     } else {
       res.status(404);
       throw new Error("Blog not found");

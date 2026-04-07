@@ -5,15 +5,59 @@ import mongoose from "mongoose";
 import Category from "../models/Category.js";
 import SubCategory from "../models/SubCategory.js";
 import Order from "../models/Order.js";
-import { sendNotification } from "./notificationController.js";
 import { getCoordinatesFromAddress } from "../utils/geocoding.js";
+import {
+  buildGigPermalink,
+  normalizeCountryFromAddress,
+  toSlug,
+} from "../utils/permalink.js";
+
+const resolveGigPermalinkParts = async ({ title, address, sellerId, excludeGigId }) => {
+  const seller = await User.findById(sellerId).select("country");
+  const countrySource = seller?.country || normalizeCountryFromAddress(address) || "global";
+  const countrySlug = toSlug(countrySource, "global");
+  const baseServiceSlug = toSlug(title, "service");
+
+  const existing = await Gig.find({
+    countrySlug,
+    serviceSlug: { $regex: `^${baseServiceSlug}(-\\d+)?$` },
+    ...(excludeGigId ? { _id: { $ne: excludeGigId } } : {}),
+  }).select("serviceSlug");
+
+  const used = new Set(existing.map((doc) => doc.serviceSlug).filter(Boolean));
+  let serviceSlug = baseServiceSlug;
+  let counter = 2;
+  while (used.has(serviceSlug)) {
+    serviceSlug = `${baseServiceSlug}-${counter}`;
+    counter += 1;
+  }
+
+  return {
+    countrySlug,
+    serviceSlug,
+  };
+};
+
+const resolveGigPermalinkFallback = (gig) =>
+  buildGigPermalink({
+    countrySlug: toSlug(
+      gig.countrySlug || gig.sellerId?.country || normalizeCountryFromAddress(gig.address) || "global",
+      "global",
+    ),
+    serviceSlug: toSlug(gig.serviceSlug || gig.title, "service"),
+  });
+
+const attachGigPermalink = (gig) => ({
+  ...gig,
+  permalink: resolveGigPermalinkFallback(gig),
+});
 
 export const searchGigs = async (req, res) => {
   try {
-    const { 
+    const {
       search, category, subcategory, minPrice, maxPrice, pricingMethod,
       minRating, minExperience, sortBy,
-      lat, lng, radius 
+      lat, lng, radius
     } = req.query;
 
     const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -36,7 +80,7 @@ export const searchGigs = async (req, res) => {
           key: "location", // The index key
           spherical: true,
           // Optimization: Apply status check inside geoNear to reduce initial set
-          query: { status: "active" } 
+          query: { status: "active" }
         },
       });
     } else {
@@ -116,27 +160,27 @@ export const searchGigs = async (req, res) => {
           as: "sellerInfo",
         },
       },
-{
-  $unwind: {
-    path: "$sellerInfo",
-    preserveNullAndEmptyArrays: true
-  }
-}
+      {
+        $unwind: {
+          path: "$sellerInfo",
+          preserveNullAndEmptyArrays: true
+        }
+      }
     );
 
     // --- STAGE 4: FILTER BY SELLER STATS & VERIFICATION ---
     const sellerMatch = {};
-    
+
     // CRITICAL: Only show gigs from verified workers
     sellerMatch["sellerInfo.verificationStatus"] = "approved";
-    
+
     if (minRating) {
       sellerMatch["sellerInfo.rating.average"] = { $gte: Number(minRating) };
     }
     if (minExperience) {
       sellerMatch["sellerInfo.yearsOfExperience"] = { $gte: Number(minExperience) };
     }
-    
+
     if (Object.keys(sellerMatch).length > 0) {
       pipeline.push({ $match: sellerMatch });
     }
@@ -152,10 +196,10 @@ export const searchGigs = async (req, res) => {
     // --- STAGE 6: SORTING ---
     // Note: $geoNear automatically sorts by distance. 
     // This stage OVERRIDES distance sort if a user selects something else.
-    let sortStage = {};
-    
+    let sortStage;
+
     // Default sort
-    sortStage = { createdAt: -1 }; 
+    sortStage = { createdAt: -1 };
 
     if (sortBy) {
       switch (sortBy) {
@@ -181,7 +225,7 @@ export const searchGigs = async (req, res) => {
           break;
       }
     }
-    
+
     pipeline.push({ $sort: sortStage });
 
     // --- STAGE 7: PAGINATION & PROJECTION ---
@@ -195,6 +239,8 @@ export const searchGigs = async (req, res) => {
             $project: {
               title: 1,
               description: 1,
+              countrySlug: 1,
+              serviceSlug: 1,
               pricing: 1,
               images: 1,
               status: 1,
@@ -230,11 +276,11 @@ export const searchGigs = async (req, res) => {
     if (sellerIds.length > 0) {
       // Aggregate completed orders for these sellers
       const completedOrders = await Order.aggregate([
-        { 
-          $match: { 
-            sellerId: { $in: sellerIds }, 
-            status: "completed" 
-          } 
+        {
+          $match: {
+            sellerId: { $in: sellerIds },
+            status: "completed"
+          }
         },
         { $group: { _id: "$sellerId", count: { $sum: 1 } } }
       ]);
@@ -254,7 +300,7 @@ export const searchGigs = async (req, res) => {
     }
 
     res.json({
-      gigs,
+      gigs: gigs.map((gig) => attachGigPermalink(gig)),
       pagination: {
         page,
         limit,
@@ -271,7 +317,7 @@ export const searchGigs = async (req, res) => {
 
 export const createGig = async (req, res, next) => {
   try {
-    const { id, role } = req.user; // From JWT middleware
+    const { id } = req.user; // From JWT middleware
     const {
       title,
       description,
@@ -290,22 +336,29 @@ export const createGig = async (req, res, next) => {
       address, // Add address here
     } = req.body;
 
+    const permalinkParts = await resolveGigPermalinkParts({
+      title,
+      address,
+      sellerId: id,
+      excludeGigId: null,
+    });
+
     // ... existing validation ...
 
     // Handle address and geocoding
     let location = null;
     if (address) {
-        try {
-            const geocodedLocation = await getCoordinatesFromAddress(address);
-            location = {
-                type: "Point",
-                coordinates: [geocodedLocation.lng, geocodedLocation.lat],
-            };
-            console.log("Address geocoded for gig:", location);
-        } catch (geocodeError) {
-            console.error("Geocoding failed for gig address:", address, geocodeError);
-            return res.status(500).json({ error: "Failed to geocode gig address" });
-        }
+      try {
+        const geocodedLocation = await getCoordinatesFromAddress(address);
+        location = {
+          type: "Point",
+          coordinates: [geocodedLocation.lng, geocodedLocation.lat],
+        };
+        console.log("Address geocoded for gig:", location);
+      } catch (geocodeError) {
+        console.error("Geocoding failed for gig address:", address, geocodeError);
+        return res.status(500).json({ error: "Failed to geocode gig address" });
+      }
     }
 
     // ✅ Create gig with new pricing structure
@@ -313,6 +366,8 @@ export const createGig = async (req, res, next) => {
       sellerId: id,
       title,
       description,
+      countrySlug: permalinkParts.countrySlug,
+      serviceSlug: permalinkParts.serviceSlug,
       pricing: {
         fixed: {
           enabled: fixedEnabled || false,
@@ -334,14 +389,14 @@ export const createGig = async (req, res, next) => {
       category: categoryId,
       primarySubcategory: primarySubcategory,
       extraSubcategories: extraSubcategories,
-    }); 
+    });
 
     await gig.save();
     await gig.populate("sellerId", "name bio skills");
 
     res.status(201).json({
       message: "Gig created successfully",
-      gig,
+      gig: attachGigPermalink(gig.toObject()),
     });
   } catch (error) {
     console.error("Create Gig Error:", error.message);
@@ -456,7 +511,7 @@ export const getAllGigs = async (req, res, next) => {
     // Execute Aggregation
     // -------------------------
     const result = await Gig.aggregate(pipeline);
-    
+
     const gigs = result[0]?.data || [];
     const totalCount = result[0]?.metadata[0]?.total || 0;
 
@@ -464,7 +519,7 @@ export const getAllGigs = async (req, res, next) => {
     // Append Orders Completed (same as searchGigs)
     // -------------------------
     const sellerIds = [...new Set(gigs.map(g => g.sellerId?._id).filter(id => id))];
-    if (sellerIds.length > 0) {
+    if(sellerIds.length > 0) {
       const completedOrders = await Order.aggregate([
         { $match: { sellerId: { $in: sellerIds }, status: "completed" } },
         { $group: { _id: "$sellerId", count: { $sum: 1 } } }
@@ -483,7 +538,7 @@ export const getAllGigs = async (req, res, next) => {
     }
 
     res.json({
-      gigs,
+      gigs: gigs.map(gig => attachGigPermalink(gig)),
       pagination: {
         page,
         limit,
@@ -520,7 +575,7 @@ export const getMyGigs = async (req, res, next) => {
       .sort({ createdAt: -1 });
 
     res.json({
-      gigs,
+      gigs: gigs.map((gig) => attachGigPermalink(gig.toObject())),
       pagination: {
         total,
         page,
@@ -561,32 +616,40 @@ export const updateGig = async (req, res, next) => {
       return res.status(404).json({ error: "Gig not found" });
     }
 
+    const previousPermalink =
+      gig.countrySlug && gig.serviceSlug
+        ? buildGigPermalink({
+          countrySlug: gig.countrySlug,
+          serviceSlug: gig.serviceSlug,
+        })
+        : null;
+
     // ✅ BASIC FIELDS
     if (title !== undefined) gig.title = title;
     if (description !== undefined) gig.description = description;
 
     // ✅ ADDRESS & GEOCODING
     if (address !== undefined) {
-        if (typeof address !== "string" || address.trim().length === 0) {
-            return res.status(400).json({ error: "Address must be a non-empty string" });
+      if (typeof address !== "string" || address.trim().length === 0) {
+        return res.status(400).json({ error: "Address must be a non-empty string" });
+      }
+      gig.address = address.trim();
+      try {
+        const geocodedLocation = await getCoordinatesFromAddress(address);
+        if (geocodedLocation) {
+          gig.location = {
+            type: "Point",
+            coordinates: [geocodedLocation.lng, geocodedLocation.lat],
+          };
+          console.log("Address geocoded for gig update:", gig.location);
+        } else {
+          gig.location = null; // Clear location if geocoding fails
+          console.warn("Geocoding returned no coordinates for updated address:", address);
         }
-        gig.address = address.trim();
-        try {
-            const geocodedLocation = await getCoordinatesFromAddress(address);
-            if (geocodedLocation) {
-                gig.location = {
-                    type: "Point",
-                    coordinates: [geocodedLocation.lng, geocodedLocation.lat],
-                };
-                console.log("Address geocoded for gig update:", gig.location);
-            } else {
-                gig.location = null; // Clear location if geocoding fails
-                console.warn("Geocoding returned no coordinates for updated address:", address);
-            }
-        } catch (geocodeError) {
-            console.error("Geocoding failed for updated gig address:", address, geocodeError);
-            return res.status(500).json({ error: "Failed to geocode gig address" });
-        }
+      } catch (geocodeError) {
+        console.error("Geocoding failed for updated gig address:", address, geocodeError);
+        return res.status(500).json({ error: "Failed to geocode gig address" });
+      }
     }
 
     // ✅ SUBCATEGORY VALIDATION (if they are being updated)
@@ -660,12 +723,29 @@ export const updateGig = async (req, res, next) => {
       gig.images = req.files.map(file => ({ url: file.url }));
     }
 
+    if (title !== undefined || address !== undefined) {
+      const permalinkParts = await resolveGigPermalinkParts({
+        title: gig.title,
+        address: gig.address,
+        sellerId: gig.sellerId,
+        excludeGigId: gig._id,
+      });
+
+      gig.countrySlug = permalinkParts.countrySlug;
+      gig.serviceSlug = permalinkParts.serviceSlug;
+
+      const updatedPermalink = buildGigPermalink(permalinkParts);
+      if (previousPermalink && previousPermalink !== updatedPermalink) {
+        gig.permalinkAliases = [...new Set([...(gig.permalinkAliases || []), previousPermalink])];
+      }
+    }
+
     await gig.save();
     await gig.populate("sellerId", "name bio skills");
 
     res.json({
       message: "Gig updated successfully",
-      gig,
+      gig: attachGigPermalink(gig.toObject()),
     });
   } catch (error) {
     console.error("Update Gig Error:", error.message);
@@ -687,20 +767,51 @@ export const getGigById = asyncHandler(async (req, res) => {
 
   // CRITICAL: Validate gig is active and seller is verified
   if (gig.status !== "active") {
-    return res.status(404).json({ 
-      success: false, 
-      message: "Gig not available" 
+    return res.status(404).json({
+      success: false,
+      message: "Gig not available"
     });
   }
 
   if (!gig.sellerId || gig.sellerId.verificationStatus !== "approved") {
-    return res.status(404).json({ 
-      success: false, 
-      message: "Gig not available" 
+    return res.status(404).json({
+      success: false,
+      message: "Gig not available"
     });
   }
 
-  res.json({ success: true, gig });
+  res.json({ success: true, gig: attachGigPermalink(gig.toObject()) });
+});
+
+export const getGigByPermalink = asyncHandler(async (req, res) => {
+  const countrySlug = toSlug(req.params.countrySlug, "global");
+  const serviceSlug = toSlug(req.params.serviceSlug, "service");
+  const requestedPath = buildGigPermalink({ countrySlug, serviceSlug });
+
+  let gig = await Gig.findOne({
+    countrySlug,
+    serviceSlug,
+    status: "active",
+  }).populate("sellerId", "name profilePicture availability verificationStatus");
+
+  let redirected = false;
+  if (!gig) {
+    gig = await Gig.findOne({
+      permalinkAliases: requestedPath,
+      status: "active",
+    }).populate("sellerId", "name profilePicture availability verificationStatus");
+    redirected = Boolean(gig);
+  }
+
+  if (!gig || !gig.sellerId || gig.sellerId.verificationStatus !== "approved") {
+    return res.status(404).json({ success: false, message: "Gig not found" });
+  }
+
+  return res.json({
+    success: true,
+    redirected,
+    gig: attachGigPermalink(gig.toObject()),
+  });
 });
 
 // ✅ NEW: DELETE GIG (Add this)

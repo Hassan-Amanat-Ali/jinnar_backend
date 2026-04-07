@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { toSlug } from "../utils/permalink.js";
 
 const { Schema } = mongoose;
 
@@ -14,6 +15,11 @@ const blogSchema = new Schema(
       unique: true,
       index: true,
       lowercase: true,
+      trim: true,
+    },
+    slugAliases: {
+      type: [String],
+      default: [],
     },
     content: {
       type: String,
@@ -56,27 +62,44 @@ const blogSchema = new Schema(
   }
 );
 
-// Slug auto-generation logic from title if it doesn't exist
+// Slug auto-generation logic from title when needed.
 blogSchema.pre("save", async function (next) {
-  if (this.isModified("title") && !this.slug) {
-    let generatedSlug = this.title
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, "-") // Replace spaces with -
-      .replace(/[^\w-]+/g, ""); // Remove all non-word chars
+  const Blog = this.constructor;
 
-    // Ensure uniqueness
-    const Blog = this.constructor;
-    let finalSlug = generatedSlug;
-    let counter = 1;
+  const slugRelevantChange =
+    this.isModified("title") || this.isModified("slug") || this.isModified("slugAliases");
 
-    while (await Blog.findOne({ slug: finalSlug })) {
-      finalSlug = `${generatedSlug}-${counter}`;
-      counter++;
-    }
-    this.slug = finalSlug;
+  if (!slugRelevantChange) {
+    return next();
   }
+
+  if (!this.slug || (this.isModified("title") && !this.isModified("slug"))) {
+    this.slug = toSlug(this.title, "post");
+  } else {
+    this.slug = toSlug(this.slug, "post");
+  }
+
+  if (Array.isArray(this.slugAliases)) {
+    this.slugAliases = [
+      ...new Set(
+        this.slugAliases.filter(Boolean).map((alias) => toSlug(alias, "post"))
+      ),
+    ];
+  }
+
+  const originalSlug = this.slug;
+  let finalSlug = originalSlug;
+  let counter = 2;
+
+  while (await Blog.findOne({ slug: finalSlug, _id: { $ne: this._id } })) {
+    finalSlug = `${originalSlug}-${counter}`;
+    counter += 1;
+  }
+
+  this.slug = finalSlug;
   next();
 });
+
+blogSchema.index({ slugAliases: 1 });
 
 export default mongoose.model("Blog", blogSchema);
