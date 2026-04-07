@@ -142,10 +142,12 @@ gigSchema.index({ location: "2dsphere" });
 gigSchema.index({ countrySlug: 1, serviceSlug: 1 }, { unique: true, sparse: true });
 gigSchema.index({ permalinkAliases: 1 });
 
-// Ensure service slug follows lowercase-hyphen rules when title changes.
+// Ensure service slug always follows lowercase-hyphen rules.
 gigSchema.pre("validate", function (next) {
-  if (this.isModified("title") && !this.serviceSlug) {
+  if (!this.serviceSlug || (this.isModified("title") && !this.isModified("serviceSlug"))) {
     this.serviceSlug = toSlug(this.title, "service");
+  } else {
+    this.serviceSlug = toSlug(this.serviceSlug, "service");
   }
   if (Array.isArray(this.permalinkAliases)) {
     this.permalinkAliases = [...new Set(this.permalinkAliases.filter(Boolean))];

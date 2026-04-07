@@ -59,7 +59,7 @@ const migrateGigs = async () => {
       stats.skipped += 1;
       continue;
     }
-    const nextAliases = new Set(gig.permalinkAliases || []);
+    const nextAliases = new Set((gig.permalinkAliases || []).filter(Boolean));
     if (previousPermalink && previousPermalink !== nextPermalink) nextAliases.add(previousPermalink);
     stats.changed += 1;
     if (stats.examples.length < 10) {
@@ -103,7 +103,11 @@ const migrateBlogs = async () => {
       stats.skipped += 1;
       continue;
     }
-    const nextAliases = new Set((blog.slugAliases || []).map((alias) => toSlug(alias, "post")));
+    const nextAliases = new Set(
+      (blog.slugAliases || [])
+        .filter(Boolean)
+        .map((alias) => toSlug(alias, "post")),
+    );
     if (blog.slug && blog.slug !== nextSlug) nextAliases.add(toSlug(blog.slug, "post"));
     stats.changed += 1;
     if (stats.examples.length < 10) {

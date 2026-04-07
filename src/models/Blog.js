@@ -62,11 +62,18 @@ const blogSchema = new Schema(
   }
 );
 
-// Slug auto-generation logic from title if it doesn't exist
+// Slug auto-generation logic from title when needed.
 blogSchema.pre("save", async function (next) {
   const Blog = this.constructor;
 
-  if (!this.slug) {
+  const slugRelevantChange =
+    this.isModified("title") || this.isModified("slug") || this.isModified("slugAliases");
+
+  if (!slugRelevantChange) {
+    return next();
+  }
+
+  if (!this.slug || (this.isModified("title") && !this.isModified("slug"))) {
     this.slug = toSlug(this.title, "post");
   } else {
     this.slug = toSlug(this.slug, "post");
@@ -80,17 +87,13 @@ blogSchema.pre("save", async function (next) {
     ];
   }
 
-  if (!this.isModified("slug") && !this.isModified("title")) {
-    return next();
-  }
-
   const originalSlug = this.slug;
   let finalSlug = originalSlug;
-  let counter = 1;
+  let counter = 2;
 
   while (await Blog.findOne({ slug: finalSlug, _id: { $ne: this._id } })) {
-    counter += 1;
     finalSlug = `${originalSlug}-${counter}`;
+    counter += 1;
   }
 
   this.slug = finalSlug;

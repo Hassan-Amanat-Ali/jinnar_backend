@@ -5,7 +5,6 @@ import mongoose from "mongoose";
 import Category from "../models/Category.js";
 import SubCategory from "../models/SubCategory.js";
 import Order from "../models/Order.js";
-import { sendNotification } from "./notificationController.js";
 import { getCoordinatesFromAddress } from "../utils/geocoding.js";
 import {
   buildGigPermalink,
@@ -39,12 +38,18 @@ const resolveGigPermalinkParts = async ({ title, address, sellerId, excludeGigId
   };
 };
 
+const resolveGigPermalinkFallback = (gig) =>
+  buildGigPermalink({
+    countrySlug: toSlug(
+      gig.countrySlug || gig.sellerId?.country || normalizeCountryFromAddress(gig.address) || "global",
+      "global",
+    ),
+    serviceSlug: toSlug(gig.serviceSlug || gig.title, "service"),
+  });
+
 const attachGigPermalink = (gig) => ({
   ...gig,
-  permalink: buildGigPermalink({
-    countrySlug: gig.countrySlug,
-    serviceSlug: gig.serviceSlug,
-  }),
+  permalink: resolveGigPermalinkFallback(gig),
 });
 
 export const searchGigs = async (req, res) => {
@@ -191,7 +196,7 @@ export const searchGigs = async (req, res) => {
     // --- STAGE 6: SORTING ---
     // Note: $geoNear automatically sorts by distance. 
     // This stage OVERRIDES distance sort if a user selects something else.
-    let sortStage = {};
+    let sortStage;
     
     // Default sort
     sortStage = { createdAt: -1 }; 
@@ -312,7 +317,7 @@ export const searchGigs = async (req, res) => {
 
 export const createGig = async (req, res, next) => {
   try {
-    const { id, role } = req.user; // From JWT middleware
+    const { id } = req.user; // From JWT middleware
     const {
       title,
       description,

@@ -3,9 +3,11 @@ import asyncHandler from "express-async-handler";
 import { validationResult } from "express-validator";
 import { buildBlogPermalink, toSlug } from "../utils/permalink.js";
 
+const resolveBlogSlug = (blog) => toSlug(blog.slug || blog.title, "post");
+
 const withPermalink = (blog) => ({
   ...blog,
-  permalink: buildBlogPermalink(blog.slug),
+  permalink: buildBlogPermalink(resolveBlogSlug(blog)),
 });
 
 class BlogController {
@@ -98,10 +100,10 @@ class BlogController {
       slug,
     } = req.body;
 
-    const normalizedSlug = slug ? toSlug(slug, "post") : undefined;
+    const normalizedSlug = slug ? toSlug(slug, "post") : toSlug(title, "post");
 
-    // Check if slug is unique if provided
-    if (normalizedSlug) {
+    // Only enforce a hard conflict when an admin explicitly provides a slug.
+    if (slug && normalizedSlug) {
       const slugExists = await Blog.findOne({ slug: normalizedSlug });
       if (slugExists) {
         res.status(400);
@@ -118,7 +120,7 @@ class BlogController {
       metaTitle,
       metaDescription,
       status,
-      slug: normalizedSlug || undefined, // undefined will trigger pre-save hook
+      slug: normalizedSlug,
       author: req.user._id, // Assume req.user is set by auth middleware
     });
 
@@ -168,6 +170,12 @@ class BlogController {
     const blog = await Blog.findById(req.params.id);
 
     if (blog) {
+      const shouldRegenerateSlug =
+        !normalizedSlug &&
+        typeof title === "string" &&
+        title.trim().length > 0 &&
+        title.trim() !== blog.title;
+
       // Check if new slug exists
       if (normalizedSlug && normalizedSlug !== blog.slug) {
         const slugExists = await Blog.findOne({ slug: normalizedSlug });
@@ -176,6 +184,14 @@ class BlogController {
           throw new Error("Slug already exists");
         }
         blog.slugAliases = [...new Set([...(blog.slugAliases || []), blog.slug])];
+      }
+
+      if (shouldRegenerateSlug) {
+        const regeneratedSlug = toSlug(title, "post");
+        if (regeneratedSlug !== blog.slug) {
+          blog.slugAliases = [...new Set([...(blog.slugAliases || []), blog.slug])];
+          blog.slug = regeneratedSlug;
+        }
       }
 
       blog.title = title || blog.title;
