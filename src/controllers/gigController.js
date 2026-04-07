@@ -88,12 +88,21 @@ export const searchGigs = async (req, res) => {
       pipeline.push({ $match: { status: "active" } });
     }
 
+    // Normalizing ID fields for robust matching (handles mixed string/objectid data)
+    pipeline.push({
+      $addFields: {
+        sellerId: { $toObjectId: "$sellerId" },
+        category: { $cond: [{ $not: ["$category"] }, null, { $toObjectId: "$category" }] },
+        primarySubcategory: { $cond: [{ $not: ["$primarySubcategory"] }, null, { $toObjectId: "$primarySubcategory" }] }
+      }
+    });
+
     // --- STAGE 2: BUILD MAIN MATCH CONDITIONS ---
     const matchConditions = {};
     const orConditions = [];
 
     // Text Search
-    if (search) {
+    if (search && search !== "null" && search.trim() !== "") {
       orConditions.push(
         { title: { $regex: search, $options: "i" } },
         { description: { $regex: search, $options: "i" } }
@@ -101,7 +110,7 @@ export const searchGigs = async (req, res) => {
     }
 
     // Category (Handle ID or Name)
-    if (category) {
+    if (category && category !== "null") {
       if (mongoose.Types.ObjectId.isValid(category)) {
         matchConditions.category = new mongoose.Types.ObjectId(category);
       } else {
@@ -111,7 +120,7 @@ export const searchGigs = async (req, res) => {
     }
 
     // Subcategory (Handle ID or Name)
-    if (subcategory) {
+    if (subcategory && subcategory !== "null") {
       let subCatId = null;
       if (mongoose.Types.ObjectId.isValid(subcategory)) {
         subCatId = new mongoose.Types.ObjectId(subcategory);
@@ -406,7 +415,7 @@ export const createGig = async (req, res, next) => {
 
 export const getAllGigs = async (req, res, next) => {
   try {
-    const { pricingMethod, minPrice, maxPrice, title } = req.query;
+    const { pricingMethod, minPrice, maxPrice, title, search, category, subcategory } = req.query;
 
     // -------------------------
     // Build Query
@@ -424,8 +433,21 @@ export const getAllGigs = async (req, res, next) => {
       if (maxPrice) query["pricing.price"].$lte = Number(maxPrice);
     }
 
-    if (title) {
-      query.title = { $regex: title, $options: "i" }; // Case-insensitive search
+    // Handle Title or Search regex
+    const searchTerm = title || search;
+    if (searchTerm && searchTerm !== "null") {
+      query.$or = [
+        { title: { $regex: searchTerm, $options: "i" } },
+        { description: { $regex: searchTerm, $options: "i" } }
+      ];
+    }
+
+    // Handle Category/Subcategory ID filtering
+    if (category && category !== "null" && mongoose.Types.ObjectId.isValid(category)) {
+      query.category = new mongoose.Types.ObjectId(category);
+    }
+    if (subcategory && subcategory !== "null" && mongoose.Types.ObjectId.isValid(subcategory)) {
+      query.primarySubcategory = new mongoose.Types.ObjectId(subcategory);
     }
 
     // -------------------------
@@ -437,7 +459,16 @@ export const getAllGigs = async (req, res, next) => {
 
     const pipeline = [];
 
-    // Filter for active status
+    // Ensure ID fields are ObjectIds for robust matching and lookups
+    pipeline.push({
+      $addFields: {
+        sellerId: { $toObjectId: "$sellerId" },
+        category: { $cond: [{ $not: ["$category"] }, null, { $toObjectId: "$category" }] },
+        primarySubcategory: { $cond: [{ $not: ["$primarySubcategory"] }, null, { $toObjectId: "$primarySubcategory" }] }
+      }
+    });
+
+    // Filter for active status and our query conditions
     pipeline.push({ $match: query });
 
     // Join with Sellers
@@ -508,18 +539,24 @@ export const getAllGigs = async (req, res, next) => {
     });
 
     // -------------------------
-    // Execute Aggregation
+    // Execution
     // -------------------------
-    const result = await Gig.aggregate(pipeline);
 
+    // FIX: Count only gigs that match filters AND belong to approved sellers
+    const countResult = await Gig.aggregate([
+      ...pipeline.slice(0, -1),
+      { $count: "total" }
+    ]);
+    const totalCount = countResult[0]?.total || 0;
+
+    const result = await Gig.aggregate(pipeline);
     const gigs = result[0]?.data || [];
-    const totalCount = result[0]?.metadata[0]?.total || 0;
 
     // -------------------------
     // Append Orders Completed (same as searchGigs)
     // -------------------------
     const sellerIds = [...new Set(gigs.map(g => g.sellerId?._id).filter(id => id))];
-    if(sellerIds.length > 0) {
+    if (sellerIds.length > 0) {
       const completedOrders = await Order.aggregate([
         { $match: { sellerId: { $in: sellerIds }, status: "completed" } },
         { $group: { _id: "$sellerId", count: { $sum: 1 } } }
