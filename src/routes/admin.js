@@ -2,7 +2,7 @@ import express from "express";
 import AdminController from "../controllers/adminController.js";
 import {
   deleteUserForTesting
-} from "../controllers/userController.js";import * as AdminAuthController from "../controllers/AdminAuthController.js";
+} from "../controllers/userController.js"; import * as AdminAuthController from "../controllers/AdminAuthController.js";
 import {
   getAllTickets,
   getTicketById,
@@ -20,6 +20,8 @@ import {
   getReportDetails,
   updateReportStatus,
 } from "../controllers/ReportController.js";
+import { uploadBlogImagesMW } from "../middleware/upload.js";
+
 import AdminCourseController from "../controllers/adminCourseController.js";
 import BlogController from "../controllers/blogController.js";
 import { check } from "express-validator";
@@ -474,6 +476,7 @@ router.get(
 router.post(
   "/blogs",
   authorize(["supervisor", "super_admin"]),
+  uploadBlogImagesMW,
   blogValidation,
   BlogController.createBlog
 );
@@ -481,6 +484,7 @@ router.post(
 router.put(
   "/blogs/:id",
   authorize(["supervisor", "super_admin"]),
+  uploadBlogImagesMW,
   blogValidation,
   BlogController.updateBlog
 );
@@ -488,6 +492,7 @@ router.put(
 router.delete(
   "/blogs/:id",
   authorize(["super_admin"]),
+
   BlogController.deleteBlog
 );
 
