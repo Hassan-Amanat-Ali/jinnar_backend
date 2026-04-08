@@ -69,6 +69,22 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    pricingCurrency: {
+      type: String,
+      default: "USD",
+    },
+    originalCurrency: {
+      type: String,
+      default: null, // e.g. "TZS", "KES"
+    },
+    originalPrice: {
+      type: Number,
+      default: null,
+    },
+    fxRate: {
+      type: Number,
+      default: null,
+    },
     selectedPricingMethod: {
       type: String,
       enum: ["fixed", "hourly", "inspection"],

@@ -27,6 +27,7 @@ import courseUploadRoutes from "./courseUploadRoutes.js";
 import viralRoutes from "./viral.js";
 import adminBlogRoutes from "./adminBlogRoutes.js"; // Import the new admin blog routes
 import blogRoutes from "./blogRoutes.js";
+import fxRoutes from "./fx.js";
 // import { checkMaintenanceMode } from "../middleware/maintenance.js";
 
 const router = express.Router();
@@ -57,6 +58,7 @@ router.use("/support", supportRoutes);
 router.use("/admin", adminRoutes);
 router.use("/payment", paymentRoutes);
 router.use("/config", systemConfigRoutes);
+router.use("/fx", fxRoutes);
 
 router.use("/gigs", gigRoutes);
 router.use("/categories", categoryRoutes);

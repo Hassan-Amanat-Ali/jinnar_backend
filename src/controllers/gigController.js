@@ -11,6 +11,7 @@ import {
   normalizeCountryFromAddress,
   toSlug,
 } from "../utils/permalink.js";
+import FXService from "../services/fxService.js";
 
 const resolveGigPermalinkParts = async ({ title, address, sellerId, excludeGigId }) => {
   const seller = await User.findById(sellerId).select("country");
@@ -57,7 +58,7 @@ export const searchGigs = async (req, res) => {
     const {
       search, category, subcategory, minPrice, maxPrice, pricingMethod,
       minRating, minExperience, sortBy,
-      lat, lng, radius
+      lat, lng, radius, filterCurrency
     } = req.query;
 
     const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -140,8 +141,24 @@ export const searchGigs = async (req, res) => {
     // Price Filter
     if (minPrice || maxPrice) {
       matchConditions["pricing.price"] = {};
-      if (minPrice) matchConditions["pricing.price"].$gte = Number(minPrice);
-      if (maxPrice) matchConditions["pricing.price"].$lte = Number(maxPrice);
+      
+      let convertedMinPrice = minPrice ? Number(minPrice) : null;
+      let convertedMaxPrice = maxPrice ? Number(maxPrice) : null;
+      
+      // Convert filter values to USD if a different currency is provided
+      if (filterCurrency && filterCurrency.toUpperCase() !== "USD") {
+        if (convertedMinPrice) {
+          const fxMin = await FXService.convertToUSD(convertedMinPrice, filterCurrency);
+          convertedMinPrice = fxMin.usdAmount;
+        }
+        if (convertedMaxPrice) {
+          const fxMax = await FXService.convertToUSD(convertedMaxPrice, filterCurrency);
+          convertedMaxPrice = fxMax.usdAmount;
+        }
+      }
+
+      if (convertedMinPrice) matchConditions["pricing.price"].$gte = convertedMinPrice;
+      if (convertedMaxPrice) matchConditions["pricing.price"].$lte = convertedMaxPrice;
     }
 
     // Pricing Method
@@ -343,6 +360,7 @@ export const createGig = async (req, res, next) => {
       //Secondary attributes
       extraSubcategories = [], // Default to empty array
       address, // Add address here
+      pricingCurrency = "USD", // Local currency provided by frontend
     } = req.body;
 
     const permalinkParts = await resolveGigPermalinkParts({
@@ -370,6 +388,27 @@ export const createGig = async (req, res, next) => {
       }
     }
 
+    // ✅ FX Conversion
+    let finalFixedPrice = fixedEnabled ? Number(fixedPrice) : undefined;
+    let finalHourlyRate = hourlyEnabled ? Number(hourlyRate) : undefined;
+    let originalCurrency = pricingCurrency.toUpperCase();
+    let originalFixedPrice = finalFixedPrice;
+    let originalHourlyRate = finalHourlyRate;
+    let fxRate = 1.0;
+
+    if (originalCurrency !== "USD") {
+      if (finalFixedPrice !== undefined && finalFixedPrice > 0) {
+        const fx = await FXService.convertToUSD(finalFixedPrice, originalCurrency);
+        finalFixedPrice = fx.usdAmount;
+        fxRate = fx.rate;
+      }
+      if (finalHourlyRate !== undefined && finalHourlyRate > 0) {
+        const fx = await FXService.convertToUSD(finalHourlyRate, originalCurrency);
+        finalHourlyRate = fx.usdAmount;
+        fxRate = fx.rate;
+      }
+    }
+
     // ✅ Create gig with new pricing structure
     const gig = new Gig({
       sellerId: id,
@@ -380,16 +419,20 @@ export const createGig = async (req, res, next) => {
       pricing: {
         fixed: {
           enabled: fixedEnabled || false,
-          price: fixedEnabled ? fixedPrice : undefined,
+          price: finalFixedPrice,
         },
         hourly: {
           enabled: hourlyEnabled || false,
-          rate: hourlyEnabled ? hourlyRate : undefined,
+          rate: finalHourlyRate,
           minHours: hourlyEnabled && minHours ? minHours : undefined,
         },
         inspection: {
           enabled: inspectionEnabled !== undefined ? inspectionEnabled : true,
         },
+        originalCurrency,
+        originalFixedPrice,
+        originalHourlyRate,
+        fxRate,
       },
       address, // Add address
       location, // Add location
@@ -415,7 +458,7 @@ export const createGig = async (req, res, next) => {
 
 export const getAllGigs = async (req, res, next) => {
   try {
-    const { pricingMethod, minPrice, maxPrice, title, search, category, subcategory } = req.query;
+    const { pricingMethod, minPrice, maxPrice, title, search, category, subcategory, filterCurrency } = req.query;
 
     // -------------------------
     // Build Query
@@ -429,8 +472,24 @@ export const getAllGigs = async (req, res, next) => {
 
     if (minPrice || maxPrice) {
       query["pricing.price"] = {};
-      if (minPrice) query["pricing.price"].$gte = Number(minPrice);
-      if (maxPrice) query["pricing.price"].$lte = Number(maxPrice);
+      
+      let convertedMinPrice = minPrice ? Number(minPrice) : null;
+      let convertedMaxPrice = maxPrice ? Number(maxPrice) : null;
+      
+      // Convert filter values to USD if a different currency is provided
+      if (filterCurrency && filterCurrency.toUpperCase() !== "USD") {
+         if (convertedMinPrice) {
+            const fxMin = await FXService.convertToUSD(convertedMinPrice, filterCurrency);
+            convertedMinPrice = fxMin.usdAmount;
+         }
+         if (convertedMaxPrice) {
+            const fxMax = await FXService.convertToUSD(convertedMaxPrice, filterCurrency);
+            convertedMaxPrice = fxMax.usdAmount;
+         }
+      }
+
+      if (convertedMinPrice) query["pricing.price"].$gte = convertedMinPrice;
+      if (convertedMaxPrice) query["pricing.price"].$lte = convertedMaxPrice;
     }
 
     // Handle Title or Search regex
@@ -642,6 +701,7 @@ export const updateGig = async (req, res, next) => {
       primarySubcategory,
       extraSubcategories,
       address,
+      pricingCurrency = "USD",
     } = req.body;
 
     if (role !== "seller") {
@@ -725,25 +785,59 @@ export const updateGig = async (req, res, next) => {
     }
 
     // ✅ PRICING - New multi-option structure
+    
+    // Convert to USD if needed before updating
+    let originalCurrency = pricingCurrency.toUpperCase();
+    let fxRate = gig.pricing.fxRate || 1.0;
+    
+    let isFixedProvided = fixedPrice !== undefined;
+    let isHourlyProvided = hourlyRate !== undefined;
+
+    let localFixedPrice = isFixedProvided ? Number(fixedPrice) : gig.pricing.originalFixedPrice;
+    let localHourlyRate = isHourlyProvided ? Number(hourlyRate) : gig.pricing.originalHourlyRate;
+
+    let finalFixedPrice = localFixedPrice;
+    let finalHourlyRate = localHourlyRate;
+
+    if (originalCurrency !== "USD") {
+      if (localFixedPrice !== undefined && localFixedPrice > 0) {
+        const fx = await FXService.convertToUSD(localFixedPrice, originalCurrency);
+        finalFixedPrice = fx.usdAmount;
+        fxRate = fx.rate;
+      }
+      if (localHourlyRate !== undefined && localHourlyRate > 0) {
+        const fx = await FXService.convertToUSD(localHourlyRate, originalCurrency);
+        finalHourlyRate = fx.usdAmount;
+        fxRate = fx.rate;
+      }
+    }
+
+    if (isFixedProvided || isHourlyProvided || originalCurrency !== gig.pricing.originalCurrency) {
+        gig.pricing.originalCurrency = originalCurrency;
+        gig.pricing.originalFixedPrice = localFixedPrice;
+        gig.pricing.originalHourlyRate = localHourlyRate;
+        gig.pricing.fxRate = fxRate;
+    }
+
     // Update fixed pricing
     if (fixedEnabled !== undefined) {
       gig.pricing.fixed.enabled = fixedEnabled;
-      if (fixedEnabled && fixedPrice !== undefined) {
-        gig.pricing.fixed.price = fixedPrice;
+      if (fixedEnabled && finalFixedPrice !== undefined) {
+        gig.pricing.fixed.price = finalFixedPrice;
       }
-    } else if (fixedPrice !== undefined && gig.pricing.fixed.enabled) {
-      gig.pricing.fixed.price = fixedPrice;
+    } else if (finalFixedPrice !== undefined && gig.pricing.fixed.enabled) {
+      gig.pricing.fixed.price = finalFixedPrice;
     }
 
     // Update hourly pricing
     if (hourlyEnabled !== undefined) {
       gig.pricing.hourly.enabled = hourlyEnabled;
       if (hourlyEnabled) {
-        if (hourlyRate !== undefined) gig.pricing.hourly.rate = hourlyRate;
+        if (finalHourlyRate !== undefined) gig.pricing.hourly.rate = finalHourlyRate;
         if (minHours !== undefined) gig.pricing.hourly.minHours = minHours;
       }
     } else if (gig.pricing.hourly.enabled) {
-      if (hourlyRate !== undefined) gig.pricing.hourly.rate = hourlyRate;
+      if (finalHourlyRate !== undefined) gig.pricing.hourly.rate = finalHourlyRate;
       if (minHours !== undefined) gig.pricing.hourly.minHours = minHours;
     }
 

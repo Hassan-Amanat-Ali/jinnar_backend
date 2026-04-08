@@ -33,6 +33,10 @@ const blogSchema = new Schema(
       type: String,
       default: null,
     },
+    images: {
+      type: [String],
+      default: [],
+    },
     tags: {
       type: [String],
       default: [],
@@ -101,5 +105,8 @@ blogSchema.pre("save", async function (next) {
 });
 
 blogSchema.index({ slugAliases: 1 });
+blogSchema.index({ status: 1, createdAt: -1 });
+blogSchema.index({ status: 1, tags: 1, createdAt: -1 });
+blogSchema.index({ title: "text", tags: "text" });
 
 export default mongoose.model("Blog", blogSchema);

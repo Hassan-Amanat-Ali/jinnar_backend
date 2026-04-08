@@ -17,27 +17,26 @@ class BlogController {
   static getBlogs = asyncHandler(async (req, res) => {
     const pageSize = parseInt(req.query.limit) || 10;
     const page = parseInt(req.query.page) || 1;
+    const skip = pageSize * (page - 1);
 
-    const keyword = req.query.search
-      ? {
-          $or: [
-            { title: { $regex: req.query.search, $options: "i" } },
-            { tags: { $in: [new RegExp(req.query.search, "i")] } },
-          ],
-        }
-      : {};
+    const query = { status: "published" };
 
-    const tagFilter = req.query.tag ? { tags: req.query.tag } : {};
+    // Use text search for performance if keyword exists
+    if (req.query.search) {
+      query.$text = { $search: req.query.search };
+    }
 
-    // Public only sees published blogs
-    const query = { ...keyword, ...tagFilter, status: "published" };
+    if (req.query.tag) {
+      query.tags = req.query.tag;
+    }
 
     const count = await Blog.countDocuments(query);
     const blogs = await Blog.find(query)
       .populate("author", "name email")
+      .sort({ createdAt: -1 }) // Supports { status: 1, createdAt: -1 } index
       .limit(pageSize)
-      .skip(pageSize * (page - 1))
-      .sort({ createdAt: -1 });
+      .skip(skip)
+      .allowDiskUse(); // Fallback for large sorts that skip index (e.g. during text search)
 
     res.json({
       blogs: blogs.map((blog) => withPermalink(blog.toObject())),
@@ -78,6 +77,36 @@ class BlogController {
     }
   });
 
+  // @desc    Get related blogs by slug
+  // @route   GET /api/blogs/related/:slug
+  // @access  Public
+  static getRelatedBlogs = asyncHandler(async (req, res) => {
+    const requestedSlug = toSlug(req.params.slug, "post");
+
+    // Find the current blog first to get its tags
+    const blog = await Blog.findOne({
+      $or: [{ slug: requestedSlug }, { slugAliases: requestedSlug }],
+      status: "published",
+    });
+
+    if (!blog) {
+      res.status(404);
+      throw new Error("Blog not found");
+    }
+
+    // Find other blogs that share at least one tag
+    const relatedBlogs = await Blog.find({
+      _id: { $ne: blog._id },
+      status: "published",
+      tags: { $in: blog.tags },
+    })
+      .populate("author", "name email")
+      .limit(3)
+      .sort({ createdAt: -1 });
+
+    res.json(relatedBlogs.map((b) => withPermalink(b.toObject())));
+  });
+
   // @desc    Create a blog (admin)
   // @route   POST /api/admin/blogs
   // @access  Private/Admin
@@ -92,7 +121,8 @@ class BlogController {
       title,
       content,
       excerpt,
-      featuredImage,
+      featuredImage: featuredImageInput,
+      images: imagesInput,
       tags,
       metaTitle,
       metaDescription,
@@ -100,9 +130,24 @@ class BlogController {
       slug,
     } = req.body;
 
+    // Handle images: filter out base64 and merge with uploaded files
+    let images = [];
+    if (imagesInput) {
+      const parsedImages = Array.isArray(imagesInput) ? imagesInput : [imagesInput];
+      images = parsedImages.filter(img => typeof img === "string" && !img.startsWith("data:image"));
+    }
+    if (req.files && req.files.length > 0) {
+      const uploadedUrls = req.files.map(f => f.url);
+      images = [...images, ...uploadedUrls];
+    }
+
+    // featuredImage fallback to first image if not provided as a valid URL
+    const featuredImage = featuredImageInput && !featuredImageInput.startsWith("data:image") 
+      ? featuredImageInput 
+      : (images[0] || null);
+
     const normalizedSlug = slug ? toSlug(slug, "post") : toSlug(title, "post");
 
-    // Only enforce a hard conflict when an admin explicitly provides a slug.
     if (slug && normalizedSlug) {
       const slugExists = await Blog.findOne({ slug: normalizedSlug });
       if (slugExists) {
@@ -116,19 +161,20 @@ class BlogController {
       content,
       excerpt,
       featuredImage,
+      images,
       tags,
       metaTitle,
       metaDescription,
       status,
       slug: normalizedSlug,
-      author: req.user._id, // Assume req.user is set by auth middleware
+      author: req.user._id,
     });
 
     const createdBlog = await blog.save();
     res.status(201).json(withPermalink(createdBlog.toObject()));
   });
 
-   // @desc    Get single blog by ID (admin - including drafts)
+  // @desc    Get single blog by ID (admin - including drafts)
   // @route   GET /api/admin/blogs/:id
   // @access  Private/Admin
   static getBlogByIdForAdmin = asyncHandler(async (req, res) => {
@@ -157,7 +203,8 @@ class BlogController {
       title,
       content,
       excerpt,
-      featuredImage,
+      featuredImage: featuredImageInput,
+      images: imagesInput,
       tags,
       metaTitle,
       metaDescription,
@@ -165,51 +212,65 @@ class BlogController {
       slug,
     } = req.body;
 
-    const normalizedSlug = slug ? toSlug(slug, "post") : undefined;
-
     const blog = await Blog.findById(req.params.id);
-
-    if (blog) {
-      const shouldRegenerateSlug =
-        !normalizedSlug &&
-        typeof title === "string" &&
-        title.trim().length > 0 &&
-        title.trim() !== blog.title;
-
-      // Check if new slug exists
-      if (normalizedSlug && normalizedSlug !== blog.slug) {
-        const slugExists = await Blog.findOne({ slug: normalizedSlug });
-        if (slugExists) {
-          res.status(400);
-          throw new Error("Slug already exists");
-        }
-        blog.slugAliases = [...new Set([...(blog.slugAliases || []), blog.slug])];
-      }
-
-      if (shouldRegenerateSlug) {
-        const regeneratedSlug = toSlug(title, "post");
-        if (regeneratedSlug !== blog.slug) {
-          blog.slugAliases = [...new Set([...(blog.slugAliases || []), blog.slug])];
-          blog.slug = regeneratedSlug;
-        }
-      }
-
-      blog.title = title || blog.title;
-      blog.content = content || blog.content;
-      blog.excerpt = excerpt || blog.excerpt;
-      blog.featuredImage = featuredImage || blog.featuredImage;
-      blog.tags = tags || blog.tags;
-      blog.metaTitle = metaTitle || blog.metaTitle;
-      blog.metaDescription = metaDescription || blog.metaDescription;
-      blog.status = status || blog.status;
-      blog.slug = normalizedSlug || blog.slug;
-
-      const updatedBlog = await blog.save();
-      res.json(withPermalink(updatedBlog.toObject()));
-    } else {
+    if (!blog) {
       res.status(404);
       throw new Error("Blog not found");
     }
+
+    // Handle images: filter out base64 and merge with uploaded files
+    let images = [];
+    if (imagesInput) {
+      const parsedImages = Array.isArray(imagesInput) ? imagesInput : [imagesInput];
+      images = parsedImages.filter(img => typeof img === "string" && !img.startsWith("data:image"));
+    }
+    if (req.files && req.files.length > 0) {
+      const uploadedUrls = req.files.map(f => f.url);
+      images = [...images, ...uploadedUrls];
+    }
+
+    const normalizedSlug = slug ? toSlug(slug, "post") : undefined;
+
+    if (normalizedSlug && normalizedSlug !== blog.slug) {
+      const slugExists = await Blog.findOne({ slug: normalizedSlug });
+      if (slugExists) {
+        res.status(400);
+        throw new Error("Slug already exists");
+      }
+      blog.slugAliases = [...new Set([...(blog.slugAliases || []), blog.slug])];
+    }
+
+    if (!normalizedSlug && title && title !== blog.title) {
+      const regeneratedSlug = toSlug(title, "post");
+      if (regeneratedSlug !== blog.slug) {
+        blog.slugAliases = [...new Set([...(blog.slugAliases || []), blog.slug])];
+        blog.slug = regeneratedSlug;
+      }
+    }
+
+    blog.title = title || blog.title;
+    blog.content = content || blog.content;
+    blog.excerpt = excerpt || blog.excerpt;
+    blog.tags = tags || blog.tags;
+    blog.metaTitle = metaTitle || blog.metaTitle;
+    blog.metaDescription = metaDescription || blog.metaDescription;
+    blog.status = status || blog.status;
+    blog.slug = normalizedSlug || blog.slug;
+    
+    // Update images if provided or uploaded
+    if (imagesInput || (req.files && req.files.length > 0)) {
+      blog.images = images;
+    }
+
+    // Update featuredImage if provided and NOT base64
+    if (featuredImageInput && !featuredImageInput.startsWith("data:image")) {
+      blog.featuredImage = featuredImageInput;
+    } else if (!blog.featuredImage && blog.images.length > 0) {
+      blog.featuredImage = blog.images[0];
+    }
+
+    const updatedBlog = await blog.save();
+    res.json(withPermalink(updatedBlog.toObject()));
   });
 
   // @desc    Delete a blog (admin)
@@ -233,13 +294,15 @@ class BlogController {
   static getAdminBlogs = asyncHandler(async (req, res) => {
     const pageSize = parseInt(req.query.limit) || 10;
     const page = parseInt(req.query.page) || 1;
+    const skip = pageSize * (page - 1);
 
     const count = await Blog.countDocuments();
     const blogs = await Blog.find()
       .populate("author", "name email")
+      .sort({ createdAt: -1 })
       .limit(pageSize)
-      .skip(pageSize * (page - 1))
-      .sort({ createdAt: -1 });
+      .skip(skip)
+      .allowDiskUse();
 
     res.json({
       blogs,

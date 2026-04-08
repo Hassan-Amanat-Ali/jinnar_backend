@@ -14,10 +14,29 @@ const transactionSchema = new mongoose.Schema(
       required: true,
     },
 
+    // Amount in base currency (USD). This is the authoritative financial value.
     amount: {
       type: Number,
       required: true,
       min: 0,
+    },
+
+    // Original amount in local currency (e.g. KES, PKR) as sent/received via pawaPay
+    localAmount: {
+      type: Number,
+      default: null,
+    },
+
+    // FX rate used at time of transaction: 1 USD = <fxRate> <currency>
+    fxRate: {
+      type: Number,
+      default: null,
+    },
+
+    // Base currency for the `amount` field — always USD
+    baseCurrency: {
+      type: String,
+      default: "USD",
     },
 
     status: {

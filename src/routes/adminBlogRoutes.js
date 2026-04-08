@@ -1,6 +1,7 @@
 import express from "express";
 import BlogController from "../controllers/blogController.js";
-import { protect ,authorize } from "../middleware/auth.js";
+import { uploadBlogImagesMW } from "../middleware/upload.js";
+import { protect, authorize } from "../middleware/auth.js";
 const router = express.Router();
 
 // Protect all admin blog routes with authentication and authorization middleware
@@ -10,11 +11,11 @@ router.use(authorize(["super_admin", "admin", "blog_manager"])); // Adjust roles
 // Admin Routes
 router.route("/")
   .get(BlogController.getAdminBlogs) // Get all blogs (including drafts) for admin
-  .post(BlogController.createBlog); // Create a new blog
+  .post(uploadBlogImagesMW, BlogController.createBlog); // Create a new blog
 
 router.route("/:id")
   .get(BlogController.getBlogByIdForAdmin) // Get a single blog by ID (for editing)
-  .put(BlogController.updateBlog) // Update an existing blog
+  .put(uploadBlogImagesMW, BlogController.updateBlog) // Update an existing blog
   .delete(BlogController.deleteBlog); // Delete a blog
 
 export default router;

@@ -116,6 +116,22 @@ const gigSchema = new mongoose.Schema(
           default: true, // Inspection is always available by default
         },
       },
+      originalCurrency: {
+        type: String,
+        default: null, // e.g. "KES", "TZS", "USD"
+      },
+      originalFixedPrice: {
+        type: Number,
+        default: null,
+      },
+      originalHourlyRate: {
+        type: Number,
+        default: null,
+      },
+      fxRate: {
+        type: Number,
+        default: null, // 1 USD = X local
+      },
     },
     category: {
       type: mongoose.Schema.Types.ObjectId, 
