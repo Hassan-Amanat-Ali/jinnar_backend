@@ -473,6 +473,18 @@ router.get(
   BlogController.getAdminBlogs
 );
 
+router.get(
+  "/blogs/:id",
+  authorize(["support", "supervisor", "super_admin"]),
+  BlogController.getBlogByIdForAdmin
+);
+
+// router.route("/blogs:id")
+//   .get(BlogController.getBlogByIdForAdmin) // Get a single blog by ID (for editing)
+//   .put(uploadBlogImagesMW, BlogController.updateBlog) // Update an existing blog
+//   .delete(BlogController.deleteBlog); // Delete a blog
+
+
 router.post(
   "/blogs",
   authorize(["supervisor", "super_admin"]),
