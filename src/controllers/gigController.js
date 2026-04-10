@@ -389,9 +389,22 @@ export const createGig = async (req, res, next) => {
     }
 
     // ✅ FX Conversion
-    let finalFixedPrice = fixedEnabled ? Number(fixedPrice) : undefined;
-    let finalHourlyRate = hourlyEnabled ? Number(hourlyRate) : undefined;
-    let originalCurrency = pricingCurrency.toUpperCase();
+    const parseBool = (v) => v === true || v === "true";
+    const parseNum = (v) => {
+      if (v === undefined || v === null || v === "" || v === "NaN") return undefined;
+      const n = Number(v);
+      return isNaN(n) ? undefined : n;
+    };
+
+    const isFixed = parseBool(fixedEnabled);
+    const isHourly = parseBool(hourlyEnabled);
+    const isInspection = inspectionEnabled === undefined ? true : parseBool(inspectionEnabled);
+
+    let finalFixedPrice = isFixed ? parseNum(fixedPrice) : undefined;
+    let finalHourlyRate = isHourly ? parseNum(hourlyRate) : undefined;
+    let finalMinHours = isHourly ? parseNum(minHours) : undefined;
+
+    let originalCurrency = pricingCurrency ? pricingCurrency.toUpperCase() : "USD";
     let originalFixedPrice = finalFixedPrice;
     let originalHourlyRate = finalHourlyRate;
     let fxRate = 1.0;
@@ -418,16 +431,16 @@ export const createGig = async (req, res, next) => {
       serviceSlug: permalinkParts.serviceSlug,
       pricing: {
         fixed: {
-          enabled: fixedEnabled || false,
+          enabled: isFixed,
           price: finalFixedPrice,
         },
         hourly: {
-          enabled: hourlyEnabled || false,
+          enabled: isHourly,
           rate: finalHourlyRate,
-          minHours: hourlyEnabled && minHours ? minHours : undefined,
+          minHours: finalMinHours,
         },
         inspection: {
-          enabled: inspectionEnabled !== undefined ? inspectionEnabled : true,
+          enabled: isInspection,
         },
         originalCurrency,
         originalFixedPrice,
@@ -785,16 +798,22 @@ export const updateGig = async (req, res, next) => {
     }
 
     // ✅ PRICING - New multi-option structure
-    
+    const parseBool = (v) => v === true || v === "true";
+    const parseNum = (v) => {
+      if (v === undefined || v === null || v === "" || v === "NaN") return undefined;
+      const n = Number(v);
+      return isNaN(n) ? undefined : n;
+    };
+
     // Convert to USD if needed before updating
-    let originalCurrency = pricingCurrency.toUpperCase();
+    let originalCurrency = pricingCurrency ? pricingCurrency.toUpperCase() : "USD";
     let fxRate = gig.pricing.fxRate || 1.0;
     
     let isFixedProvided = fixedPrice !== undefined;
     let isHourlyProvided = hourlyRate !== undefined;
 
-    let localFixedPrice = isFixedProvided ? Number(fixedPrice) : gig.pricing.originalFixedPrice;
-    let localHourlyRate = isHourlyProvided ? Number(hourlyRate) : gig.pricing.originalHourlyRate;
+    let localFixedPrice = isFixedProvided ? parseNum(fixedPrice) : gig.pricing.originalFixedPrice;
+    let localHourlyRate = isHourlyProvided ? parseNum(hourlyRate) : gig.pricing.originalHourlyRate;
 
     let finalFixedPrice = localFixedPrice;
     let finalHourlyRate = localHourlyRate;
@@ -821,8 +840,9 @@ export const updateGig = async (req, res, next) => {
 
     // Update fixed pricing
     if (fixedEnabled !== undefined) {
-      gig.pricing.fixed.enabled = fixedEnabled;
-      if (fixedEnabled && finalFixedPrice !== undefined) {
+      const isFixed = parseBool(fixedEnabled);
+      gig.pricing.fixed.enabled = isFixed;
+      if (isFixed && finalFixedPrice !== undefined) {
         gig.pricing.fixed.price = finalFixedPrice;
       }
     } else if (finalFixedPrice !== undefined && gig.pricing.fixed.enabled) {
@@ -831,19 +851,26 @@ export const updateGig = async (req, res, next) => {
 
     // Update hourly pricing
     if (hourlyEnabled !== undefined) {
-      gig.pricing.hourly.enabled = hourlyEnabled;
-      if (hourlyEnabled) {
-        if (finalHourlyRate !== undefined) gig.pricing.hourly.rate = finalHourlyRate;
-        if (minHours !== undefined) gig.pricing.hourly.minHours = minHours;
+      const isHourly = parseBool(hourlyEnabled);
+      gig.pricing.hourly.enabled = isHourly;
+      if (isHourly && finalHourlyRate !== undefined) {
+        gig.pricing.hourly.rate = finalHourlyRate;
       }
-    } else if (gig.pricing.hourly.enabled) {
-      if (finalHourlyRate !== undefined) gig.pricing.hourly.rate = finalHourlyRate;
-      if (minHours !== undefined) gig.pricing.hourly.minHours = minHours;
+      if (isHourly && minHours !== undefined) {
+        gig.pricing.hourly.minHours = parseNum(minHours);
+      }
+    } else {
+      if (finalHourlyRate !== undefined && gig.pricing.hourly.enabled) {
+        gig.pricing.hourly.rate = finalHourlyRate;
+      }
+      if (minHours !== undefined && gig.pricing.hourly.enabled) {
+        gig.pricing.hourly.minHours = parseNum(minHours);
+      }
     }
 
     // Update inspection pricing
     if (inspectionEnabled !== undefined) {
-      gig.pricing.inspection.enabled = inspectionEnabled;
+      gig.pricing.inspection.enabled = parseBool(inspectionEnabled);
     }
 
     // ✅ IMAGES (raw JSON array of URLs)
