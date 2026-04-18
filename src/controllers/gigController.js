@@ -5,19 +5,64 @@ import mongoose from "mongoose";
 import Category from "../models/Category.js";
 import SubCategory from "../models/SubCategory.js";
 import Order from "../models/Order.js";
-import { sendNotification } from "./notificationController.js";
 import { getCoordinatesFromAddress } from "../utils/geocoding.js";
+import {
+  buildGigPermalink,
+  normalizeCountryFromAddress,
+  toSlug,
+} from "../utils/permalink.js";
+import FXService from "../services/fxService.js";
+
+const resolveGigPermalinkParts = async ({ title, address, sellerId, excludeGigId }) => {
+  const seller = await User.findById(sellerId).select("country");
+  const countrySource = seller?.country || normalizeCountryFromAddress(address) || "global";
+  const countrySlug = toSlug(countrySource, "global");
+  const baseServiceSlug = toSlug(title, "service");
+
+  const existing = await Gig.find({
+    countrySlug,
+    serviceSlug: { $regex: `^${baseServiceSlug}(-\\d+)?$` },
+    ...(excludeGigId ? { _id: { $ne: excludeGigId } } : {}),
+  }).select("serviceSlug");
+
+  const used = new Set(existing.map((doc) => doc.serviceSlug).filter(Boolean));
+  let serviceSlug = baseServiceSlug;
+  let counter = 2;
+  while (used.has(serviceSlug)) {
+    serviceSlug = `${baseServiceSlug}-${counter}`;
+    counter += 1;
+  }
+
+  return {
+    countrySlug,
+    serviceSlug,
+  };
+};
+
+const resolveGigPermalinkFallback = (gig) =>
+  buildGigPermalink({
+    countrySlug: toSlug(
+      gig.countrySlug || gig.sellerId?.country || normalizeCountryFromAddress(gig.address) || "global",
+      "global",
+    ),
+    serviceSlug: toSlug(gig.serviceSlug || gig.title, "service"),
+  });
+
+const attachGigPermalink = (gig) => ({
+  ...gig,
+  permalink: resolveGigPermalinkFallback(gig),
+});
 
 export const searchGigs = async (req, res) => {
   try {
-    const { 
+    const {
       search, category, subcategory, minPrice, maxPrice, pricingMethod,
       minRating, minExperience, sortBy,
-      lat, lng, radius 
+      lat, lng, radius, filterCurrency
     } = req.query;
 
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit) || 10);
     const skip = (page - 1) * limit;
 
     const pipeline = [];
@@ -36,7 +81,7 @@ export const searchGigs = async (req, res) => {
           key: "location", // The index key
           spherical: true,
           // Optimization: Apply status check inside geoNear to reduce initial set
-          query: { status: "active" } 
+          query: { status: "active" }
         },
       });
     } else {
@@ -44,12 +89,21 @@ export const searchGigs = async (req, res) => {
       pipeline.push({ $match: { status: "active" } });
     }
 
+    // Normalizing ID fields for robust matching (handles mixed string/objectid data)
+    pipeline.push({
+      $addFields: {
+        sellerId: { $toObjectId: "$sellerId" },
+        category: { $cond: [{ $not: ["$category"] }, null, { $toObjectId: "$category" }] },
+        primarySubcategory: { $cond: [{ $not: ["$primarySubcategory"] }, null, { $toObjectId: "$primarySubcategory" }] }
+      }
+    });
+
     // --- STAGE 2: BUILD MAIN MATCH CONDITIONS ---
     const matchConditions = {};
     const orConditions = [];
 
     // Text Search
-    if (search) {
+    if (search && search !== "null" && search.trim() !== "") {
       orConditions.push(
         { title: { $regex: search, $options: "i" } },
         { description: { $regex: search, $options: "i" } }
@@ -57,7 +111,7 @@ export const searchGigs = async (req, res) => {
     }
 
     // Category (Handle ID or Name)
-    if (category) {
+    if (category && category !== "null") {
       if (mongoose.Types.ObjectId.isValid(category)) {
         matchConditions.category = new mongoose.Types.ObjectId(category);
       } else {
@@ -67,7 +121,7 @@ export const searchGigs = async (req, res) => {
     }
 
     // Subcategory (Handle ID or Name)
-    if (subcategory) {
+    if (subcategory && subcategory !== "null") {
       let subCatId = null;
       if (mongoose.Types.ObjectId.isValid(subcategory)) {
         subCatId = new mongoose.Types.ObjectId(subcategory);
@@ -87,8 +141,24 @@ export const searchGigs = async (req, res) => {
     // Price Filter
     if (minPrice || maxPrice) {
       matchConditions["pricing.price"] = {};
-      if (minPrice) matchConditions["pricing.price"].$gte = Number(minPrice);
-      if (maxPrice) matchConditions["pricing.price"].$lte = Number(maxPrice);
+      
+      let convertedMinPrice = minPrice ? Number(minPrice) : null;
+      let convertedMaxPrice = maxPrice ? Number(maxPrice) : null;
+      
+      // Convert filter values to USD if a different currency is provided
+      if (filterCurrency && filterCurrency.toUpperCase() !== "USD") {
+        if (convertedMinPrice) {
+          const fxMin = await FXService.convertToUSD(convertedMinPrice, filterCurrency);
+          convertedMinPrice = fxMin.usdAmount;
+        }
+        if (convertedMaxPrice) {
+          const fxMax = await FXService.convertToUSD(convertedMaxPrice, filterCurrency);
+          convertedMaxPrice = fxMax.usdAmount;
+        }
+      }
+
+      if (convertedMinPrice) matchConditions["pricing.price"].$gte = convertedMinPrice;
+      if (convertedMaxPrice) matchConditions["pricing.price"].$lte = convertedMaxPrice;
     }
 
     // Pricing Method
@@ -116,27 +186,27 @@ export const searchGigs = async (req, res) => {
           as: "sellerInfo",
         },
       },
-{
-  $unwind: {
-    path: "$sellerInfo",
-    preserveNullAndEmptyArrays: true
-  }
-}
+      {
+        $unwind: {
+          path: "$sellerInfo",
+          preserveNullAndEmptyArrays: true
+        }
+      }
     );
 
     // --- STAGE 4: FILTER BY SELLER STATS & VERIFICATION ---
     const sellerMatch = {};
-    
+
     // CRITICAL: Only show gigs from verified workers
     sellerMatch["sellerInfo.verificationStatus"] = "approved";
-    
+
     if (minRating) {
       sellerMatch["sellerInfo.rating.average"] = { $gte: Number(minRating) };
     }
     if (minExperience) {
       sellerMatch["sellerInfo.yearsOfExperience"] = { $gte: Number(minExperience) };
     }
-    
+
     if (Object.keys(sellerMatch).length > 0) {
       pipeline.push({ $match: sellerMatch });
     }
@@ -152,10 +222,10 @@ export const searchGigs = async (req, res) => {
     // --- STAGE 6: SORTING ---
     // Note: $geoNear automatically sorts by distance. 
     // This stage OVERRIDES distance sort if a user selects something else.
-    let sortStage = {};
-    
+    let sortStage;
+
     // Default sort
-    sortStage = { createdAt: -1 }; 
+    sortStage = { createdAt: -1 };
 
     if (sortBy) {
       switch (sortBy) {
@@ -181,7 +251,7 @@ export const searchGigs = async (req, res) => {
           break;
       }
     }
-    
+
     pipeline.push({ $sort: sortStage });
 
     // --- STAGE 7: PAGINATION & PROJECTION ---
@@ -195,6 +265,8 @@ export const searchGigs = async (req, res) => {
             $project: {
               title: 1,
               description: 1,
+              countrySlug: 1,
+              serviceSlug: 1,
               pricing: 1,
               images: 1,
               status: 1,
@@ -220,8 +292,8 @@ export const searchGigs = async (req, res) => {
     const result = await Gig.aggregate(pipeline);
 
     // Format output
-    const gigs = result[0].data;
-    const total = result[0].metadata[0] ? result[0].metadata[0].total : 0;
+    const gigs = result[0]?.data || [];
+    const total = result[0]?.metadata[0]?.total || 0;
 
     // --- STAGE 8: APPEND ORDERS COMPLETED ---
     // Extract unique seller IDs from the result
@@ -230,11 +302,11 @@ export const searchGigs = async (req, res) => {
     if (sellerIds.length > 0) {
       // Aggregate completed orders for these sellers
       const completedOrders = await Order.aggregate([
-        { 
-          $match: { 
-            sellerId: { $in: sellerIds }, 
-            status: "completed" 
-          } 
+        {
+          $match: {
+            sellerId: { $in: sellerIds },
+            status: "completed"
+          }
         },
         { $group: { _id: "$sellerId", count: { $sum: 1 } } }
       ]);
@@ -254,7 +326,7 @@ export const searchGigs = async (req, res) => {
     }
 
     res.json({
-      gigs,
+      gigs: gigs.map((gig) => attachGigPermalink(gig)),
       pagination: {
         page,
         limit,
@@ -271,7 +343,7 @@ export const searchGigs = async (req, res) => {
 
 export const createGig = async (req, res, next) => {
   try {
-    const { id, role } = req.user; // From JWT middleware
+    const { id } = req.user; // From JWT middleware
     const {
       title,
       description,
@@ -288,24 +360,66 @@ export const createGig = async (req, res, next) => {
       //Secondary attributes
       extraSubcategories = [], // Default to empty array
       address, // Add address here
+      pricingCurrency = "USD", // Local currency provided by frontend
     } = req.body;
+
+    const permalinkParts = await resolveGigPermalinkParts({
+      title,
+      address,
+      sellerId: id,
+      excludeGigId: null,
+    });
 
     // ... existing validation ...
 
     // Handle address and geocoding
     let location = null;
     if (address) {
-        try {
-            const geocodedLocation = await getCoordinatesFromAddress(address);
-            location = {
-                type: "Point",
-                coordinates: [geocodedLocation.lng, geocodedLocation.lat],
-            };
-            console.log("Address geocoded for gig:", location);
-        } catch (geocodeError) {
-            console.error("Geocoding failed for gig address:", address, geocodeError);
-            return res.status(500).json({ error: "Failed to geocode gig address" });
-        }
+      try {
+        const geocodedLocation = await getCoordinatesFromAddress(address);
+        location = {
+          type: "Point",
+          coordinates: [geocodedLocation.lng, geocodedLocation.lat],
+        };
+        console.log("Address geocoded for gig:", location);
+      } catch (geocodeError) {
+        console.error("Geocoding failed for gig address:", address, geocodeError);
+        return res.status(500).json({ error: "Failed to geocode gig address" });
+      }
+    }
+
+    // ✅ FX Conversion
+    const parseBool = (v) => v === true || v === "true";
+    const parseNum = (v) => {
+      if (v === undefined || v === null || v === "" || v === "NaN") return undefined;
+      const n = Number(v);
+      return isNaN(n) ? undefined : n;
+    };
+
+    const isFixed = parseBool(fixedEnabled);
+    const isHourly = parseBool(hourlyEnabled);
+    const isInspection = inspectionEnabled === undefined ? true : parseBool(inspectionEnabled);
+
+    let finalFixedPrice = isFixed ? parseNum(fixedPrice) : undefined;
+    let finalHourlyRate = isHourly ? parseNum(hourlyRate) : undefined;
+    let finalMinHours = isHourly ? parseNum(minHours) : undefined;
+
+    let originalCurrency = pricingCurrency ? pricingCurrency.toUpperCase() : "USD";
+    let originalFixedPrice = finalFixedPrice;
+    let originalHourlyRate = finalHourlyRate;
+    let fxRate = 1.0;
+
+    if (originalCurrency !== "USD") {
+      if (finalFixedPrice !== undefined && finalFixedPrice > 0) {
+        const fx = await FXService.convertToUSD(finalFixedPrice, originalCurrency);
+        finalFixedPrice = fx.usdAmount;
+        fxRate = fx.rate;
+      }
+      if (finalHourlyRate !== undefined && finalHourlyRate > 0) {
+        const fx = await FXService.convertToUSD(finalHourlyRate, originalCurrency);
+        finalHourlyRate = fx.usdAmount;
+        fxRate = fx.rate;
+      }
     }
 
     // ✅ Create gig with new pricing structure
@@ -313,19 +427,25 @@ export const createGig = async (req, res, next) => {
       sellerId: id,
       title,
       description,
+      countrySlug: permalinkParts.countrySlug,
+      serviceSlug: permalinkParts.serviceSlug,
       pricing: {
         fixed: {
-          enabled: fixedEnabled || false,
-          price: fixedEnabled ? fixedPrice : undefined,
+          enabled: isFixed,
+          price: finalFixedPrice,
         },
         hourly: {
-          enabled: hourlyEnabled || false,
-          rate: hourlyEnabled ? hourlyRate : undefined,
-          minHours: hourlyEnabled && minHours ? minHours : undefined,
+          enabled: isHourly,
+          rate: finalHourlyRate,
+          minHours: finalMinHours,
         },
         inspection: {
-          enabled: inspectionEnabled !== undefined ? inspectionEnabled : true,
+          enabled: isInspection,
         },
+        originalCurrency,
+        originalFixedPrice,
+        originalHourlyRate,
+        fxRate,
       },
       address, // Add address
       location, // Add location
@@ -334,14 +454,14 @@ export const createGig = async (req, res, next) => {
       category: categoryId,
       primarySubcategory: primarySubcategory,
       extraSubcategories: extraSubcategories,
-    }); 
+    });
 
     await gig.save();
     await gig.populate("sellerId", "name bio skills");
 
     res.status(201).json({
       message: "Gig created successfully",
-      gig,
+      gig: attachGigPermalink(gig.toObject()),
     });
   } catch (error) {
     console.error("Create Gig Error:", error.message);
@@ -351,7 +471,7 @@ export const createGig = async (req, res, next) => {
 
 export const getAllGigs = async (req, res, next) => {
   try {
-    const { pricingMethod, minPrice, maxPrice, title } = req.query;
+    const { pricingMethod, minPrice, maxPrice, title, search, category, subcategory, filterCurrency } = req.query;
 
     // -------------------------
     // Build Query
@@ -365,59 +485,176 @@ export const getAllGigs = async (req, res, next) => {
 
     if (minPrice || maxPrice) {
       query["pricing.price"] = {};
-      if (minPrice) query["pricing.price"].$gte = Number(minPrice);
-      if (maxPrice) query["pricing.price"].$lte = Number(maxPrice);
+      
+      let convertedMinPrice = minPrice ? Number(minPrice) : null;
+      let convertedMaxPrice = maxPrice ? Number(maxPrice) : null;
+      
+      // Convert filter values to USD if a different currency is provided
+      if (filterCurrency && filterCurrency.toUpperCase() !== "USD") {
+         if (convertedMinPrice) {
+            const fxMin = await FXService.convertToUSD(convertedMinPrice, filterCurrency);
+            convertedMinPrice = fxMin.usdAmount;
+         }
+         if (convertedMaxPrice) {
+            const fxMax = await FXService.convertToUSD(convertedMaxPrice, filterCurrency);
+            convertedMaxPrice = fxMax.usdAmount;
+         }
+      }
+
+      if (convertedMinPrice) query["pricing.price"].$gte = convertedMinPrice;
+      if (convertedMaxPrice) query["pricing.price"].$lte = convertedMaxPrice;
     }
 
-    if (title) {
-      query.title = { $regex: title, $options: "i" }; // Case-insensitive search
+    // Handle Title or Search regex
+    const searchTerm = title || search;
+    if (searchTerm && searchTerm !== "null") {
+      query.$or = [
+        { title: { $regex: searchTerm, $options: "i" } },
+        { description: { $regex: searchTerm, $options: "i" } }
+      ];
+    }
+
+    // Handle Category/Subcategory ID filtering
+    if (category && category !== "null" && mongoose.Types.ObjectId.isValid(category)) {
+      query.category = new mongoose.Types.ObjectId(category);
+    }
+    if (subcategory && subcategory !== "null" && mongoose.Types.ObjectId.isValid(subcategory)) {
+      query.primarySubcategory = new mongoose.Types.ObjectId(subcategory);
     }
 
     // -------------------------
-    // Fetch Gigs & Seller Info - ONLY from verified workers
+    // Set up Pipeline
     // -------------------------
-    const gigs = await Gig.find(query).populate({
-      path: "sellerId",
-      select: "name bio skills yearsOfExperience rating verificationStatus location selectedAreas",
-      match: { verificationStatus: "approved" }, // Only verified sellers
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit) || 10);
+    const skip = (page - 1) * limit;
+
+    const pipeline = [];
+
+    // Ensure ID fields are ObjectIds for robust matching and lookups
+    pipeline.push({
+      $addFields: {
+        sellerId: { $toObjectId: "$sellerId" },
+        category: { $cond: [{ $not: ["$category"] }, null, { $toObjectId: "$category" }] },
+        primarySubcategory: { $cond: [{ $not: ["$primarySubcategory"] }, null, { $toObjectId: "$primarySubcategory" }] }
+      }
     });
 
-    // Filter out gigs where seller is null (didn't match verification criteria)
-    const validGigs = gigs.filter(g => g.sellerId !== null);
+    // Filter for active status and our query conditions
+    pipeline.push({ $match: query });
 
-    // -------------------------
-    // Append Orders Completed per Seller
-    // -------------------------
-    const sellerIds = validGigs.map((g) => g.sellerId?._id).filter(Boolean);
-
-    // Count completed orders for all sellers at once
-    const completedOrders = await Order.aggregate([
-      { $match: { sellerId: { $in: sellerIds }, status: "completed" } },
-      { $group: { _id: "$sellerId", count: { $sum: 1 } } },
-    ]);
-
-    // Convert to lookup map
-    const orderCountMap = {};
-    completedOrders.forEach((entry) => {
-      orderCountMap[entry._id.toString()] = entry.count;
-    });
-
-    // Inject into gig objects
-    const enrichedGigs = validGigs.map((gig) => {
-      const seller = gig.sellerId;
-      const ordersCompleted = orderCountMap[seller._id.toString()] || 0;
-
-      return {
-        ...gig.toObject(),
-        sellerId: {
-          ...seller.toObject(),
-          ordersCompleted, // 👈 added
-          yearsOfExperience: seller.yearsOfExperience || 0, // already in schema
+    // Join with Sellers
+    pipeline.push(
+      {
+        $lookup: {
+          from: "users",
+          localField: "sellerId",
+          foreignField: "_id",
+          as: "sellerInfo",
         },
-      };
+      },
+      {
+        $unwind: {
+          path: "$sellerInfo",
+          preserveNullAndEmptyArrays: true
+        }
+      }
+    );
+
+    // Filter by seller verification status
+    pipeline.push({
+      $match: {
+        "sellerInfo.verificationStatus": "approved"
+      }
     });
 
-    res.json({ gigs: enrichedGigs });
+    // Lookup Category and primarySubcategory names (for consistent display)
+    pipeline.push(
+      { $lookup: { from: "categories", localField: "category", foreignField: "_id", as: "categoryData" } },
+      { $unwind: { path: "$categoryData", preserveNullAndEmptyArrays: true } },
+      { $lookup: { from: "subcategories", localField: "primarySubcategory", foreignField: "_id", as: "primarySubData" } },
+      { $unwind: { path: "$primarySubData", preserveNullAndEmptyArrays: true } }
+    );
+
+    // Sorting
+    pipeline.push({ $sort: { createdAt: -1 } });
+
+    // Pagination & Projection
+    pipeline.push({
+      $facet: {
+        metadata: [{ $count: "total" }],
+        data: [
+          { $skip: skip },
+          { $limit: limit },
+          {
+            $project: {
+              title: 1,
+              description: 1,
+              pricing: 1,
+              images: 1,
+              status: 1,
+              createdAt: 1,
+              "sellerId._id": "$sellerInfo._id",
+              "sellerId.name": "$sellerInfo.name",
+              "sellerId.rating": "$sellerInfo.rating",
+              "sellerId.yearsOfExperience": "$sellerInfo.yearsOfExperience",
+              "sellerId.bio": "$sellerInfo.bio",
+              "sellerId.location": "$sellerInfo.location",
+              "sellerId.skills": "$sellerInfo.skills",
+              "sellerId.selectedAreas": "$sellerInfo.selectedAreas",
+              "category": { _id: "$categoryData._id", name: "$categoryData.name" },
+              "primarySubcategory": { _id: "$primarySubData._id", name: "$primarySubData.name" }
+            }
+          }
+        ],
+      },
+    });
+
+    // -------------------------
+    // Execution
+    // -------------------------
+
+    // FIX: Count only gigs that match filters AND belong to approved sellers
+    const countResult = await Gig.aggregate([
+      ...pipeline.slice(0, -1),
+      { $count: "total" }
+    ]);
+    const totalCount = countResult[0]?.total || 0;
+
+    const result = await Gig.aggregate(pipeline);
+    const gigs = result[0]?.data || [];
+
+    // -------------------------
+    // Append Orders Completed (same as searchGigs)
+    // -------------------------
+    const sellerIds = [...new Set(gigs.map(g => g.sellerId?._id).filter(id => id))];
+    if (sellerIds.length > 0) {
+      const completedOrders = await Order.aggregate([
+        { $match: { sellerId: { $in: sellerIds }, status: "completed" } },
+        { $group: { _id: "$sellerId", count: { $sum: 1 } } }
+      ]);
+
+      const orderCountMap = {};
+      completedOrders.forEach(c => {
+        orderCountMap[c._id.toString()] = c.count;
+      });
+
+      gigs.forEach(gig => {
+        if (gig.sellerId) {
+          gig.sellerId.ordersCompleted = orderCountMap[gig.sellerId._id.toString()] || 0;
+        }
+      });
+    }
+
+    res.json({
+      gigs: gigs.map(gig => attachGigPermalink(gig)),
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        pages: Math.ceil(totalCount / limit)
+      }
+    });
   } catch (error) {
     console.error("Get Gigs Error:", error.message);
     next(error);
@@ -435,11 +672,26 @@ export const getMyGigs = async (req, res, next) => {
         .json({ error: "Only sellers can view their gigs" });
     }
 
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit) || 10);
+    const skip = (page - 1) * limit;
+
+    const total = await Gig.countDocuments({ sellerId: id });
     const gigs = await Gig.find({ sellerId: id })
       .populate("sellerId", "name bio skills")
+      .skip(skip)
+      .limit(limit)
       .sort({ createdAt: -1 });
 
-    res.json({ gigs });
+    res.json({
+      gigs: gigs.map((gig) => attachGigPermalink(gig.toObject())),
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     console.error("Get My Gigs Error:", error.message);
     next(error);
@@ -462,6 +714,7 @@ export const updateGig = async (req, res, next) => {
       primarySubcategory,
       extraSubcategories,
       address,
+      pricingCurrency = "USD",
     } = req.body;
 
     if (role !== "seller") {
@@ -473,32 +726,40 @@ export const updateGig = async (req, res, next) => {
       return res.status(404).json({ error: "Gig not found" });
     }
 
+    const previousPermalink =
+      gig.countrySlug && gig.serviceSlug
+        ? buildGigPermalink({
+          countrySlug: gig.countrySlug,
+          serviceSlug: gig.serviceSlug,
+        })
+        : null;
+
     // ✅ BASIC FIELDS
     if (title !== undefined) gig.title = title;
     if (description !== undefined) gig.description = description;
 
     // ✅ ADDRESS & GEOCODING
     if (address !== undefined) {
-        if (typeof address !== "string" || address.trim().length === 0) {
-            return res.status(400).json({ error: "Address must be a non-empty string" });
+      if (typeof address !== "string" || address.trim().length === 0) {
+        return res.status(400).json({ error: "Address must be a non-empty string" });
+      }
+      gig.address = address.trim();
+      try {
+        const geocodedLocation = await getCoordinatesFromAddress(address);
+        if (geocodedLocation) {
+          gig.location = {
+            type: "Point",
+            coordinates: [geocodedLocation.lng, geocodedLocation.lat],
+          };
+          console.log("Address geocoded for gig update:", gig.location);
+        } else {
+          gig.location = null; // Clear location if geocoding fails
+          console.warn("Geocoding returned no coordinates for updated address:", address);
         }
-        gig.address = address.trim();
-        try {
-            const geocodedLocation = await getCoordinatesFromAddress(address);
-            if (geocodedLocation) {
-                gig.location = {
-                    type: "Point",
-                    coordinates: [geocodedLocation.lng, geocodedLocation.lat],
-                };
-                console.log("Address geocoded for gig update:", gig.location);
-            } else {
-                gig.location = null; // Clear location if geocoding fails
-                console.warn("Geocoding returned no coordinates for updated address:", address);
-            }
-        } catch (geocodeError) {
-            console.error("Geocoding failed for updated gig address:", address, geocodeError);
-            return res.status(500).json({ error: "Failed to geocode gig address" });
-        }
+      } catch (geocodeError) {
+        console.error("Geocoding failed for updated gig address:", address, geocodeError);
+        return res.status(500).json({ error: "Failed to geocode gig address" });
+      }
     }
 
     // ✅ SUBCATEGORY VALIDATION (if they are being updated)
@@ -537,31 +798,79 @@ export const updateGig = async (req, res, next) => {
     }
 
     // ✅ PRICING - New multi-option structure
+    const parseBool = (v) => v === true || v === "true";
+    const parseNum = (v) => {
+      if (v === undefined || v === null || v === "" || v === "NaN") return undefined;
+      const n = Number(v);
+      return isNaN(n) ? undefined : n;
+    };
+
+    // Convert to USD if needed before updating
+    let originalCurrency = pricingCurrency ? pricingCurrency.toUpperCase() : "USD";
+    let fxRate = gig.pricing.fxRate || 1.0;
+    
+    let isFixedProvided = fixedPrice !== undefined;
+    let isHourlyProvided = hourlyRate !== undefined;
+
+    let localFixedPrice = isFixedProvided ? parseNum(fixedPrice) : gig.pricing.originalFixedPrice;
+    let localHourlyRate = isHourlyProvided ? parseNum(hourlyRate) : gig.pricing.originalHourlyRate;
+
+    let finalFixedPrice = localFixedPrice;
+    let finalHourlyRate = localHourlyRate;
+
+    if (originalCurrency !== "USD") {
+      if (localFixedPrice !== undefined && localFixedPrice > 0) {
+        const fx = await FXService.convertToUSD(localFixedPrice, originalCurrency);
+        finalFixedPrice = fx.usdAmount;
+        fxRate = fx.rate;
+      }
+      if (localHourlyRate !== undefined && localHourlyRate > 0) {
+        const fx = await FXService.convertToUSD(localHourlyRate, originalCurrency);
+        finalHourlyRate = fx.usdAmount;
+        fxRate = fx.rate;
+      }
+    }
+
+    if (isFixedProvided || isHourlyProvided || originalCurrency !== gig.pricing.originalCurrency) {
+        gig.pricing.originalCurrency = originalCurrency;
+        gig.pricing.originalFixedPrice = localFixedPrice;
+        gig.pricing.originalHourlyRate = localHourlyRate;
+        gig.pricing.fxRate = fxRate;
+    }
+
     // Update fixed pricing
     if (fixedEnabled !== undefined) {
-      gig.pricing.fixed.enabled = fixedEnabled;
-      if (fixedEnabled && fixedPrice !== undefined) {
-        gig.pricing.fixed.price = fixedPrice;
+      const isFixed = parseBool(fixedEnabled);
+      gig.pricing.fixed.enabled = isFixed;
+      if (isFixed && finalFixedPrice !== undefined) {
+        gig.pricing.fixed.price = finalFixedPrice;
       }
-    } else if (fixedPrice !== undefined && gig.pricing.fixed.enabled) {
-      gig.pricing.fixed.price = fixedPrice;
+    } else if (finalFixedPrice !== undefined && gig.pricing.fixed.enabled) {
+      gig.pricing.fixed.price = finalFixedPrice;
     }
 
     // Update hourly pricing
     if (hourlyEnabled !== undefined) {
-      gig.pricing.hourly.enabled = hourlyEnabled;
-      if (hourlyEnabled) {
-        if (hourlyRate !== undefined) gig.pricing.hourly.rate = hourlyRate;
-        if (minHours !== undefined) gig.pricing.hourly.minHours = minHours;
+      const isHourly = parseBool(hourlyEnabled);
+      gig.pricing.hourly.enabled = isHourly;
+      if (isHourly && finalHourlyRate !== undefined) {
+        gig.pricing.hourly.rate = finalHourlyRate;
       }
-    } else if (gig.pricing.hourly.enabled) {
-      if (hourlyRate !== undefined) gig.pricing.hourly.rate = hourlyRate;
-      if (minHours !== undefined) gig.pricing.hourly.minHours = minHours;
+      if (isHourly && minHours !== undefined) {
+        gig.pricing.hourly.minHours = parseNum(minHours);
+      }
+    } else {
+      if (finalHourlyRate !== undefined && gig.pricing.hourly.enabled) {
+        gig.pricing.hourly.rate = finalHourlyRate;
+      }
+      if (minHours !== undefined && gig.pricing.hourly.enabled) {
+        gig.pricing.hourly.minHours = parseNum(minHours);
+      }
     }
 
     // Update inspection pricing
     if (inspectionEnabled !== undefined) {
-      gig.pricing.inspection.enabled = inspectionEnabled;
+      gig.pricing.inspection.enabled = parseBool(inspectionEnabled);
     }
 
     // ✅ IMAGES (raw JSON array of URLs)
@@ -572,12 +881,29 @@ export const updateGig = async (req, res, next) => {
       gig.images = req.files.map(file => ({ url: file.url }));
     }
 
+    if (title !== undefined || address !== undefined) {
+      const permalinkParts = await resolveGigPermalinkParts({
+        title: gig.title,
+        address: gig.address,
+        sellerId: gig.sellerId,
+        excludeGigId: gig._id,
+      });
+
+      gig.countrySlug = permalinkParts.countrySlug;
+      gig.serviceSlug = permalinkParts.serviceSlug;
+
+      const updatedPermalink = buildGigPermalink(permalinkParts);
+      if (previousPermalink && previousPermalink !== updatedPermalink) {
+        gig.permalinkAliases = [...new Set([...(gig.permalinkAliases || []), previousPermalink])];
+      }
+    }
+
     await gig.save();
     await gig.populate("sellerId", "name bio skills");
 
     res.json({
       message: "Gig updated successfully",
-      gig,
+      gig: attachGigPermalink(gig.toObject()),
     });
   } catch (error) {
     console.error("Update Gig Error:", error.message);
@@ -599,20 +925,51 @@ export const getGigById = asyncHandler(async (req, res) => {
 
   // CRITICAL: Validate gig is active and seller is verified
   if (gig.status !== "active") {
-    return res.status(404).json({ 
-      success: false, 
-      message: "Gig not available" 
+    return res.status(404).json({
+      success: false,
+      message: "Gig not available"
     });
   }
 
   if (!gig.sellerId || gig.sellerId.verificationStatus !== "approved") {
-    return res.status(404).json({ 
-      success: false, 
-      message: "Gig not available" 
+    return res.status(404).json({
+      success: false,
+      message: "Gig not available"
     });
   }
 
-  res.json({ success: true, gig });
+  res.json({ success: true, gig: attachGigPermalink(gig.toObject()) });
+});
+
+export const getGigByPermalink = asyncHandler(async (req, res) => {
+  const countrySlug = toSlug(req.params.countrySlug, "global");
+  const serviceSlug = toSlug(req.params.serviceSlug, "service");
+  const requestedPath = buildGigPermalink({ countrySlug, serviceSlug });
+
+  let gig = await Gig.findOne({
+    countrySlug,
+    serviceSlug,
+    status: "active",
+  }).populate("sellerId", "name profilePicture availability verificationStatus");
+
+  let redirected = false;
+  if (!gig) {
+    gig = await Gig.findOne({
+      permalinkAliases: requestedPath,
+      status: "active",
+    }).populate("sellerId", "name profilePicture availability verificationStatus");
+    redirected = Boolean(gig);
+  }
+
+  if (!gig || !gig.sellerId || gig.sellerId.verificationStatus !== "approved") {
+    return res.status(404).json({ success: false, message: "Gig not found" });
+  }
+
+  return res.json({
+    success: true,
+    redirected,
+    gig: attachGigPermalink(gig.toObject()),
+  });
 });
 
 // ✅ NEW: DELETE GIG (Add this)

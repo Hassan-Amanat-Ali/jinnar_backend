@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { toSlug } from "../utils/permalink.js";
 
 const pointSchema = new mongoose.Schema(
   {
@@ -29,6 +30,22 @@ const gigSchema = new mongoose.Schema(
       required: [true, "Gig title is required"],
       trim: true,
       maxlength: [100, "Title cannot exceed 100 characters"],
+    },
+    countrySlug: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      index: true,
+    },
+    serviceSlug: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      index: true,
+    },
+    permalinkAliases: {
+      type: [String],
+      default: [],
     },
     description: {
       type: String,
@@ -99,6 +116,22 @@ const gigSchema = new mongoose.Schema(
           default: true, // Inspection is always available by default
         },
       },
+      originalCurrency: {
+        type: String,
+        default: null, // e.g. "KES", "TZS", "USD"
+      },
+      originalFixedPrice: {
+        type: Number,
+        default: null,
+      },
+      originalHourlyRate: {
+        type: Number,
+        default: null,
+      },
+      fxRate: {
+        type: Number,
+        default: null, // 1 USD = X local
+      },
     },
     category: {
       type: mongoose.Schema.Types.ObjectId, 
@@ -122,6 +155,21 @@ const gigSchema = new mongoose.Schema(
 );
 
 gigSchema.index({ location: "2dsphere" });
+gigSchema.index({ countrySlug: 1, serviceSlug: 1 }, { unique: true, sparse: true });
+gigSchema.index({ permalinkAliases: 1 });
+
+// Ensure service slug always follows lowercase-hyphen rules.
+gigSchema.pre("validate", function (next) {
+  if (!this.serviceSlug || (this.isModified("title") && !this.isModified("serviceSlug"))) {
+    this.serviceSlug = toSlug(this.title, "service");
+  } else {
+    this.serviceSlug = toSlug(this.serviceSlug, "service");
+  }
+  if (Array.isArray(this.permalinkAliases)) {
+    this.permalinkAliases = [...new Set(this.permalinkAliases.filter(Boolean))];
+  }
+  next();
+});
 
 // Validation: At least one pricing option must be enabled
 gigSchema.pre('save', function(next) {

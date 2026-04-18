@@ -4,27 +4,32 @@ import dotenv from "dotenv";
 dotenv.config();
 
 /**
- * Sends a push notification using Firebase Admin SDK
- * @param {string} token - recipient device FCM token
+ * Sends a push notification using Firebase Admin SDK to one or more devices.
+ * @param {string|string[]} tokens - recipient device FCM token(s)
  * @param {string} title - notification title
  * @param {string} body - notification body
  * @param {object} [data] - optional custom payload
  */
-export const sendPushNotification = async (token, title, body, data = {}) => {
+export const sendPushNotification = async (tokens, title, body, data = {}) => {
   try {
     const stringData = {};
     Object.keys(data).forEach(key => {
       stringData[key] = data[key] === null ? "" : String(data[key]);
     });
 
+    const tokenArray = Array.isArray(tokens) ? tokens : [tokens];
+    const validTokens = tokenArray.filter(t => !!t);
+
+    if (validTokens.length === 0) return;
+
     const message = {
-      token,
+      tokens: validTokens,
       notification: { title, body },
       data: stringData,
     };
 
-    const response = await admin.messaging().send(message);
-    console.log("✅ Push notification sent:", response);
+    const response = await admin.messaging().sendEachForMulticast(message);
+    console.log(`✅ Push notification sent. Successes: ${response.successCount}, Failures: ${response.failureCount}`);
 
   } catch (error) {
     console.error("❌ Error sending FCM push:", error);

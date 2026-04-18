@@ -34,6 +34,7 @@ const folderMap = {
   certificates: "certificates",
   identityDocument: "identity",
   attachment: "chat",
+  blog_images: "blogs",
 };
 
 // ----------------------
@@ -62,6 +63,7 @@ const fileFilter = (req, file, cb) => {
     certificates: ["application/pdf"],
     identityDocument: ["application/pdf", "image/jpeg", "image/png"],
     attachment: ["image/jpeg", "image/png", "application/pdf", "video/mp4"],
+    blog_images: ["image/jpeg", "image/png", "image/gif"],
   };
 
   if (allowedTypes[file.fieldname]?.includes(file.mimetype)) {
@@ -142,10 +144,10 @@ export const compressFiles = async (req, res, next) => {
       try {
         // Attempt compression based on file field
         if (
-          ["profilePicture", "otherImages", "portfolioImages", "gigImage"].includes(
+          ["profilePicture", "otherImages", "portfolioImages", "gigImage", "blog_images"].includes(
             file.fieldname,
           ) ||
-          file.fieldname === "gig_images" // And here
+          file.fieldname === "gig_images"
         ) {
           await compressImage(original, compressed);
         } else if (file.fieldname === "videos") {
@@ -253,5 +255,10 @@ export const uploadChatAttachmentMW = [upload.single("attachment"), compressFile
 
 export const uploadIdentityDocumentMW = [
   upload.single("identityDocument"),
+  compressFiles,
+];
+
+export const uploadBlogImagesMW = [
+  upload.array("blog_images", 10),
   compressFiles,
 ];

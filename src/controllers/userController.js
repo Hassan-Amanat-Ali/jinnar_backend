@@ -1094,37 +1094,47 @@ export const getPublicProfile = async (req, res) => {
 export const updateFcmToken = async (req, res) => {
   try {
     const { token, deviceInfo = null } = req.body;
-    const userId = req.user.id; // from JWT middleware
+    
+    // Ensure we safely get the user ID using _id which is directly available on the Mongoose document
+    const userId = req.user && (req.user._id || req.user.id);
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized - User ID not found in request" });
+    }
 
     if (!token) {
       return res.status(400).json({ message: "FCM token is required" });
     }
 
-    // Perform an atomic update to prevent race conditions (VersionError)
+    // The frontend sends `deviceInfo` as an object, but the Mongoose schema expects a String.
+    // We stringify it here to avoid a CastError: Cast to embedded failed.
+    let safeDeviceInfo = deviceInfo;
+    if (deviceInfo && typeof deviceInfo === 'object') {
+      safeDeviceInfo = JSON.stringify(deviceInfo);
+    }
+
+    // Step 1: Remove any existing token matching this string
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       {
-        // 1. Atomically remove any existing entries with the same token.
-        // This prevents duplicates if the token already exists for a different device.
         $pull: { fcmTokens: { token: token } },
       },
-      { new: false }, // We don't need the result of this query
+      { new: true } // Let's return the new document to ensure it's valid
     );
 
     if (!updatedUser) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // 2. Atomically add the new token to the set.
-    // `$addToSet` ensures no duplicates of the exact same token/deviceInfo object are added.
+    // Step 2: Add the new token
     await User.findByIdAndUpdate(userId, {
-      $addToSet: { fcmTokens: { token, deviceInfo, createdAt: new Date() } },
+      $push: { fcmTokens: { token, deviceInfo: safeDeviceInfo, createdAt: new Date() } },
     });
 
-    res.json({ message: "FCM token updated successfully" });
+    res.status(200).json({ message: "FCM token updated successfully" });
   } catch (err) {
-    console.error("Error updating FCM token:", err);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("Error updating FCM token:", err.message, err.stack);
+    res.status(500).json({ message: "Internal server error", error: err.message });
   }
 };
 // controllers/userController.js
@@ -1262,11 +1272,17 @@ export const getSellerReviews = async (req, res) => {
 export const deleteUserForTesting = async (req, res) => {
   // IMPORTANT: This endpoint should ONLY be available in a test/development environment
   // and ideally protected by an admin role or a specific test API key.
-  if (process.env.NODE_ENV !== 'test' && process.env.NODE_ENV !== 'development') {
-    return res.status(403).json({ error: "This endpoint is for testing purposes only and is not available in production." });
+  if (
+    process.env.NODE_ENV !== "test" &&
+    process.env.NODE_ENV !== "development"
+  ) {
+    return res.status(403).json({
+      error:
+        "This endpoint is for testing purposes only and is not available in production.",
+    });
   }
 
-  const { id: userId } = req.params; 
+  const { id: userId } = req.params;
 
   if (!userId) {
     return res.status(400).json({ error: "User ID is required for deletion." });
@@ -1288,22 +1304,37 @@ export const deleteUserForTesting = async (req, res) => {
 
     // 2. Delete all associated data
     await Gig.deleteMany({ sellerId: userId });
-    await Order.deleteMany({ $or: [{ buyerId: userId }, { sellerId: userId }] });
+    await Order.deleteMany({
+      $or: [{ buyerId: userId }, { sellerId: userId }],
+    });
     await Transaction.deleteMany({ userId: userId });
     await Wallet.deleteMany({ userId: userId });
-    await Report.deleteMany({ $or: [{ reporterId: userId }, { reportedUserId: userId }] });
-    await Review.deleteMany({ $or: [{ buyerId: userId }, { sellerId: userId }] });
+    await Report.deleteMany({
+      $or: [{ reporterId: userId }, { reportedUserId: userId }],
+    });
+    await Review.deleteMany({
+      $or: [{ buyerId: userId }, { sellerId: userId }],
+    });
     await Enrollment.deleteMany({ userId: userId });
     await LectureProgress.deleteMany({ userId: userId });
     await SupportTicket.deleteMany({
-      $or: [{ user: userId }, { 'guestInfo.email': userEmail }, { 'guestInfo.phone': userMobileNumber }]
+      $or: [
+        { user: userId },
+        { "guestInfo.email": userEmail },
+        { "guestInfo.phone": userMobileNumber },
+      ],
     });
 
     console.log(`User ${userId} and all associated data deleted for testing.`);
-    res.status(200).json({ message: `User ${userId} and all associated data deleted successfully.` });
+    res.status(200).json({
+      message: `User ${userId} and all associated data deleted successfully.`,
+    });
   } catch (error) {
     console.error(`Error deleting user ${userId} for testing:`, error);
-    res.status(500).json({ error: "Failed to delete user and associated data.", details: error.message });
+    res.status(500).json({
+      error: "Failed to delete user and associated data.",
+      details: error.message,
+    });
   }
 };
 

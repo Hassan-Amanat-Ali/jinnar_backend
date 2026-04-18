@@ -12,19 +12,53 @@ const deleteFileFromStorage = async (url) => {
   if (!url) return;
 
   try {
-    // The URL is assumed to be in the format: http://<host>:<port>/uploads/<filename>
-    // We need to extract the relative path '/uploads/<filename>'
-    const urlPath = new URL(url).pathname; // e.g., '/uploads/image-123.jpg'
+    // 1. Extract the pathname from the URL
+    // e.g., 'http://localhost:3000/api/files/identity/uuid.jpg' -> '/api/files/identity/uuid.jpg'
+    const urlPath = new URL(url, "http://localhost").pathname; 
 
-    // Construct the absolute path to the file on the server's local filesystem.
-    // This assumes your static files are served from a directory named 'uploads' at the project root.
-    const __dirname = path.dirname(fileURLToPath(import.meta.url));
-    const filePath = path.join(__dirname, "..", "..", urlPath); // Go up two directories from src/controllers to the root
+    //Our standard URLs are /api/files/:folder/:filename
+    //However, we should be robust to other formats like /uploads/:folder/:filename
+    const parts = urlPath.split("/").filter(Boolean);
+    const filename = parts.pop();
+    
+    // The folder is the part immediately preceding the filename
+    // If the path was just /uploads/file.jpg, parts.pop() would give 'uploads'
+    const folder = parts.length > 0 ? parts.pop() : "misc";
 
-    await fs.unlink(filePath);
-    console.log(`Successfully deleted file: ${filePath}`);
+    if (!filename) {
+        console.warn(`[Delete] Could not extract filename from URL: ${url}`);
+        return;
+    }
+
+    // 3. Sanitize inputs
+    const sanitizedFilename = path.basename(filename);
+    const sanitizedFolder = path.basename(folder);
+
+    // 4. Construct absolute path
+    // If folder is 'uploads', it means the file was likely in the root of uploads
+    const filePath = sanitizedFolder === "uploads" 
+        ? path.join(process.cwd(), "uploads", sanitizedFilename)
+        : path.join(process.cwd(), "uploads", sanitizedFolder, sanitizedFilename);
+
+    // 5. Security: Ensure the path is strictly inside the 'uploads' directory
+    const resolvedPath = path.resolve(filePath);
+    const uploadsDir = path.resolve(process.cwd(), "uploads");
+
+    if (!resolvedPath.startsWith(uploadsDir)) {
+      console.error(`🛑 Security Alert: Attempted path traversal in deletion for URL: ${url}`);
+      return;
+    }
+
+    // Check if file exists before trying to delete
+    try {
+        await fs.access(resolvedPath);
+        await fs.unlink(resolvedPath);
+        console.log(`Successfully deleted file: ${sanitizedFilename} from ${sanitizedFolder}`);
+    } catch (accessErr) {
+        // File doesn't exist, which is fine (idempotent behavior)
+        if (accessErr.code !== 'ENOENT') throw accessErr;
+    }
   } catch (err) {
-    // If the file doesn't exist or another error occurs, log it but don't crash the request.
     console.error(`Error deleting file for URL ${url}:`, err.message);
   }
 };

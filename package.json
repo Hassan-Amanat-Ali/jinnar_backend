@@ -9,7 +9,9 @@
     "dev": "nodemon src/index.js",
     "lint": "eslint src/**/*.js",
     "format": "prettier --write src/**/*.js",
-    "validate-swagger": "node -e \"require('swagger-parser').validate('/src/config/swagger.yaml').then(() => console.log('Valid Swagger')).catch(err => console.error(err))\""
+    "validate-swagger": "node -e \"require('swagger-parser').validate('/src/config/swagger.yaml').then(() => console.log('Valid Swagger')).catch(err => console.error(err))\"",
+    "migrate:permalinks": "node scripts/migratePermalinks.js",
+    "migrate:permalinks:apply": "node scripts/migratePermalinks.js --apply"
   },
   "keywords": [],
   "author": "",
@@ -27,6 +29,7 @@
     "cloudinary": "^2.8.0",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
+    "decimal.js": "^10.6.0",
     "dotenv": "^17.2.3",
     "eslint": "^9.39.1",
     "express": "^5.1.0",

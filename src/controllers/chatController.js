@@ -87,7 +87,7 @@ class ChatController {
         "message", // Type
         `New message from ${populatedMessage.sender.name}: ${notifContent}`, // Content
         newMessage._id, // Related ID
-        "Message" // Related Model
+        "Message",
       );
 
       return res.json({
@@ -125,12 +125,10 @@ class ChatController {
       }
 
       if (isNaN(price) || price <= 0) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: "Price must be a positive number.",
-          });
+        return res.status(400).json({
+          success: false,
+          message: "Price must be a positive number.",
+        });
       }
 
       // 2. Verify Gig
@@ -141,12 +139,10 @@ class ChatController {
           .json({ success: false, message: "Gig not found." });
       }
       if (gig.sellerId.toString() !== sellerId) {
-        return res
-          .status(403)
-          .json({
-            success: false,
-            message: "You can only create offers for your own gigs.",
-          });
+        return res.status(403).json({
+          success: false,
+          message: "You can only create offers for your own gigs.",
+        });
       }
 
       // 3. Create the Order document with 'offer_pending' status
@@ -157,9 +153,9 @@ class ChatController {
         price,
         jobDescription,
         date,
-        selectedPricingMethod: "inspection", 
+        selectedPricingMethod: "inspection",
         status: "offer_pending",
-        offerFrom: sellerId, 
+        offerFrom: sellerId,
       });
 
       // 4. Create the special Message document
@@ -192,7 +188,10 @@ class ChatController {
         // Update chat list preview for both parties so sidebar updates immediately
         const preview = {
           userId:
-            sellerId === (populatedMessage.sender?._id || populatedMessage.sender)?._id?.toString()
+            sellerId ===
+            (
+              populatedMessage.sender?._id || populatedMessage.sender
+            )?._id?.toString()
               ? populatedMessage.receiver._id
               : populatedMessage.sender._id,
           lastMessage: populatedMessage.message || "Custom offer",
@@ -221,7 +220,7 @@ class ChatController {
         "booking",
         `${sellerName} sent you a custom offer of ${price} for "${gig.title}".`,
         newOrder._id,
-        "Order"
+        "Order",
       );
       console.log(populatedMessage);
 
@@ -259,7 +258,7 @@ class ChatController {
       // Mark as read
       await Message.updateMany(
         { sender: otherUserId, receiver: userId, isRead: false },
-        { isRead: true }
+        { isRead: true },
       );
 
       return res.json({ success: true, messages });

@@ -4,7 +4,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import SupportTicket from "../models/SupportTicket.js"; 
 import { configDotenv } from "dotenv";
 import User from "../models/User.js";
-import { sendPushNotification } from "./pushNotificationService.js";
+import { sendNotification } from "../controllers/notificationController.js";
 // Assuming 'response-templates.json' is accessible
 import templatesData from './responses-templates.json' with { type: 'json' };
 
@@ -213,13 +213,14 @@ export const autoAssignTicket = async (ticketId) => {
     await ticket.save();
     console.log(`🤖 Auto-assigned Ticket ${ticket.ticketId} to Agent ${bestAgent.name} (Active Tickets: ${bestAgent.openTicketCount})`);
 
-    if (bestAgent.fcmTokens?.length > 0) {
-      const notification = {
-        title: "New Ticket Assigned",
-        body: `You have been automatically assigned ticket #${ticket.ticketId}.`,
-        data: { ticketId: ticket._id.toString() },
-      };
-      bestAgent.fcmTokens.forEach(tokenInfo => sendPushNotification(tokenInfo.token, notification));
+    if (bestAgent) {
+      await sendNotification(
+        bestAgent._id,
+        "system",
+        `You have been automatically assigned ticket #${ticket.ticketId}.`,
+        ticket._id,
+        "SupportTicket" // Need to make sure this is supported if possible, otherwise null
+      );
     }
   } catch (error) {
     console.error("❌ Auto-assignment failed:", error.message);

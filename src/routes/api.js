@@ -3,7 +3,7 @@ import pawapayCallbackRoutes from "./pawapayCallback.js";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "../config/swagger.js";
 import { serveFile } from "../controllers/fileController.js"; // ✅ Import the new file server
-import courseRoutes  from "./publicCourseRoutes.js"
+import courseRoutes from "./publicCourseRoutes.js"
 import authRoutes from "./auth.js";
 import userRoutes from "./user.js";
 import notificationRoutes from "./notification.js";
@@ -25,6 +25,9 @@ import systemConfigRoutes from "./systemConfig.js";
 import enrollmentRoutes from "./enrollmentRoutes.js";
 import courseUploadRoutes from "./courseUploadRoutes.js";
 import viralRoutes from "./viral.js";
+// import adminBlogRoutes from "./adminBlogRoutes.js"; // Import the new admin blog routes
+import blogRoutes from "./blogRoutes.js";
+import fxRoutes from "./fx.js";
 // import { checkMaintenanceMode } from "../middleware/maintenance.js";
 
 const router = express.Router();
@@ -55,14 +58,17 @@ router.use("/support", supportRoutes);
 router.use("/admin", adminRoutes);
 router.use("/payment", paymentRoutes);
 router.use("/config", systemConfigRoutes);
+router.use("/fx", fxRoutes);
 
 router.use("/gigs", gigRoutes);
 router.use("/categories", categoryRoutes);
 router.use("/faq", faqRoutes);
 router.use("/enrollments", enrollmentRoutes);
+// router.use("/admin/blogs", adminBlogRoutes); // Mount the new admin blog routes
 
 //Viral.Jinnar
 router.use("/viral", viralRoutes);
+router.use("/blogs", blogRoutes);
 
 
 //Training Jinnar

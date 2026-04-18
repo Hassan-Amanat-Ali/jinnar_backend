@@ -1,6 +1,7 @@
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import Message from "./models/Message.js";
+import { sendNotification } from "./controllers/notificationController.js";
 
 const setupSocket = (server) => {
   const io = new Server(server, {
@@ -86,6 +87,21 @@ const setupSocket = (server) => {
 
         updateChatListForBoth(senderId, receiverId, populated);
 
+        // --- SEND NOTIFICATION (Push + Email) ---
+        const notifContent = populated.message
+          ? populated.message.length > 50
+            ? populated.message.substring(0, 50) + "..."
+            : populated.message
+          : "Sent an attachment";
+
+        await sendNotification(
+          receiverId,
+          "message",
+          `New message from ${populated.sender.name}: ${notifContent}`,
+          newMessage._id,
+          "Message"
+        );
+
         callback?.({ status: "ok", data: populated });
       } catch (err) {
         console.error(`[Socket] sendMessage error: ${err.message}`);
@@ -130,6 +146,15 @@ const setupSocket = (server) => {
         io.to(senderId).emit("newOffer", populated);
 
         updateChatListForBoth(senderId, receiverId, populated);
+
+        // --- SEND NOTIFICATION (Push + Email) ---
+        await sendNotification(
+          receiverId,
+          "booking",
+          `${populated.sender.name} sent you a custom offer of ${price}.`,
+          newOfferMessage._id,
+          "Message" // Or use "Order" if you create an order here, but currently it's just a message with customOffer
+        );
 
         callback?.({ status: "ok", data: populated, tempId });
       } catch (err) {

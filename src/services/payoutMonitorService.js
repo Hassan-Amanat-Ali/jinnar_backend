@@ -1,6 +1,7 @@
 import Transaction from "../models/Transaction.js";
 import Wallet from "../models/Wallet.js";
 import PawaPayService from "./pawapayService.js";
+import Decimal from "decimal.js";
 import logger from "../utils/logger.js";
 
 /**
@@ -213,38 +214,45 @@ class PayoutMonitorService {
    * @param {Object} wallet - Wallet document
    */
   async applyPayoutEffect(transaction, status, wallet) {
-    const amount = transaction.amount;
+    const usdAmount = Number(transaction.amount || 0);
     const transactionId = transaction._id;
     const payoutId = transaction.pawapayPayoutId;
 
     try {
       if (status === "completed") {
-        // Payout completed - balance should already be deducted when initiated
-        // Just ensure applied flag is set
+        // Payout completed — release hold (funds were moved from balance
+        // to onHoldBalance when payout was initiated)
         if (!transaction.applied) {
+          wallet.onHoldBalance = Number(
+            new Decimal(wallet.onHoldBalance || 0).minus(usdAmount).toFixed(2),
+          );
           transaction.applied = true;
           await transaction.save();
           console.log(
-            `    💰 [COMPLETED] Amount ${amount} confirmed deducted. Applied=true`
+            `    💰 [COMPLETED] Released hold of ${usdAmount} USD. Applied=true`,
           );
           logger.info(
-            `[COMPLETED] Payout ${payoutId}: Amount ${amount} confirmed deducted from wallet. Applied=true`,
+            `[COMPLETED] Payout ${payoutId}: Released hold of ${usdAmount} USD. Applied=true`,
           );
         } else {
           console.log(
-            `    ℹ️  [COMPLETED] Already marked as applied`
+            `    ℹ️  [COMPLETED] Already marked as applied`,
           );
           logger.debug(
             `[COMPLETED] Payout ${payoutId}: Already marked as applied`,
           );
         }
       } else if (status === "failed") {
-        // Payout failed - refund money back to wallet if not already refunded
+        // Payout failed — refund from onHoldBalance back to available balance
         if (!transaction.applied) {
           const balanceBefore = wallet.balance;
 
-          // Add money back to balance
-          wallet.balance += amount;
+          wallet.onHoldBalance = Number(
+            new Decimal(wallet.onHoldBalance || 0).minus(usdAmount).toFixed(2),
+          );
+          wallet.balance = Number(
+            new Decimal(wallet.balance || 0).plus(usdAmount).toFixed(2),
+          );
 
           // Update the wallet transaction status to failed
           const walletTx = wallet.transactions.find(
@@ -260,31 +268,31 @@ class PayoutMonitorService {
           await transaction.save();
 
           console.log(
-            `    🔄 [FAILED] Refunded ${amount} back to wallet. Balance: ${balanceBefore} → ${wallet.balance}`
+            `    🔄 [FAILED] Refunded ${usdAmount} USD back to wallet. Balance: ${balanceBefore} → ${wallet.balance}`,
           );
           logger.info(
-            `[FAILED] Payout ${payoutId}: Refunded ${amount} back to wallet. Balance: ${balanceBefore} → ${wallet.balance}`,
+            `[FAILED] Payout ${payoutId}: Refunded ${usdAmount} USD back to wallet. Balance: ${balanceBefore} → ${wallet.balance}`,
           );
         } else {
           console.log(
-            `    ℹ️  [FAILED] Already marked as applied (refund already processed)`
+            `    ℹ️  [FAILED] Already marked as applied (refund already processed)`,
           );
           logger.debug(
             `[FAILED] Payout ${payoutId}: Already marked as applied (refund already processed)`,
           );
         }
       } else if (status === "pending") {
-        // Still pending - no balance changes
+        // Still pending — funds remain on hold, no balance changes
         console.log(
-          `    ⏳ [PENDING] Amount ${amount} held in wallet - awaiting confirmation`
+          `    ⏳ [PENDING] ${usdAmount} USD on hold — awaiting confirmation`,
         );
         logger.debug(
-          `[PENDING] Payout ${payoutId}: Amount ${amount} held in wallet - awaiting confirmation`,
+          `[PENDING] Payout ${payoutId}: ${usdAmount} USD on hold — awaiting confirmation`,
         );
       }
     } catch (error) {
       console.error(
-        `    ❌ Error applying payout effect: ${error.message}`
+        `    ❌ Error applying payout effect: ${error.message}`,
       );
       logger.error(
         `Error applying payout effect for transaction ${transactionId}: ${error.message}`,

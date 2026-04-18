@@ -199,7 +199,8 @@ app.post('/api/webhooks/didit', express.raw({ type: 'application/json' }), async
   }
 });
 
-app.use(express.json());
+// Increase the limit for JSON bodies to allow larger blog content
+app.use(express.json({ limit: '50mb' }));
 // for parsing application/xwww-form-urlencoded
 app.use(
   bodyParser.urlencoded({

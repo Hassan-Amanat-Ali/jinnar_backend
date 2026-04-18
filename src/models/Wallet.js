@@ -7,7 +7,10 @@ const walletTransactionSchema = new mongoose.Schema({
     enum: ["deposit", "withdrawal", "order_earned", "order_paid"],
     required: true,
   },
-  amount: { type: Number, required: true },
+  amount: { type: Number, required: true }, // Always in USD (base currency)
+  localAmount: { type: Number, default: null }, // Original local currency amount
+  fxRate: { type: Number, default: null }, // 1 USD = X local
+  currency: { type: String, default: null }, // Original local currency code
   status: {
     type: String,
     enum: ["pending", "completed", "failed"],
@@ -38,8 +41,9 @@ const walletSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    balance: { type: Number, default: 0 },
-    onHoldBalance: { type: Number, default: 0 },
+    balance: { type: Number, default: 0 }, // Always in USD
+    currency: { type: String, default: "USD" }, // Wallet base currency
+    onHoldBalance: { type: Number, default: 0 }, // Funds reserved for pending payouts
     transactions: [walletTransactionSchema],
   },
   { timestamps: true },
