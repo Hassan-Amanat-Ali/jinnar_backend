@@ -3,7 +3,10 @@ import Submission from "../models/Submission.js";
 import Post from "../models/Post.js";
 import Reward from "../models/Reward.js";
 import User from "../models/User.js";
+import Wallet from "../models/Wallet.js";
 import mongoose from "mongoose";
+import Decimal from "decimal.js";
+import { sendNotification } from "./notificationController.js";
 
 // ==================== DRAWS (Public) ====================
 
@@ -18,7 +21,7 @@ export const listDraws = async (req, res, next) => {
     }
     const draws = await Draw.find(filter)
       .sort({ startDate: 1 })
-      .select("title theme hashtags startDate endDate prizePool status")
+      .select("title theme hashtags startDate endDate prizePool rewardBannerImageUrl status")
       .lean();
     res.json({ success: true, data: draws });
   } catch (err) {
@@ -77,6 +80,30 @@ export const updateDraw = async (req, res, next) => {
     if (!draw) {
       return res.status(404).json({ success: false, error: "Draw not found" });
     }
+    res.json({ success: true, data: draw });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const uploadDrawBanner = async (req, res, next) => {
+  try {
+    const { drawId } = req.params;
+    const imageUrl = req.file ? `/${req.file.path.replace(/\\/g, "/")}` : null;
+    if (!imageUrl) {
+      return res.status(400).json({ success: false, error: "Image file is required" });
+    }
+
+    const draw = await Draw.findByIdAndUpdate(
+      drawId,
+      { rewardBannerImageUrl: imageUrl },
+      { new: true, runValidators: true },
+    );
+
+    if (!draw) {
+      return res.status(404).json({ success: false, error: "Draw not found" });
+    }
+
     res.json({ success: true, data: draw });
   } catch (err) {
     next(err);
@@ -353,6 +380,15 @@ async function updateUserTotalPoints(userId) {
   await User.findByIdAndUpdate(userId, { totalPoints });
 }
 
+async function getOrCreateWallet(userId, session) {
+  let wallet = await Wallet.findOne({ userId }).session(session);
+  if (!wallet) {
+    wallet = await Wallet.create([{ userId, balance: 0 }], { session });
+    wallet = wallet[0];
+  }
+  return wallet;
+}
+
 // ==================== LEADERBOARD ====================
 
 export const getLeaderboard = async (req, res, next) => {
@@ -487,8 +523,23 @@ export const getMyPoints = async (req, res, next) => {
 
 export const getWinners = async (req, res, next) => {
   try {
-    const rewards = await Reward.find({ drawId: req.params.drawId })
+    const rewards = await Reward.find({
+      drawId: req.params.drawId,
+      $or: [{ approvalStatus: "approved" }, { approvalStatus: { $exists: false } }],
+    })
       .populate("winnerUserId", "name profilePicture country")
+      .sort({ rank: 1 })
+      .lean();
+    res.json({ success: true, data: rewards });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getAdminWinners = async (req, res, next) => {
+  try {
+    const rewards = await Reward.find({ drawId: req.params.drawId })
+      .populate("winnerUserId", "name profilePicture country email")
       .sort({ rank: 1 })
       .lean();
     res.json({ success: true, data: rewards });
@@ -499,11 +550,33 @@ export const getWinners = async (req, res, next) => {
 
 export const getMyRewards = async (req, res, next) => {
   try {
-    const rewards = await Reward.find({ winnerUserId: req.user._id })
-      .populate("drawId", "title endDate")
-      .sort({ createdAt: -1 })
-      .lean();
-    res.json({ success: true, data: rewards });
+    const userId = req.user._id;
+
+    const [activeRewards, rejectionRewards] = await Promise.all([
+      Reward.find({ winnerUserId: userId })
+        .populate("drawId", "title endDate rewardBannerImageUrl")
+        .sort({ createdAt: -1 })
+        .lean(),
+      Reward.find({ "reviewHistory.userId": userId })
+        .populate("drawId", "title endDate rewardBannerImageUrl")
+        .sort({ createdAt: -1 })
+        .lean(),
+    ]);
+
+    const rejections = rejectionRewards.flatMap((reward) => {
+      const entries = Array.isArray(reward.reviewHistory) ? reward.reviewHistory : [];
+      return entries
+        .filter((h) => h?.action === "rejected" && h?.userId?.toString?.() === userId.toString())
+        .map((h) => ({
+          drawId: reward.drawId?._id || reward.drawId,
+          drawTitle: reward.drawId?.title || null,
+          rank: reward.rank,
+          reason: h.reason,
+          at: h.at,
+        }));
+    });
+
+    res.json({ success: true, data: { activeRewards, rejections } });
   } catch (err) {
     next(err);
   }
@@ -589,6 +662,23 @@ export const createRewards = async (req, res, next) => {
     if (!Array.isArray(rewards) || rewards.length === 0) {
       return res.status(400).json({ success: false, error: "Body must be an array of { rank, rewardType, amount }" });
     }
+
+    const draw = await Draw.findById(drawId).select("prizePool").lean();
+    if (!draw) {
+      return res.status(404).json({ success: false, error: "Draw not found" });
+    }
+
+    const newTotal = rewards.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+    const existing = await Reward.find({ drawId }).select("amount").lean();
+    const existingTotal = existing.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+    const combined = existingTotal + newTotal;
+    if (combined > Number(draw.prizePool || 0)) {
+      return res.status(400).json({
+        success: false,
+        error: `Total rewards (${combined}) exceed draw prizePool (${draw.prizePool})`,
+      });
+    }
+
     const created = await Reward.insertMany(
       rewards.map((r) => ({ drawId, rank: r.rank, rewardType: r.rewardType, amount: r.amount }))
     );
@@ -617,9 +707,16 @@ export const closeDraw = async (req, res, next) => {
       const winner = leaderboard[reward.rank - 1];
       if (winner) {
         reward.winnerUserId = winner._id;
-        reward.status = "pending";
-        await reward.save();
+      } else {
+        reward.winnerUserId = null;
       }
+
+      reward.approvalStatus = "pending";
+      reward.approvedBy = null;
+      reward.approvedAt = null;
+      reward.walletTransactionId = null;
+      reward.status = "pending";
+      await reward.save();
     }
 
     draw.status = "closed";
@@ -628,6 +725,185 @@ export const closeDraw = async (req, res, next) => {
     res.json({ success: true, data: draw, message: "Draw closed and winners assigned" });
   } catch (err) {
     next(err);
+  }
+};
+
+export const approveReward = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { rewardId } = req.params;
+    const { note } = req.body || {};
+
+    const reward = await Reward.findById(rewardId).session(session);
+    if (!reward) {
+      await session.abortTransaction();
+      return res.status(404).json({ success: false, error: "Reward not found" });
+    }
+
+    if (!reward.winnerUserId) {
+      await session.abortTransaction();
+      return res.status(400).json({ success: false, error: "Cannot approve a reward without a winner" });
+    }
+
+    if (reward.approvalStatus === "approved" || reward.status === "paid") {
+      await session.abortTransaction();
+      return res.status(409).json({ success: false, error: "Reward already approved/paid" });
+    }
+
+    const draw = await Draw.findById(reward.drawId).session(session).select("title").lean();
+
+    reward.approvalStatus = "approved";
+    reward.approvedBy = req.user._id;
+    reward.approvedAt = new Date();
+    reward.approvalNote = typeof note === "string" && note.trim() ? note.trim() : null;
+
+    if (reward.rewardType === "cash" && Number(reward.amount || 0) > 0) {
+      const wallet = await getOrCreateWallet(reward.winnerUserId, session);
+
+      wallet.transactions.push({
+        type: "draw_reward",
+        amount: Number(reward.amount),
+        status: "completed",
+        description: `Draw reward: ${draw?.title || reward.drawId} (rank ${reward.rank})`,
+      });
+      const embeddedTx = wallet.transactions[wallet.transactions.length - 1];
+
+      wallet.balance = Number(
+        new Decimal(wallet.balance || 0).plus(Number(reward.amount)).toFixed(2),
+      );
+
+      await wallet.save({ session });
+
+      reward.walletTransactionId = embeddedTx?._id || null;
+      reward.status = "paid";
+    }
+
+    await reward.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    // Notify winner (outside transaction)
+    const rewardMessage =
+      reward.rewardType === "cash"
+        ? `Congratulations! You have been approved as a winner for "${draw?.title || "a draw"}" (rank ${reward.rank}). Reward: ${reward.amount} USD credited to your wallet.`
+        : `Congratulations! You have been approved as a winner for "${draw?.title || "a draw"}" (rank ${reward.rank}).`;
+
+    await sendNotification(reward.winnerUserId, "system", rewardMessage, reward._id, "Reward");
+
+    return res.json({ success: true, data: reward });
+  } catch (err) {
+    try {
+      await session.abortTransaction();
+    } catch (_) {
+      // ignore
+    }
+    session.endSession();
+    return next(err);
+  }
+};
+
+export const rejectReward = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { rewardId } = req.params;
+    const { reason } = req.body || {};
+    if (!reason || typeof reason !== "string" || !reason.trim()) {
+      await session.abortTransaction();
+      return res.status(400).json({ success: false, error: "reason is required" });
+    }
+
+    const reward = await Reward.findById(rewardId).session(session);
+    if (!reward) {
+      await session.abortTransaction();
+      return res.status(404).json({ success: false, error: "Reward not found" });
+    }
+
+    if (!reward.winnerUserId) {
+      await session.abortTransaction();
+      return res.status(400).json({ success: false, error: "Cannot reject a reward without a winner" });
+    }
+
+    if (reward.approvalStatus === "approved" || reward.status === "paid") {
+      await session.abortTransaction();
+      return res.status(409).json({ success: false, error: "Cannot reject an approved/paid reward" });
+    }
+
+    const drawId = reward.drawId;
+    const rejectedUserId = reward.winnerUserId;
+    const normalizedReason = reason.trim();
+
+    reward.reviewHistory = reward.reviewHistory || [];
+    reward.reviewHistory.push({
+      userId: rejectedUserId,
+      action: "rejected",
+      reason: normalizedReason,
+      by: req.user._id,
+      at: new Date(),
+    });
+
+    // Find exclusions: already winners in this draw + already rejected for this rank
+    const allRewards = await Reward.find({ drawId }).select("winnerUserId").session(session);
+    const excluded = new Set();
+    for (const r of allRewards) {
+      if (r._id.toString() === reward._id.toString()) continue;
+      if (r.winnerUserId) excluded.add(r.winnerUserId.toString());
+    }
+    for (const h of reward.reviewHistory) {
+      if (h?.userId) excluded.add(h.userId.toString());
+    }
+
+    const leaderboard = await Post.aggregate([
+      { $match: { drawId: new mongoose.Types.ObjectId(drawId), verified: true } },
+      { $group: { _id: "$userId", totalPoints: { $sum: "$points" } } },
+      { $sort: { totalPoints: -1 } },
+    ]).session(session);
+
+    let nextWinnerId = null;
+    for (const row of leaderboard) {
+      const candidateId = row?._id?.toString?.();
+      if (!candidateId) continue;
+      if (excluded.has(candidateId)) continue;
+      nextWinnerId = row._id;
+      break;
+    }
+
+    reward.winnerUserId = nextWinnerId;
+    reward.approvalStatus = "pending";
+    reward.approvedBy = null;
+    reward.approvedAt = null;
+    reward.approvalNote = null;
+    reward.walletTransactionId = null;
+    reward.status = "pending";
+
+    await reward.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    // Notify rejected user (outside transaction)
+    const draw = await Draw.findById(drawId).select("title").lean();
+    await sendNotification(
+      rejectedUserId,
+      "system",
+      `You were not approved as a winner for "${draw?.title || "a draw"}" (rank ${reward.rank}). Reason: ${normalizedReason}`,
+      reward._id,
+      "Reward",
+    );
+
+    return res.json({ success: true, data: reward, message: "Winner rejected and replacement assigned" });
+  } catch (err) {
+    try {
+      await session.abortTransaction();
+    } catch (_) {
+      // ignore
+    }
+    session.endSession();
+    return next(err);
   }
 };
 

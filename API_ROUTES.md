@@ -14,7 +14,7 @@ Auth: Send JWT in header: `Authorization: Bearer <token>`
 |--------|------|-------------|
 | GET | `/api/viral/draws` | List draws (query: `?status=active\|upcoming\|closed`) |
 | GET | `/api/viral/draws/:id` | Single draw details |
-| GET | `/api/viral/draws/:drawId/winners` | Past winners for a draw |
+| GET | `/api/viral/draws/:drawId/winners` | Approved winners for a draw |
 | GET | `/api/viral/leaderboard` | Leaderboard (query: `drawId`, `scope=global\|country\|city`, `country`, `city`, `limit`, `offset`) |
 
 ### Participant (auth: Bearer token)
@@ -27,7 +27,7 @@ Auth: Send JWT in header: `Authorization: Bearer <token>`
 | GET | `/api/viral/submissions/me/:id` | One submission (approval status & feedback) |
 | POST | `/api/viral/posts` | Submit post proof (body: `submissionId`, `drawId`, `platform`, `postUrl`; optional file: `screenshot`) |
 | GET | `/api/viral/leaderboard/me` | My rank (query: `?drawId`) |
-| GET | `/api/viral/rewards/me` | My rewards |
+| GET | `/api/viral/rewards/me` | My rewards (activeRewards + rejections) |
 
 ### Viral Admin (auth: super_admin)
 
@@ -36,8 +36,12 @@ Auth: Send JWT in header: `Authorization: Bearer <token>`
 | GET | `/api/viral/admin/draws` | List all draws |
 | POST | `/api/viral/admin/draws` | Create draw |
 | PUT | `/api/viral/admin/draws/:id` | Update draw |
+| POST | `/api/viral/admin/draws/:drawId/banner` | Upload reward banner image (multipart: `image`) |
 | POST | `/api/viral/admin/draws/:drawId/rewards` | Create reward rows (body: array of `{ rank, rewardType, amount }`) |
 | POST | `/api/viral/admin/draws/:drawId/close` | Close draw & assign winners |
+| GET | `/api/viral/admin/draws/:drawId/winners` | List winners (includes pending + approved) |
+| POST | `/api/viral/admin/rewards/:rewardId/approve` | Approve winner & credit wallet (body: optional `{ note }`) |
+| POST | `/api/viral/admin/rewards/:rewardId/reject` | Reject winner & auto-promote next (body: `{ reason }`) |
 | GET | `/api/viral/admin/submissions` | Review queue (query: `?status`, `?drawId`) |
 | PUT | `/api/viral/admin/submissions/:id` | Approve/reject (body: `status`, `reviewNotes`) |
 | PUT | `/api/viral/admin/posts/:id` | Manual override (body: `verified`, `fraudFlag`, `engagement`) |

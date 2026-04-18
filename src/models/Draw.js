@@ -56,6 +56,12 @@ const drawSchema = new mongoose.Schema(
       min: 0,
     },
 
+    rewardBannerImageUrl: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+
     status: {
       type: String,
       enum: ["upcoming", "active", "closed", "archived"],

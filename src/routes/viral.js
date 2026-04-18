@@ -20,6 +20,10 @@ import {
   getMyRewards,
   createRewards,
   closeDraw,
+  getAdminWinners,
+  uploadDrawBanner,
+  approveReward,
+  rejectReward,
   listAdminSubmissions,
   updateSubmission,
   updatePost,
@@ -29,6 +33,7 @@ import {
 } from "../controllers/viralController.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { uploadViralVideo, uploadPostProofScreenshot, uploadViralVideoWithScreenshot } from "../middleware/viralUpload.js";
+import { uploadDrawBannerImage } from "../middleware/drawUpload.js";
 import { uploadCourseThumbnail, uploadCourseVideo } from "../middleware/courseUpload.js";
 import { handleCourseUpload } from "../controllers/courseUploadController.js";
 
@@ -73,8 +78,12 @@ router.get("/rewards/me", protect, getMyRewards);
 router.get("/admin/draws", protect, authorize("super_admin"), listAdminDraws);
 router.post("/admin/draws", protect, authorize("super_admin"), createDraw);
 router.put("/admin/draws/:id", protect, authorize("super_admin"), updateDraw);
+router.post("/admin/draws/:drawId/banner", protect, authorize("super_admin"), uploadDrawBannerImage, uploadDrawBanner);
 router.post("/admin/draws/:drawId/rewards", protect, authorize("super_admin"), createRewards);
 router.post("/admin/draws/:drawId/close", protect, authorize("super_admin"), closeDraw);
+router.get("/admin/draws/:drawId/winners", protect, authorize("super_admin"), getAdminWinners);
+router.post("/admin/rewards/:rewardId/approve", protect, authorize("super_admin"), approveReward);
+router.post("/admin/rewards/:rewardId/reject", protect, authorize("super_admin"), rejectReward);
 
 
 router.get("/admin/submissions", protect, authorize("super_admin"), listAdminSubmissions);

@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 const walletTransactionSchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ["deposit", "withdrawal", "order_earned", "order_paid"],
+    enum: ["deposit", "withdrawal", "order_earned", "order_paid", "draw_reward"],
     required: true,
   },
   amount: { type: Number, required: true }, // Always in USD (base currency)
