@@ -153,9 +153,10 @@ export const createJobRequest = async (req, res) => {
       });
     }
 
-    const EMERGENCY_FEE = 15;
+    const EMERGENCY_FEE = 5; // 5 USD
     let jobPrice = 0;
     let basePrice = 0;
+    let originalPrice = 0; // The local currency equivalent price for audit
 
     // ✅ Pricing logic based on selected pricing method
     if (selectedPricingMethod === "fixed") {
@@ -166,10 +167,14 @@ export const createJobRequest = async (req, res) => {
       }
       basePrice = gig.pricing.fixed.price;
       jobPrice = basePrice;
+      originalPrice = gig.pricing.originalFixedPrice || 0;
 
       // 👉 Add emergency surcharge
       if (emergency === true) {
         jobPrice += EMERGENCY_FEE;
+        // Also add the emergency fee to the original price (converted back to local)
+        const fxRate = gig.pricing.fxRate || 1;
+        originalPrice += (EMERGENCY_FEE * fxRate);
       }
 
       // ✅ Wallet check for fixed pricing
@@ -227,6 +232,10 @@ export const createJobRequest = async (req, res) => {
       basePrice: basePrice,
       emergencyFee: emergency ? EMERGENCY_FEE : 0,
       price: jobPrice,
+      pricingCurrency: "USD",
+      originalCurrency: gig.pricing.originalCurrency || "USD",
+      originalPrice: originalPrice,
+      fxRate: gig.pricing.fxRate || 1,
     });
 
     // 🔔 Notify seller

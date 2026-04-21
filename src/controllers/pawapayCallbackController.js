@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import Decimal from "decimal.js";
 import logger from "../utils/logger.js";
 import Transaction from "../models/Transaction.js";
 import Wallet from "../models/Wallet.js";
@@ -156,21 +157,26 @@ class PawaPayCallbackController {
 
       if (status === "COMPLETED") {
         transaction.status = "completed";
-        // update amount if provided by provider
-        const amt = depositedAmount || requestedAmount || transaction.amount;
-        transaction.amount = Number(amt) || transaction.amount;
+        // Update provider metadata but DO NOT overwrite the stored USD amount.
+        // The FX-converted USD amount was locked at deposit-request time.
         transaction.correspondent = correspondent || transaction.correspondent;
         transaction.correspondentIds =
           correspondentIds || transaction.correspondentIds;
         transaction.country = country || transaction.country;
-        transaction.currency = currency || transaction.currency;
+        // currency stays as-is — it's the original local currency
         transaction.metadata = metadata || transaction.metadata;
 
         if (embeddedTx) embeddedTx.status = "completed";
-        // credit wallet by transaction.amount, but only once
+        // Credit wallet with the stored USD amount — only once (idempotent)
         if (!transaction.applied) {
-          wallet.balance += Number(transaction.amount || 0);
+          const usdAmt = Number(transaction.amount || 0);
+          wallet.balance = Number(
+            new Decimal(wallet.balance || 0).plus(usdAmt).toFixed(2),
+          );
           transaction.applied = true;
+          logger.info(
+            `Deposit callback: credited ${usdAmt} USD to wallet for user ${transaction.userId}`,
+          );
         }
       } else if (status === "FAILED") {
         transaction.status = "failed";
@@ -295,23 +301,37 @@ class PawaPayCallbackController {
         transaction.correspondentIds =
           correspondentIds || transaction.correspondentIds;
         transaction.country = country || transaction.country;
-        transaction.currency = currency || transaction.currency;
+        // currency stays as-is — original local currency
         transaction.metadata = metadata || transaction.metadata;
         if (embeddedTx) embeddedTx.status = "completed";
-        // Deduct balance for payout, but only once
+        // Release hold — funds already moved from balance to onHoldBalance on initiation.
+        // DO NOT deduct from balance again.
         if (!transaction.applied) {
-          const amt = Number(transaction.amount || amount || 0);
-          wallet.balance = Number(wallet.balance || 0) - amt;
+          const usdAmt = Number(transaction.amount || 0);
+          wallet.onHoldBalance = Number(
+            new Decimal(wallet.onHoldBalance || 0).minus(usdAmt).toFixed(2),
+          );
           transaction.applied = true;
+          logger.info(
+            `Payout callback: released hold of ${usdAmt} USD for user ${transaction.userId}`,
+          );
         }
       } else if (status === "FAILED") {
         transaction.status = "failed";
         if (embeddedTx) embeddedTx.status = "failed";
-        // If we had already deducted the amount, refund it
-        if (transaction.applied) {
-          const amt = Number(transaction.amount || amount || 0);
-          wallet.balance = Number(wallet.balance || 0) + amt;
-          transaction.applied = false;
+        // Refund: move from onHoldBalance back to available balance
+        if (!transaction.applied) {
+          const usdAmt = Number(transaction.amount || 0);
+          wallet.onHoldBalance = Number(
+            new Decimal(wallet.onHoldBalance || 0).minus(usdAmt).toFixed(2),
+          );
+          wallet.balance = Number(
+            new Decimal(wallet.balance || 0).plus(usdAmt).toFixed(2),
+          );
+          transaction.applied = true;
+          logger.info(
+            `Payout callback: refunded ${usdAmt} USD to wallet for user ${transaction.userId}`,
+          );
         }
       } else {
         logger.info(

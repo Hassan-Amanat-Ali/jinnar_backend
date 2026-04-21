@@ -136,6 +136,22 @@ const options = {
                         }
                     }
                 },
+                Pagination: {
+                    type: "object",
+                    properties: {
+                        page: { type: "integer" },
+                        limit: { type: "integer" },
+                        total: { type: "integer" },
+                        pages: { type: "integer" }
+                    }
+                },
+                GigListResponse: {
+                    type: "object",
+                    properties: {
+                        gigs: { type: "array", items: { $ref: "#/components/schemas/Gig" } },
+                        pagination: { $ref: "#/components/schemas/Pagination" }
+                    }
+                },
                 // --- ORDER ---
                 Order: {
                     type: "object",
@@ -495,9 +511,14 @@ const options = {
                         { in: "query", name: "lat", schema: { type: "number" } },
                         { in: "query", name: "lng", schema: { type: "number" } },
                         { in: "query", name: "radius", schema: { type: "number" }, description: "Radius in KM." },
+                        { in: "query", name: "page", schema: { type: "integer", default: 1 } },
+                        { in: "query", name: "limit", schema: { type: "integer", default: 10 } },
                     ],
                     responses: {
-                        "200": { description: "A list of gigs." }
+                        "200": { 
+                            description: "A paginated list of gigs.",
+                            content: { "application/json": { schema: { $ref: "#/components/schemas/GigListResponse" } } }
+                        }
                     }
                 }
             },
@@ -505,8 +526,32 @@ const options = {
                 get: {
                     tags: ["Gigs"],
                     summary: "Get all active gigs",
+                    parameters: [
+                        { in: "query", name: "page", schema: { type: "integer", default: 1 } },
+                        { in: "query", name: "limit", schema: { type: "integer", default: 10 } },
+                    ],
                     responses: {
-                        "200": { description: "A list of all active gigs.", content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/Gig" } } } } }
+                        "200": { 
+                            description: "A paginated list of all active gigs.", 
+                            content: { "application/json": { schema: { $ref: "#/components/schemas/GigListResponse" } } } 
+                        }
+                    }
+                }
+            },
+            "/gigs/my-gigs": {
+                get: {
+                    tags: ["Gigs"],
+                    summary: "Get my gigs (Sellers only)",
+                    security: [{ bearerAuth: [] }],
+                    parameters: [
+                        { in: "query", name: "page", schema: { type: "integer", default: 1 } },
+                        { in: "query", name: "limit", schema: { type: "integer", default: 10 } },
+                    ],
+                    responses: {
+                        "200": { 
+                            description: "A paginated list of the user's gigs.",
+                            content: { "application/json": { schema: { $ref: "#/components/schemas/GigListResponse" } } }
+                        }
                     }
                 }
             },

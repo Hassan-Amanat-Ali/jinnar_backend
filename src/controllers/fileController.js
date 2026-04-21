@@ -12,23 +12,46 @@ export const serveFile = async (req, res) => {
   try {
     const { folder, filename } = req.params;
 
-    // Block directory traversal
-    if (filename.includes("..") || filename.includes("/") || filename.includes("\\")) {
-      return res.status(400).json({ error: "Invalid filename" });
+    // 1. Sanitize folder and filename (Block directory traversal)
+    // We use path.basename to ensure we only have the leaf name and no ".." or "/"
+    const sanitizedFolder = path.basename(folder);
+    const sanitizedFilename = path.basename(filename);
+
+    if (folder !== sanitizedFolder || filename !== sanitizedFilename) {
+      return res.status(400).json({ error: "Invalid folder or filename" });
     }
 
-    // Build absolute path using process.cwd() → works everywhere
-    const filePath = path.join(process.cwd(), "uploads", folder, filename);
+    // 2. Validate folder against known upload directories (Defense in depth)
+    const allowedFolders = [
+      "profilePictures",
+      "otherImages",
+      "portfolioImages",
+      "gigImages",
+      "videos",
+      "certificates",
+      "identity",
+      "chat",
+      "blogs",
+      "courses",
+      "viral"
+    ];
 
-    // Double-check it's really inside uploads (defense in depth)
+    if (!allowedFolders.includes(sanitizedFolder)) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    // 3. Build absolute path using process.cwd()
+    const filePath = path.join(process.cwd(), "uploads", sanitizedFolder, sanitizedFilename);
+
+    // Double-check it's really inside uploads (Additional path traversal protection)
     const resolvedPath = path.resolve(filePath);
     const uploadsDir = path.resolve(process.cwd(), "uploads");
     if (!resolvedPath.startsWith(uploadsDir)) {
       return res.status(400).json({ error: "Access denied" });
     }
 
-    // Your existing private folder + permission logic (keep unchanged)
-    if (privateFolders.includes(folder)) {
+    // Logic for privateFolders
+    if (privateFolders.includes(sanitizedFolder)) {
       if (!req.user || !req.user.id) {
         return res.status(401).json({ error: "Authentication required" });
       }
@@ -40,12 +63,12 @@ export const serveFile = async (req, res) => {
       if (!adminRoles.includes(userRole)) {
         let hasPermission = false;
 
-        if (folder === "identity") {
-          const user = await User.findOne({ _id: userId, "identityDocuments.url": { $regex: filename, $options: "i" } });
+        if (sanitizedFolder === "identity") {
+          const user = await User.findOne({ _id: userId, "identityDocuments.url": { $regex: sanitizedFilename, $options: "i" } });
           if (user) hasPermission = true;
-        } else if (folder === "chat") {
+        } else if (sanitizedFolder === "chat") {
           const message = await Message.findOne({
-            "attachment.url": { $regex: filename, $options: "i" },
+            "attachment.url": { $regex: sanitizedFilename, $options: "i" },
             $or: [{ sender: userId }, { receiver: userId }]
           });
           if (message) hasPermission = true;
@@ -58,15 +81,15 @@ export const serveFile = async (req, res) => {
     }
 
     // If folder is 'chat' we intentionally allow public access so images can load in browsers
-    if (folder === 'chat') {
-      console.log(`Serving public chat file: ${filename}`);
+    if (sanitizedFolder === 'chat') {
+      console.log(`Serving public chat file: ${sanitizedFilename}`);
     }
 
     // Serve file if exists
     if (fs.existsSync(filePath)) {
       return res.sendFile(filePath);
     } else {
-      console.log("File not found:", filePath); // Helps debugging
+      console.log("File not found:", sanitizedFilename); // Do not log full path
       return res.status(404).json({ error: "File not found" });
     }
   } catch (error) {
