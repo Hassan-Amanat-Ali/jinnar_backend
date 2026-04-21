@@ -1,215 +1,181 @@
+import dotenv from "dotenv";
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
 import mongoose from "mongoose";
 import Category from "../src/models/Category.js";
 import SubCategory from "../src/models/SubCategory.js";
-// CONNECT TO MONGO
-const MONGO_URI = "mongodb+srv://abdullahsf99_db_user:MwfxhADxqgIwaZeT@cluster0.gnexivw.mongodb.net/?appName=Cluster0";
 
-const categories = [
-  {
-    name: "Construction, Maintenance & Technical Services",
-    subs: [
-      "Bricklayers, Masons, Concrete Workers",
-      "Carpenters, Woodworkers",
-      "Roofers, Ceiling Installers",
-      "Plumbers, Pipe Installers",
-      "Electricians, Wiring Technicians",
-      "Painters, Polishers",
-      "Welders, Fabricators, Metal Workers",
-      "Tile & Flooring Installers",
-      "Aluminum/Glass Installers",
-      "Solar Panel Installers",
-      "Air-Conditioning/Fridge Technicians",
-      "Generator Technicians",
-      "Borehole Drillers & Pump Technicians",
-      "Fence Installers",
-      "Drainage & Septic Tank Workers",
-      "Handymen",
-    ]
-  },
+dotenv.config();
 
-  {
-    name: "Transport, Logistics & Mobility",
-    subs: [
-      "Motorcycle Taxi Riders",
-      "Tuk-tuk/Bajaj/Keke Riders",
-      "Taxi & Cab Drivers",
-      "Bus & Minibus Drivers",
-      "Truck & Long-Haul Drivers",
-      "Delivery Couriers",
-      "Vehicle Mechanics",
-      "Tire Repair Technicians",
-      "Vehicle Cleaning/Valet Workers",
-      "Porters, Loaders & Movers",
-    ]
-  },
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const CATEGORIES_FILE = path.resolve(__dirname, "..", "JINNAR MISSING CATEGORIES.txt");
+const MONGO_URI = process.env.MONGO_URI;
 
-  {
-    name: "Domestic, Personal & Household Services",
-    subs: [
-      "House Cleaners",
-      "Nannies & Babysitters",
-      "Elderly Caregivers",
-      "Private Cooks & Chefs",
-      "Gardeners, Landscapers",
-      "Laundry & Ironing",
-      "Pest Control",
-      "Home Organizing",
-      "Pool Cleaning",
-      "Water Delivery Services",
-    ]
-  },
+const normalizeValue = (name = "") => name.trim().replace(/\s+/g, "-").toLowerCase();
 
-  {
-    name: "Beauty, Grooming & Wellness",
-    subs: [
-      "Barbers",
-      "Hairdressers & Braiders",
-      "Nail Technicians",
-      "Makeup Artists",
-      "Massage Therapists",
-      "Henna Artists",
-      "Herbalists (Non-Medical)",
-    ]
-  },
+const escapeRegex = (value = "") => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-  {
-    name: "Electronics, Appliances & Repair Services",
-    subs: [
-      "Phone Repair Technicians",
-      "Computer Repair",
-      "TV & Electronics Repair",
-      "Appliance Repair",
-      "Battery Technicians",
-      "Locksmiths",
-      "Tailor Repair",
-      "Shoe Repair",
-    ]
-  },
+const parseCategoriesFile = (content) => {
+  const categories = [];
+  const lines = content.split(/\r?\n/);
+  let current = null;
 
-  {
-    name: "Food, Hospitality & Catering",
-    subs: [
-      "Street Food Vendors",
-      "Caterers",
-      "Market Food Sellers",
-      "Bakers & Pastry Makers",
-      "Juice/Tea Vendors",
-      "Chefs & Cooks",
-      "Food Delivery",
-    ]
-  },
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || /^Subcategories:$/i.test(line)) continue;
 
-  {
-    name: "Retail, Sales & Market Trade",
-    subs: [
-      "Clothing Sellers",
-      "Mitumba/Second-Hand Sellers",
-      "Cosmetics Sellers",
-      "Electronics Dealers",
-      "Household Goods Vendors",
-      "Furniture Sellers",
-      "Daily Market Traders",
-      "Kiosk/Duka Owners",
-    ]
-  },
+    const categoryMatch = line.match(/^\d+\.\s*(.+)$/);
+    if (categoryMatch) {
+      current = { name: categoryMatch[1].trim(), subs: [] };
+      categories.push(current);
+      continue;
+    }
 
-  {
-    name: "Arts, Crafts & Fabrication",
-    subs: [
-      "Tailors & Designers",
-      "Shoe Makers",
-      "Leather Artisans",
-      "Wood Carvers",
-      "Weavers & Basket Makers",
-      "Potters/Ceramics",
-      "Jewelry & Beadwork Makers",
-      "Upholsterers",
-    ]
-  },
+    if (line.startsWith("•") || line.startsWith("-")) {
+      if (!current) continue;
+      const sub = line.replace(/^[•-]\s*/, "").trim();
+      if (sub) current.subs.push(sub);
+    }
+  }
 
-  {
-    name: "Events, Media & Entertainment",
-    subs: [
-      "Photographers & Videographers",
-      "DJs",
-      "MCs",
-      "Event Planners",
-      "Event Decorators",
-      "Sound/PA System Providers",
-      "Tent & Chair Rental",
-      "Stage Builders",
-      "Performers",
-      "Traditional Dancers/Performers",
-    ]
-  },
+  return categories;
+};
 
-  {
-    name: "Agriculture, Fishing & Rural Work",
-    subs: [
-      "Farmers",
-      "Poultry & Livestock Keepers",
-      "Herders",
-      "Fishermen",
-      "Irrigation Workers",
-      "Produce Processors",
-      "Farm Laborers",
-      "Market Transporters",
-      "Beekeepers",
-    ]
-  },
+const findCategory = async (name) => {
+  const value = normalizeValue(name);
+  return Category.findOne({
+    $or: [
+      { value },
+      { name: { $regex: new RegExp(`^${escapeRegex(name.trim())}$`, "i") } },
+    ],
+  });
+};
 
-  {
-    name: "Water, Energy & Environmental Services",
-    subs: [
-      "Water Suppliers",
-      "Water Tank Cleaners",
-      "Solar Technicians",
-      "Firewood & Charcoal Sellers",
-      "Waste Collectors",
-      "Scrap Recyclers",
-      "Environmental Cleaners",
-      "Well/Pump Repair Technicians",
-    ]
-  },
-
-  {
-    name: "Education & Micro-Training",
-    subs: [
-      "Private Tutors",
-      "Music Tutors",
-      "Art Instructors",
-      "Driving Instructors",
-      "Sports Coaches",
-    ]
-  },
-];
+const findSubCategory = async (name) => {
+  const value = normalizeValue(name);
+  return SubCategory.findOne({
+    $or: [
+      { value },
+      { name: { $regex: new RegExp(`^${escapeRegex(name.trim())}$`, "i") } },
+    ],
+  });
+};
 
 async function seed() {
+  if (!MONGO_URI) {
+    throw new Error("MONGO_URI environment variable is not set.");
+  }
+
+  const dryRun = process.argv.includes("--dry-run");
+
+  await mongoose.connect(MONGO_URI);
   try {
-    await mongoose.connect(MONGO_URI);
-    console.log("Connected to DB");
+    const fileContent = await fs.readFile(CATEGORIES_FILE, "utf8");
+    const parsedCategories = parseCategoriesFile(fileContent);
 
-    await Category.deleteMany({});
-    await SubCategory.deleteMany({});
-    console.log("Cleared old data");
+    if (!parsedCategories.length) {
+      throw new Error(`No categories were parsed from ${CATEGORIES_FILE}`);
+    }
 
-    for (let cat of categories) {
-      const category = await Category.create({ name: cat.name });
+    const summary = {
+      categoriesCreated: 0,
+      categoriesUpdated: 0,
+      categoriesSkipped: 0,
+      subcategoriesCreated: 0,
+      subcategoriesUpdated: 0,
+      subcategoriesSkipped: 0,
+      subcategoriesConflicted: 0,
+    };
 
-      for (let sub of cat.subs) {
-        await SubCategory.create({
-          name: sub,
-          categoryId: category._id,
-        });
+    const seenSubcategoryValues = new Set();
+
+    for (const cat of parsedCategories) {
+      const normalizedCategoryValue = normalizeValue(cat.name);
+      let category = await findCategory(cat.name);
+
+      if (!category) {
+        if (!dryRun) {
+          category = await Category.create({ name: cat.name });
+        } else {
+          category = { _id: new mongoose.Types.ObjectId(), name: cat.name, value: normalizedCategoryValue };
+        }
+        summary.categoriesCreated += 1;
+      } else {
+        if ((category.value || "") !== normalizedCategoryValue) {
+          summary.categoriesUpdated += 1;
+          if (!dryRun) {
+            category.value = normalizedCategoryValue;
+            await category.save();
+          }
+        } else {
+          summary.categoriesSkipped += 1;
+        }
+      }
+
+      for (const subName of cat.subs) {
+        const normalizedSubValue = normalizeValue(subName);
+
+        if (seenSubcategoryValues.has(normalizedSubValue)) {
+          summary.subcategoriesSkipped += 1;
+          continue;
+        }
+
+        const existingSub = await findSubCategory(subName);
+
+        if (existingSub) {
+          seenSubcategoryValues.add(existingSub.value || normalizedSubValue);
+
+          if (!existingSub.value || existingSub.value !== normalizedSubValue) {
+            summary.subcategoriesUpdated += 1;
+            if (!dryRun) {
+              existingSub.value = normalizedSubValue;
+              await existingSub.save();
+            }
+          } else {
+            summary.subcategoriesSkipped += 1;
+          }
+
+          if (existingSub.categoryId?.toString() !== category._id?.toString()) {
+            summary.subcategoriesConflicted += 1;
+            console.warn(
+              `Skipping duplicate subcategory "${subName}" under "${cat.name}" because it already exists under another category.`,
+            );
+          }
+
+          continue;
+        }
+
+        seenSubcategoryValues.add(normalizedSubValue);
+        summary.subcategoriesCreated += 1;
+
+        if (!dryRun) {
+          await SubCategory.create({
+            name: subName,
+            categoryId: category._id,
+          });
+        }
       }
     }
 
-    console.log("Seeding Complete!");
-    process.exit();
-  } catch (err) {
-    console.error(err);
-    process.exit(1);
+    console.log(
+      JSON.stringify(
+        {
+          mode: dryRun ? "dry-run" : "apply",
+          file: CATEGORIES_FILE,
+          ...summary,
+        },
+        null,
+        2,
+      ),
+    );
+  } finally {
+    await mongoose.disconnect();
   }
 }
 
-seed();
+seed().catch((error) => {
+  console.error("Category import failed:", error);
+  process.exitCode = 1;
+});

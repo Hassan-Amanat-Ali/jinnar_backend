@@ -11,7 +11,8 @@
     "format": "prettier --write src/**/*.js",
     "validate-swagger": "node -e \"require('swagger-parser').validate('/src/config/swagger.yaml').then(() => console.log('Valid Swagger')).catch(err => console.error(err))\"",
     "migrate:permalinks": "node scripts/migratePermalinks.js",
-    "migrate:permalinks:apply": "node scripts/migratePermalinks.js --apply"
+    "migrate:permalinks:apply": "node scripts/migratePermalinks.js --apply",
+    "seed:missing-categories": "node scripts/seedCategories.js"
   },
   "keywords": [],
   "author": "",
