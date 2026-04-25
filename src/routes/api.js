@@ -58,6 +58,9 @@ router.use("/support", supportRoutes);
 router.use("/admin", adminRoutes);
 router.use("/payment", paymentRoutes);
 router.use("/config", systemConfigRoutes);
+// FX routes are typically public or have their own auth,
+// but for this context, they are under /api.
+// If they were meant to be public, they'd be outside /api.
 router.use("/fx", fxRoutes);
 
 router.use("/gigs", gigRoutes);

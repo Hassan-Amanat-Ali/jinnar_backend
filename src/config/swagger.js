@@ -126,7 +126,7 @@ const options = {
                         status: { type: "string", enum: ["active", "pending", "rejected", "suspended"] },
                         pricing: { type: "object" },
                         images: { type: "array", items: { type: "object", properties: { url: { type: "string" } } } },
-                        sellerId: {
+                        sellerId: { // This should be a reference to a UserPublicProfile or similar
                             type: "object",
                             properties: {
                                 _id: { type: "string" },
@@ -134,6 +134,39 @@ const options = {
                                 rating: { type: "object" }
                             }
                         }
+                    }
+                },
+                GigPricing: {
+                    type: "object",
+                    properties: {
+                        fixed: {
+                            type: "object",
+                            properties: {
+                                enabled: { type: "boolean", description: "Is fixed pricing enabled?" },
+                                price: { type: "number", description: "Fixed price in USD." }
+                            }
+                        },
+                        hourly: {
+                            type: "object",
+                            properties: {
+                                enabled: { type: "boolean", description: "Is hourly pricing enabled?" },
+                                rate: { type: "number", description: "Hourly rate in USD." },
+                                minHours: { type: "number", description: "Minimum hours for hourly rate." }
+                            }
+                        },
+                        inspection: {
+                            type: "object",
+                            properties: {
+                                enabled: { type: "boolean", description: "Is inspection-based pricing enabled?" }
+                            }
+                        },
+                        originalCurrency: { type: "string", description: "Original currency code of the pricing (e.g., KES, TZS)." },
+                        originalFixedPrice: { type: "number", description: "Original fixed price in local currency." },
+                        originalHourlyRate: { type: "number", description: "Original hourly rate in local currency." },
+                        fxRate: { type: "number", description: "Exchange rate used for conversion (1 USD = X local currency)." }
+                    },
+                    example: {
+                        fixed: { enabled: true, price: 50 }, hourly: { enabled: false, rate: 0, minHours: 0 }, inspection: { enabled: false }, originalCurrency: "USD", originalFixedPrice: 50, originalHourlyRate: 0, fxRate: 1
                     }
                 },
                 Pagination: {
@@ -208,14 +241,46 @@ const options = {
                         attachments: { type: "array", items: { type: "object", properties: { url: { type: "string" } } } }
                     }
                 },
+                CreateGigRequest: {
+                    type: "object",
+                    required: ["title", "description", "categoryId", "primarySubcategory"],
+                    properties: {
+                        title: { type: "string", description: "Title of the gig." },
+                        description: { type: "string", description: "Detailed description of the gig." },
+                        fixedEnabled: { type: "boolean", description: "Enable fixed pricing." },
+                        fixedPrice: { type: "number", description: "Fixed price for the gig (in pricingCurrency)." },
+                        hourlyEnabled: { type: "boolean", description: "Enable hourly pricing." },
+                        hourlyRate: { type: "number", description: "Hourly rate for the gig (in pricingCurrency)." },
+                        minHours: { type: "number", description: "Minimum hours for hourly pricing." },
+                        inspectionEnabled: { type: "boolean", description: "Enable inspection-based pricing." },
+                        categoryId: { type: "string", description: "ID of the main category." },
+                        primarySubcategory: { type: "string", description: "ID of the primary subcategory." },
+                        extraSubcategories: { type: "array", items: { type: "string" }, description: "Array of additional subcategory IDs." },
+                        address: { type: "string", description: "Physical address where the service is offered." },
+                        pricingCurrency: { type: "string", default: "USD", description: "Currency code for the prices provided (e.g., KES, TZS, USD)." },
+                    }
+                },
+                UpdateGigRequest: {
+                    type: "object",
+                    properties: {
+                        title: { type: "string", description: "Title of the gig." },
+                        description: { type: "string", description: "Detailed description of the gig." },
+                        fixedEnabled: { type: "boolean", description: "Enable fixed pricing." },
+                        fixedPrice: { type: "number", description: "Fixed price for the gig (in pricingCurrency)." },
+                        hourlyEnabled: { type: "boolean", description: "Enable hourly pricing." },
+                        hourlyRate: { type: "number", description: "Hourly rate for the gig (in pricingCurrency)." },
+                        minHours: { type: "number", description: "Minimum hours for hourly pricing." },
+                        inspectionEnabled: { type: "boolean", description: "Enable inspection-based pricing." },
+                        primarySubcategory: { type: "string", description: "ID of the primary subcategory." },
+                        extraSubcategories: { type: "array", items: { type: "string" }, description: "Array of additional subcategory IDs." },
+                        address: { type: "string", description: "Physical address where the service is offered." },
+                        pricingCurrency: { type: "string", default: "USD", description: "Currency code for the prices provided (e.g., KES, TZS, USD)." },
+                    }
+                },
                 // --- WALLET & PAYMENTS ---
                 Wallet: {
                     type: "object",
-                    properties: {
-                        balance: { type: "number" },
-                        onHoldBalance: { type: "number" },
-                        transactions: { type: "array", items: { type: "object" } }
-                    }
+                    properties: { balance: { type: "number", description: "Current available balance in USD." }, onHoldBalance: { type: "number", description: "Funds currently on hold (e.g., for pending withdrawals) in USD." }, currency: { type: "string", description: "Base currency of the wallet (always USD)." }, transactions: { type: "array", items: { type: "object" }, description: "List of recent transactions." } }
                 },
                 DepositRequest: {
                     type: "object",
@@ -223,7 +288,18 @@ const options = {
                     properties: {
                         phoneNumber: { type: "string" },
                         amount: { type: "number" },
-                        provider: { type: "string" },
+                        provider: { type: "string", description: "Payment provider (e.g., M-Pesa, Airtel Money)." },
+                        currency: { type: "string", description: "Local currency of the deposit (e.g., KES, TZS)." },
+                        country: { type: "string", description: "Country code (e.g., KE, TZ)." }
+                    }
+                },
+                WithdrawRequest: {
+                    type: "object",
+                    required: ["phoneNumber", "amount", "provider", "currency", "country"],
+                    properties: {
+                        phoneNumber: { type: "string" },
+                        amount: { type: "number", description: "Amount to withdraw in USD." },
+                        provider: { type: "string", description: "Payout provider (e.g., M-Pesa, Airtel Money)." },
                         currency: { type: "string" },
                         country: { type: "string" }
                     }
@@ -509,6 +585,7 @@ const options = {
                         { in: "query", name: "minPrice", schema: { type: "number" } },
                         { in: "query", name: "maxPrice", schema: { type: "number" } },
                         { in: "query", name: "lat", schema: { type: "number" } },
+                        { in: "query", name: "filterCurrency", schema: { type: "string", default: "USD", description: "Currency to filter prices by (e.g., KES, TZS, USD). Prices will be converted to USD for filtering." } },
                         { in: "query", name: "lng", schema: { type: "number" } },
                         { in: "query", name: "radius", schema: { type: "number" }, description: "Radius in KM." },
                         { in: "query", name: "page", schema: { type: "integer", default: 1 } },
@@ -536,6 +613,25 @@ const options = {
                             content: { "application/json": { schema: { $ref: "#/components/schemas/GigListResponse" } } } 
                         }
                     }
+                },
+                post: {
+                    tags: ["Gigs"],
+                    summary: "Create a new gig",
+                    security: [{ bearerAuth: [] }],
+                    requestBody: {
+                        required: true,
+                        content: { "application/json": { schema: { $ref: "#/components/schemas/CreateGigRequest" } } }
+                    },
+                    responses: {
+                        "201": {
+                            description: "Gig created successfully",
+                            content: { "application/json": { schema: { properties: { message: { type: "string" }, gig: { $ref: "#/components/schemas/Gig" } } } } }
+                        },
+                        "400": { description: "Bad Request", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                        "401": { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                        "403": { description: "Forbidden - Only sellers can create gigs", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                        "500": { description: "Internal Server Error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }
+                    }
                 }
             },
             "/gigs/my-gigs": {
@@ -562,6 +658,36 @@ const options = {
                     parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" } }],
                     responses: {
                         "200": { description: "Gig details", content: { "application/json": { schema: { $ref: "#/components/schemas/Gig" } } } }
+                    }
+                },
+                put: {
+                    tags: ["Gigs"],
+                    summary: "Update an existing gig",
+                    security: [{ bearerAuth: [] }],
+                    parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, description: "ID of the gig to update." }],
+                    requestBody: {
+                        required: true,
+                        content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateGigRequest" } } }
+                    },
+                    responses: {
+                        "200": { description: "Gig updated successfully", content: { "application/json": { schema: { properties: { message: { type: "string" }, gig: { $ref: "#/components/schemas/Gig" } } } } } },
+                        "400": { description: "Bad Request", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                        "401": { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                        "403": { description: "Forbidden - Only the gig owner can update", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                        "404": { description: "Gig not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                        "500": { description: "Internal Server Error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }
+                    }
+                },
+                delete: {
+                    tags: ["Gigs"],
+                    summary: "Delete a gig",
+                    security: [{ bearerAuth: [] }],
+                    parameters: [{ in: "path", name: "id", required: true, schema: { type: "string" }, description: "ID of the gig to delete." }],
+                    responses: {
+                        "200": { description: "Gig deleted successfully", content: { "application/json": { schema: { $ref: "#/components/schemas/SuccessMessage" } } } },
+                        "401": { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                        "403": { description: "Forbidden - Only the gig owner can delete", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+                        "404": { description: "Gig not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }
                     }
                 }
             },
@@ -699,21 +825,64 @@ const options = {
                     requestBody: {
                         content: { "application/json": { schema: { $ref: "#/components/schemas/DepositRequest" } } }
                     },
-                    responses: {
-                        "200": { description: "Deposit initiated" }
+                    responses: { "200": { description: "Deposit initiated; awaiting confirmation", content: { "application/json": { schema: { properties: { success: { type: "boolean" }, message: { type: "string" }, depositId: { type: "string" }, localAmount: { type: "number" }, currency: { type: "string" }, usdAmount: { type: "number" }, fxRate: { type: "number" } } } } } }, "400": { description: "Bad Request", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }, "401": { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }, "500": { description: "Internal Server Error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } }
                     }
                 }
             },
             "/wallet/withdraw": {
                 post: {
                     tags: ["Wallet & Payments"],
-                    summary: "Initiate a withdrawal from the wallet",
+                    summary: "Initiate a withdrawal from the wallet (Payout)",
+                    description: "Initiates a payout from the user's USD wallet balance to a local mobile money account. The amount provided in the request body should be in USD.",
                     security: [{ bearerAuth: [] }],
                     requestBody: {
-                        content: { "application/json": { schema: { $ref: "#/components/schemas/DepositRequest" } } }
+                        required: true,
+                        content: { "application/json": { schema: { $ref: "#/components/schemas/WithdrawRequest" } } }
                     },
-                    responses: {
-                        "201": { description: "Withdrawal initiated" }
+                    responses: { "201": { description: "Withdrawal initiated; awaiting confirmation", content: { "application/json": { schema: { properties: { success: { type: "boolean" }, message: { type: "string" }, payoutId: { type: "string" }, usdAmount: { type: "number" }, localAmount: { type: "number" }, currency: { type: "string" }, fxRate: { type: "number" }, newBalance: { type: "number" }, onHoldBalance: { type: "number" } } } } } }, "400": { description: "Bad Request (e.g., insufficient balance, invalid currency)", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }, "401": { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }, "500": { description: "Internal Server Error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } }
+                    }
+                }
+            },
+            "/wallet/config/countries-providers": {
+                get: {
+                    tags: ["Wallet & Payments"],
+                    summary: "Get supported countries and payment providers",
+                    description: "Retrieves a list of countries and their supported mobile money providers for deposit or payout operations.",
+                    parameters: [
+                        { in: "query", name: "operationType", schema: { type: "string", enum: ["DEPOSIT", "PAYOUT"], default: "DEPOSIT" }, description: "Filter by operation type (DEPOSIT or PAYOUT)." }
+                    ],
+                    responses: { "200": { description: "List of supported countries and providers.", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, companyName: { type: "string" }, operationType: { type: "string" }, countries: { type: "array", items: { type: "object", properties: { countryCode: { type: "string" }, countryName: { type: "string" }, prefix: { type: "string" }, flag: { type: "string" }, providers: { type: "array", items: { type: "object", properties: { providerId: { type: "string" }, displayName: { type: "string" }, logo: { type: "string" }, nameDisplayedToCustomer: { type: "string" }, currencies: { type: "array", items: { type: "object", properties: { code: { type: "string" }, displayName: { type: "string" }, operationDetails: { type: "object" } } } } } } } } } } } } } }, "400": { description: "Bad Request", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }, "500": { description: "Internal Server Error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }
+                    }
+                }
+            },
+            "/wallet/payouts/{payoutId}/status": {
+                get: {
+                    tags: ["Wallet & Payments"],
+                    summary: "Check status of a specific payout",
+                    description: "Allows checking the real-time status of a payout initiated via PawaPay.",
+                    security: [{ bearerAuth: [] }],
+                    parameters: [{ in: "path", name: "payoutId", required: true, schema: { type: "string" }, description: "The PawaPay payout ID." }],
+                    responses: { "200": { description: "Current status of the payout.", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" }, transaction: { type: "object", properties: { payoutId: { type: "string" }, status: { type: "string" }, amount: { type: "number" }, currency: { type: "string" }, country: { type: "string" }, lastChecked: { type: "string", format: "date-time" } } } } } } } }, "400": { description: "Bad Request", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }, "401": { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }, "404": { description: "Payout not found", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }, "500": { description: "Internal Server Error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }
+                    }
+                }
+            },
+            "/wallet/stats": {
+                get: {
+                    tags: ["Wallet & Payments"],
+                    summary: "Get wallet statistics (Admin only)",
+                    description: "Retrieves aggregated statistics about wallet transactions, typically for administrative monitoring.",
+                    security: [{ bearerAuth: [] }],
+                    responses: { "200": { description: "Wallet statistics.", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, stats: { type: "array", items: { type: "object", properties: { _id: { type: "string" }, count: { type: "integer" }, totalAmount: { type: "number" } } } }, timestamp: { type: "string", format: "date-time" } } } } } }, "401": { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }, "403": { description: "Forbidden - Admin access required", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }, "500": { description: "Internal Server Error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }
+                    }
+                }
+            },
+            "/wallet/earnings": {
+                get: {
+                    tags: ["Wallet & Payments"],
+                    summary: "Get user earnings data",
+                    description: "Retrieves monthly and weekly earnings data for the authenticated user.",
+                    security: [{ bearerAuth: [] }],
+                    responses: { "200": { description: "User earnings data.", content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean" }, data: { type: "object", properties: { monthlyEarnings: { type: "number" }, currency: { type: "string" }, weeklyEarnings: { type: "array", items: { type: "object", properties: { week: { type: "integer" }, amount: { type: "number" }, startDate: { type: "string", format: "date-time" }, endDate: { type: "string", format: "date-time" } } } }, totalTransactions: { type: "integer" } } } } } } }, "401": { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }, "500": { description: "Internal Server Error", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } }
                     }
                 }
             },

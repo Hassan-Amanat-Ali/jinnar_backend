@@ -594,6 +594,7 @@ export const getAllGigs = async (req, res, next) => {
               images: 1,
               status: 1,
               createdAt: 1,
+              pricing: 1, // Include full pricing object
               "sellerId._id": "$sellerInfo._id",
               "sellerId.name": "$sellerInfo.name",
               "sellerId.rating": "$sellerInfo.rating",

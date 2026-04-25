@@ -72,7 +72,7 @@ class WalletController {
 
     try {
       // Validate currency is supported
-      if (!FXService.isSupported(currency)) {
+      if (!(await FXService.isSupported(currency))) {
         return res.status(400).json({
           success: false,
           message: `Unsupported currency: ${currency}`,
@@ -199,7 +199,7 @@ class WalletController {
       }
 
       // Validate currency is supported
-      if (!FXService.isSupported(currency)) {
+      if (!(await FXService.isSupported(currency))) {
         return res.status(400).json({
           success: false,
           error: `Unsupported currency: ${currency}`,

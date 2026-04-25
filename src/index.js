@@ -18,6 +18,7 @@ import { initializeRecommendationEngine } from './services/recommendationService
 import agenda from './config/agenda.js';
 import PayoutMonitorService from './services/payoutMonitorService.js';
 import '../scripts/ticket-maintenance.js';
+import { defineFXJobs } from './jobs/fxJobs.js';
 import swaggerSpec from './config/swagger.js';
 
 // Initialize Passport
@@ -57,6 +58,11 @@ connectDb().then(async () => {
 
   await agenda.every('30 minutes', 'monitor-sla-breaches');
   await agenda.every('1 day', 'auto-close-resolved-tickets');
+
+  // Register and schedule FX rates refresh
+  defineFXJobs();
+  await agenda.every('1 hour', 'refresh-fx-rates');
+  console.log('📅 [FX] Background refresh scheduled every 1 hour');
 
   console.log('✅ All scheduled jobs configured');
 

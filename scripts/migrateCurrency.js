@@ -32,7 +32,7 @@ async function migrateData() {
 
         // Set the original currency
         gig.pricing.originalCurrency = MIGRATION_CURRENCY;
-        const fxRate = FXService.getRate(MIGRATION_CURRENCY);
+        const fxRate = await FXService.getRate(MIGRATION_CURRENCY);
         gig.pricing.fxRate = fxRate;
 
         if (originalFixedPrice !== undefined && originalFixedPrice > 0) {
@@ -67,7 +67,7 @@ async function migrateData() {
       if (!order.originalCurrency) {
         const originalPrice = order.price;
         order.originalCurrency = MIGRATION_CURRENCY;
-        const fxRate = FXService.getRate(MIGRATION_CURRENCY);
+        const fxRate = await FXService.getRate(MIGRATION_CURRENCY);
         order.fxRate = fxRate;
         order.originalPrice = originalPrice;
         order.pricingCurrency = "USD";

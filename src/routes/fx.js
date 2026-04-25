@@ -1,5 +1,6 @@
 import express from "express";
-import { FX_RATES, BASE_CURRENCY, CURRENCY_PRECISION } from "../config/fxRates.js";
+import { BASE_CURRENCY, CURRENCY_PRECISION } from "../config/fxRates.js";
+import FXService from "../services/fxService.js";
 
 const router = express.Router();
 
@@ -8,15 +9,24 @@ const router = express.Router();
  * @desc    Get all supported FX rates, base currency, and precisions
  * @access  Public
  */
-router.get("/rates", (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      baseCurrency: BASE_CURRENCY,
-      rates: FX_RATES,
-      precisions: CURRENCY_PRECISION
-    }
-  });
+router.get("/rates", async (req, res) => {
+  try {
+    const rates = await FXService.getLiveRates();
+    res.json({
+      success: true,
+      data: {
+        baseCurrency: BASE_CURRENCY,
+        rates: rates,
+        precisions: CURRENCY_PRECISION
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch exchange rates",
+      error: error.message
+    });
+  }
 });
 
 export default router;
