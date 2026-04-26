@@ -144,6 +144,14 @@ const userSchema = new mongoose.Schema(
       type: pointSchema,
       default: null,
     },
+    slug: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+      lowercase: true,
+      trim: true,
+    },
     preferences: {
       emailNotifications: { type: Boolean, default: true },
       inAppNotifications: { type: Boolean, default: true },
@@ -364,6 +372,42 @@ userSchema.index({ "socialAccounts.facebook.id": 1 }, { sparse: true });
 userSchema.index({ "socialAccounts.instagram.connected": 1 });
 userSchema.index({ totalPoints: -1 });
 
+
+// Ensure slug always follows lowercase-hyphen rules
+userSchema.pre("validate", function (next) {
+  if (this.role === "seller") {
+    if (!this.slug || (this.isModified("name") && !this.isModified("slug"))) {
+      this.slug = (this.name || "worker")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+    } else {
+      this.slug = this.slug
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+    }
+  }
+  next();
+});
+
+// Handle slug collisions for users
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("slug") || !this.slug) return next();
+
+  const User = this.constructor;
+  const originalSlug = this.slug;
+  let finalSlug = originalSlug;
+  let counter = 2;
+
+  while (await User.findOne({ slug: finalSlug, _id: { $ne: this._id } })) {
+    finalSlug = `${originalSlug}-${counter}`;
+    counter += 1;
+  }
+
+  this.slug = finalSlug;
+  next();
+});
 
 // Ensure at least one auth method is present before saving
 userSchema.pre("save", function (next) {

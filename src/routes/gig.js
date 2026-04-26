@@ -8,6 +8,7 @@ import {
   getMyGigs,
   deleteGig,
   updateGig,
+  getGigBySlug,
 } from "../controllers/gigController.js";
 import { protect } from "../middleware/auth.js";
 import { uploadGigImageMW, uploadGigImagesMW } from "../middleware/upload.js";
@@ -21,6 +22,7 @@ router.get("/", getAllGigs);
 
 router.get("/my-gigs", protect, getMyGigs);
 
+router.get("/slug/:slug", getGigBySlug);
 router.get("/:id", getGigById);
 
 router.put("/update/:id", protect, ...uploadGigImageMW, updateGig);

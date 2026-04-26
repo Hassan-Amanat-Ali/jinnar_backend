@@ -28,6 +28,7 @@ import viralRoutes from "./viral.js";
 // import adminBlogRoutes from "./adminBlogRoutes.js"; // Import the new admin blog routes
 import blogRoutes from "./blogRoutes.js";
 import fxRoutes from "./fx.js";
+import seoRoutes from "./seo.js";
 // import { checkMaintenanceMode } from "../middleware/maintenance.js";
 
 const router = express.Router();
@@ -79,6 +80,7 @@ router.use("/courses", courseRoutes);
 
 import verificationRoutes from "./verificationRoutes.js";
 router.use("/verification", verificationRoutes);
+router.use("/seo", seoRoutes);
 
 
 // Legacy route for backward compatibility

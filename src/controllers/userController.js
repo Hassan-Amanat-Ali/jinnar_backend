@@ -141,6 +141,7 @@ export const findWorkers = asyncHandler(async (req, res) => {
     averageResponseTime
     preferredAreas
     categories
+    slug
   `,
     )
     .populate("categories", "name");
@@ -200,6 +201,7 @@ export const findWorkers = asyncHandler(async (req, res) => {
   // -------------------------
   const mapWorker = (seller) => ({
     id: seller._id,
+    slug: seller.slug,
     name: seller.name,
     profilePicture: seller.profilePicture,
     bio: seller.bio,
@@ -1476,4 +1478,35 @@ export const getUserDetailsForAdmin = asyncHandler(async (req, res) => {
     success: true,
     data: userDetails,
   });
+});
+
+export const getUserBySlug = asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+
+  const user = await User.findOne({ slug, isSuspended: false })
+    .select("-password -fcmTokens -verificationCode")
+    .populate("categories", "name value")
+    .populate("subcategories", "name value");
+
+  if (!user) {
+    return res.status(404).json({ success: false, message: "Worker not found" });
+  }
+
+  res.json({ success: true, user });
+});
+
+export const runUserSlugMigration = asyncHandler(async (req, res) => {
+  const users = await User.find({ role: "seller" });
+  let updatedCount = 0;
+
+  for (const user of users) {
+    if (!user.slug) {
+      // Triggering hooks
+      user.markModified("slug"); 
+      await user.save();
+      updatedCount++;
+    }
+  }
+
+  res.json({ success: true, message: `Migrated ${updatedCount} users.` });
 });

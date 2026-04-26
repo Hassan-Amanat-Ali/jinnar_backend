@@ -7,6 +7,7 @@ import {
   getSellerReviews,
   submitForVerification,
   getUserDetailsForAdmin,
+  getUserBySlug,
 } from "../controllers/userController.js";
 import { protect, authorize } from "../middleware/auth.js";
 import { createReport, getMyReports } from "../controllers/ReportController.js";
@@ -18,6 +19,7 @@ router.post("/update", protect, updateUser);
 router.get("/profile", protect, getMyProfile);
 router.get("/public/:id", getPublicProfile);
 router.get("/public/:id/reviews", getSellerReviews);
+router.get("/slug/:slug", getUserBySlug);
 router.post("/fcm-token", protect, updateFcmToken);
 router.post("/reports/create", protect, createReport);
 router.get("/reports/me", protect, getMyReports);

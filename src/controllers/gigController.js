@@ -48,10 +48,17 @@ const resolveGigPermalinkFallback = (gig) =>
     serviceSlug: toSlug(gig.serviceSlug || gig.title, "service"),
   });
 
-const attachGigPermalink = (gig) => ({
-  ...gig,
-  permalink: resolveGigPermalinkFallback(gig),
-});
+const attachGigPermalink = (gig) => {
+  const categorySlug = gig.category?.value || (gig.categoryData ? gig.categoryData.value : "service");
+  const subCategorySlug = gig.primarySubcategory?.value || (gig.primarySubData ? gig.primarySubData.value : "general");
+  const slug = gig.slug || gig.serviceSlug;
+
+  return {
+    ...gig,
+    permalink: resolveGigPermalinkFallback(gig),
+    slugPath: `/${categorySlug}/${subCategorySlug}/${slug}`,
+  };
+};
 
 export const searchGigs = async (req, res) => {
   try {
@@ -280,8 +287,8 @@ export const searchGigs = async (req, res) => {
               "sellerId.location": "$sellerInfo.location",
               "sellerId.skills": "$sellerInfo.skills",
               "sellerId.selectedAreas": "$sellerInfo.selectedAreas",
-              "category": { _id: "$categoryData._id", name: "$categoryData.name" },
-              "primarySubcategory": { _id: "$primarySubData._id", name: "$primarySubData.name" }
+              "category": { _id: "$categoryData._id", name: "$categoryData.name", value: "$categoryData.value" },
+              "primarySubcategory": { _id: "$primarySubData._id", name: "$primarySubData.name", value: "$primarySubData.value" }
             }
           }
         ],
@@ -457,7 +464,11 @@ export const createGig = async (req, res, next) => {
     });
 
     await gig.save();
-    await gig.populate("sellerId", "name bio skills");
+    await gig.populate([
+      { path: "sellerId", select: "name bio skills" },
+      { path: "category", select: "name value" },
+      { path: "primarySubcategory", select: "name value" }
+    ]);
 
     res.status(201).json({
       message: "Gig created successfully",
@@ -603,8 +614,8 @@ export const getAllGigs = async (req, res, next) => {
               "sellerId.location": "$sellerInfo.location",
               "sellerId.skills": "$sellerInfo.skills",
               "sellerId.selectedAreas": "$sellerInfo.selectedAreas",
-              "category": { _id: "$categoryData._id", name: "$categoryData.name" },
-              "primarySubcategory": { _id: "$primarySubData._id", name: "$primarySubData.name" }
+              "category": { _id: "$categoryData._id", name: "$categoryData.name", value: "$categoryData.value" },
+              "primarySubcategory": { _id: "$primarySubData._id", name: "$primarySubData.name", value: "$primarySubData.value" }
             }
           }
         ],
@@ -900,7 +911,11 @@ export const updateGig = async (req, res, next) => {
     }
 
     await gig.save();
-    await gig.populate("sellerId", "name bio skills");
+    await gig.populate([
+      { path: "sellerId", select: "name bio skills" },
+      { path: "category", select: "name value" },
+      { path: "primarySubcategory", select: "name value" }
+    ]);
 
     res.json({
       message: "Gig updated successfully",
@@ -918,7 +933,7 @@ export const getGigById = asyncHandler(async (req, res) => {
   const gig = await Gig.findById(id).populate(
     "sellerId",
     "name profilePicture availability verificationStatus",
-  );
+  ).populate("category", "name value").populate("primarySubcategory", "name value");
 
   if (!gig) {
     return res.status(404).json({ success: false, message: "Gig not found" });
@@ -970,6 +985,72 @@ export const getGigByPermalink = asyncHandler(async (req, res) => {
     success: true,
     redirected,
     gig: attachGigPermalink(gig.toObject()),
+  });
+});
+
+export const getGigBySlug = asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+
+  const gig = await Gig.findOne({ slug, status: "active" })
+    .populate("category", "name value")
+    .populate("primarySubcategory", "name value")
+    .populate("sellerId", "name profilePicture availability verificationStatus");
+
+  if (!gig) {
+    return res.status(404).json({ success: false, message: "Gig not found" });
+  }
+
+  if (!gig.sellerId || gig.sellerId.verificationStatus !== "approved") {
+    return res.status(404).json({ success: false, message: "Gig not available" });
+  }
+
+  res.json({ success: true, gig: attachGigPermalink(gig.toObject()) });
+});
+
+export const runGigSlugMigration = asyncHandler(async (req, res) => {
+  const Gigs = await Gig.find({});
+  let updatedCount = 0;
+  const operations = [];
+  const assignedSlugs = new Set();
+
+  // First, add existing slugs to the set
+  Gigs.forEach(g => { if (g.slug) assignedSlugs.add(g.slug); });
+
+  for (const gig of Gigs) {
+    if (!gig.slug) {
+      let baseSlug = gig.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      
+      let finalSlug = baseSlug || "gig"; // Fallback if title has no safe characters
+      let counter = 2;
+      
+      // Check against DB AND current batch
+      while (assignedSlugs.has(finalSlug) || await Gig.findOne({ slug: finalSlug })) {
+        finalSlug = `${baseSlug || "gig"}-${counter++}`;
+      }
+
+      assignedSlugs.add(finalSlug);
+      operations.push({
+        updateOne: {
+          filter: { _id: gig._id },
+          update: { $set: { slug: finalSlug } }
+        }
+      });
+      updatedCount++;
+    }
+  }
+
+  if (operations.length > 0) {
+    await Gig.bulkWrite(operations);
+  }
+
+  res.json({
+    success: true,
+    message: `Migration completed. ${updatedCount} gigs updated.`,
+    totalScanned: Gigs.length,
+    updated: updatedCount
   });
 });
 

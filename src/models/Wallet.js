@@ -49,6 +49,6 @@ const walletSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-walletSchema.index({ userId: 1 });
+// walletSchema.index({ userId: 1 }); // Removed redundant index (already handled by unique: true)
 
 export default mongoose.model("Wallet", walletSchema);

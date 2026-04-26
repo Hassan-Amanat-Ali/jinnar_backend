@@ -11,12 +11,19 @@ describe("Auth Module", () => {
   });
 
   describe("POST /auth/login", () => {
-    it.todo("should login with valid credentials");
+    it.todo("should login with valid credentials (email)");
+    it.todo("should login with valid credentials (mobile)");
     it.todo("should fail with invalid password");
+    it.todo("should fail if user is not verified");
   });
 
-  describe("POST /auth/verify-otp", () => {
-    it.todo("should verify user with correct OTP");
-    it.todo("should fail with expired OTP");
+  describe("POST /auth/reset-password", () => {
+    it.todo("should initiate password reset");
+    it.todo("should complete password reset with valid OTP");
+  });
+
+  describe("Social Auth", () => {
+    it.todo("should handle Google OAuth callback");
+    it.todo("should handle Facebook OAuth callback");
   });
 });

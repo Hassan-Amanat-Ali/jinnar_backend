@@ -43,6 +43,14 @@ const gigSchema = new mongoose.Schema(
       lowercase: true,
       index: true,
     },
+    slug: {
+      type: String,
+      unique: true,
+      sparse: true, // Allow existing docs to coexist before migration
+      index: true,
+      lowercase: true,
+      trim: true,
+    },
     permalinkAliases: {
       type: [String],
       default: [],
@@ -165,9 +173,35 @@ gigSchema.pre("validate", function (next) {
   } else {
     this.serviceSlug = toSlug(this.serviceSlug, "service");
   }
+
+  // Also handle the global unique slug
+  if (!this.slug || (this.isModified("title") && !this.isModified("slug"))) {
+    this.slug = toSlug(this.title, "gig");
+  } else {
+    this.slug = toSlug(this.slug, "gig");
+  }
+
   if (Array.isArray(this.permalinkAliases)) {
     this.permalinkAliases = [...new Set(this.permalinkAliases.filter(Boolean))];
   }
+  next();
+});
+
+// Global slug uniqueness handling (like Blog model)
+gigSchema.pre("save", async function (next) {
+  if (!this.isModified("slug")) return next();
+
+  const Gig = this.constructor;
+  const originalSlug = this.slug;
+  let finalSlug = originalSlug;
+  let counter = 2;
+
+  while (await Gig.findOne({ slug: finalSlug, _id: { $ne: this._id } })) {
+    finalSlug = `${originalSlug}-${counter}`;
+    counter += 1;
+  }
+
+  this.slug = finalSlug;
   next();
 });
 

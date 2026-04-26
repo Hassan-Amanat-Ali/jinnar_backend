@@ -1169,8 +1169,8 @@ class AdminController {
 
       const gigs = await Gig.find(filter)
         .populate("sellerId", "name email rating mobileNumber address selectedAreas")
-        .populate("category", "name")
-        .populate("primarySubcategory", "name")
+        .populate("category", "name value")
+        .populate("primarySubcategory", "name value")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);
@@ -1215,8 +1215,8 @@ class AdminController {
 
       const gig = await Gig.findById(id)
         .populate("sellerId", "name email mobileNumber rating bio skills yearsOfExperience address selectedAreas profilePicture location isVerified verificationStatus isSuspended")
-        .populate("category", "name")
-        .populate("primarySubcategory", "name")
+        .populate("category", "name value")
+        .populate("primarySubcategory", "name value")
         .populate("extraSubcategories", "name");
 
       if (!gig) {
